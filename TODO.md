@@ -75,7 +75,7 @@ These tasks must be completed before Phase 1 is fully shipped. Blocked on having
 
 ---
 
-## Phase 2 — Forum CRUD (In Progress or Blocked)
+## Phase 2 — Forum CRUD (✅ Complete — Read-only views)
 
 These tasks are next. Some may be blocked on Phase 1 completion or have their own blockers.
 

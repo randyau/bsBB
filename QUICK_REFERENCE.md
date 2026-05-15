@@ -175,8 +175,9 @@ SETUP_COMPLETE=true
 ## Phase Status
 
 - **Phase 1 ✅** — Auth, sessions, DB, Docker, abuse stub, setup scripts. Ready for manual E2E testing.
-- **Phase 2** — Forum CRUD (create/read threads & posts, search, pagination)
-- **Phase 3** — Permissions & moderation (visibility, role assignment, actions, audit log)
-- **Phase 4** — Notifications (DM opt-in, worker, queue, rate limiting)
-- **Phase 5** — Admin UI (instance settings, moderation queue, user management)
+- **Phase 2 ✅** — Forum index, thread listing (with pagination), thread detail (flat posts). Permission enforcement. Slug redirects.
+- **Phase 3** — Post creation (editor, markdown, OG metadata, revisions), soft-delete posts, lock/pin threads
+- **Phase 4** — Moderation & rate limiting (ban/unban, delete/restore, content flagging, abuse checks)
+- **Phase 5** — Notifications & admin UI (DM worker, email, admin tools, audit log)
+- **Phase 6** — Full-text search, Docker prod, README, ship
 
