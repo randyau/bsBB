@@ -23,6 +23,24 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
+## Status — Phase 1 ✅
+
+**Phase 1 (Foundations) is complete.** All 35 unit tests passing. TypeScript strict mode clean. 
+
+Implemented:
+- SvelteKit + adapter-node + Tailwind v4 + Vitest scaffold
+- PostgreSQL 17 schema (12 tables) + Drizzle ORM
+- Custom roll-your-own sessions (32-byte token, SHA-256 hash, Postgres-backed)
+- ATproto OAuth integration (@atproto/oauth-client-node)
+- User upsert, lazy profile sync, first-admin gate, banned user redirect
+- Abuse stub module (always allows, ready for Phase 4 real logic)
+- Docker Compose (dev + prod configs)
+- Setup scripts (keypair generation, DB migration, seeding)
+
+**Ready for Phase 2:** Forum/thread/post CRUD and read operations.
+
+---
+
 ## 1. Stack Decisions — Finalized
 
 | Concern | Choice | Notes |
@@ -35,7 +53,7 @@ This document translates the project specification (CLAUDE.md) and all collected
 | E2E testing | Playwright | Deferred to post-v1 |
 | Database | PostgreSQL 17 (latest stable) | |
 | ORM | Drizzle | Migration-file workflow throughout (no `drizzle-kit push` in any env) |
-| Sessions | Custom (roll-your-own) | Lucia v3 deprecated March 2025; rolling own is now the recommended approach — ~50 lines, crypto-secure token, Postgres-backed, no external session library |
+| Sessions | Custom (roll-your-own) | Lucia v3 deprecated March 2025; rolling own is now the recommended approach — 32-byte random token, SHA-256 hashed in DB, Postgres-backed, no external session library |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK; handles DPoP/PAR/token refresh |
 | Markdown pipeline | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side only |
 | Markdown editor | CodeMirror 6 | With markdown mode; preview is button-toggled (not live) |
@@ -63,8 +81,9 @@ bsBB/
 │   │   │   └── migrations/               # Drizzle-generated SQL migration files
 │   │   │
 │   │   ├── auth/
-│   │   │   ├── atproto.ts                # @atproto/oauth-client-node init + session flow
-│   │   │   ├── session.ts                # Lucia session management helpers
+│   │   │   ├── atproto.ts                # @atproto/oauth-client-node init + OAuth callback handler
+│   │   │   ├── session.ts                # Custom session management (create, validate, invalidate, cookie ops)
+│   │   │   ├── user.ts                   # User upsert, first-admin claim, DID resolution
 │   │   │   └── profile-sync.ts           # Lazy DID profile re-sync logic
 │   │   │
 │   │   ├── permissions/
