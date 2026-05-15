@@ -2,15 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { validateSession, getSessionToken } from '$lib/auth/session.js';
 
-let workerStarted = false;
-
 export const handle: Handle = async ({ event, resolve }) => {
-	// Start notification worker on first request (Phase 5)
-	if (!workerStarted) {
-		workerStarted = true;
-		// startNotificationWorker() — wired in Phase 5
-	}
-
 	// Session hydration
 	const token = getSessionToken(event);
 	if (token) {

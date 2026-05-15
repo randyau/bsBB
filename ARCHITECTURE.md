@@ -687,21 +687,34 @@ After first `docker compose up`:
 
 ### Docker Compose Services
 
+**Stateless, horizontally-scalable architecture:**
+
 ```
-app    — SvelteKit Node container; internal network only; PORT=3000
+app    — SvelteKit Node container (×N); internal network only; PORT=3000
+         Stateless: config from env vars only, no local files
+         Serves web requests + OAuth callbacks + /client-metadata.json (dynamic)
+         
+worker — Node process (×M); internal network only; runs src/worker.ts
+         Executes background tasks via PostgreSQL FOR UPDATE SKIP LOCKED
+         Scales independently of web tier; no shared state
+         
 db     — postgres:17; named volume forum_data; internal network only
-caddy  — ports 80/443; reverse proxies to app:3000; serves /client-metadata.json from mounted ./docker/caddy-static/
+         Central state store; notification_queue uses row locking for safe concurrent access
+         
+caddy  — ports 80/443; reverse proxies to app:3000
+         No longer serves static files (all dynamic now)
 ```
 
 ### Caddy Config (key excerpts)
 
 ```
 yourforum.com {
-  handle /client-metadata.json {
-    root * /srv/static
-    file_server
-  }
+  # client-metadata.json is now dynamic — route to the web app
+  reverse_proxy /client-metadata.json app:3000
+  
+  # All other requests
   reverse_proxy app:3000
+  
   header {
     Content-Security-Policy "default-src 'self'; ..."
     X-Frame-Options "SAMEORIGIN"
@@ -786,20 +799,28 @@ Limits are stored in `instance_settings` so admins can tune them without redeplo
 
 ### Storage Backend
 
-**Phase 4 (initial):** PostgreSQL-backed using a `rate_limit_buckets` table:
+**Phase 4 (initial):** PostgreSQL-backed using a `rate_limit_buckets` table with **atomic upserts**:
 
 ```sql
 CREATE TABLE rate_limit_buckets (
-  key        TEXT NOT NULL,         -- e.g. "post_submit:did:plc:xxxx"
-  count      INTEGER NOT NULL DEFAULT 0,
-  window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+  key           TEXT NOT NULL,
+  count         INTEGER NOT NULL DEFAULT 0,
+  window_start  TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (key)
 );
+
+-- Atomic increment (no race conditions in multi-instance web tier):
+INSERT INTO rate_limit_buckets (key, count, window_start)
+VALUES ($key, 1, NOW())
+ON CONFLICT (key) 
+DO UPDATE SET count = rate_limit_buckets.count + 1;
 ```
 
-Simple fixed-window counter. Expired rows cleaned up by a periodic `DELETE WHERE window_start < now() - interval '1 hour'` in the notification worker loop.
+This `INSERT ... ON CONFLICT` pattern is safe for concurrent requests across multiple web instances. No separate read-then-write logic.
 
-**Future (if needed):** Swap to Redis without changing call sites — only `src/lib/abuse/index.ts` changes.
+Expired rows cleaned up by a periodic `DELETE WHERE window_start < now() - interval '1 hour'` in the worker process.
+
+**Future (if needed):** Swap backend to Redis token-bucket or in-memory cache without changing call sites — only `src/lib/abuse/index.ts` implementation changes. Abstraction is preserved.
 
 ### Additional Spam Vectors & Mitigations
 
