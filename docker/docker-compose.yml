@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file: ../.env
+    environment:
+      - DATABASE_URL=postgresql://forum:forum@db:5432/forum
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: forum
+      POSTGRES_PASSWORD: forum
+      POSTGRES_DB: forum
+    volumes:
+      - forum_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forum -d forum"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy-static:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - internal
+      - external
+    restart: unless-stopped
+
+networks:
+  internal:
+    internal: true
+  external:
+
+volumes:
+  forum_data:
+  caddy_data:
+  caddy_config:

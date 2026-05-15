@@ -35,7 +35,7 @@ This document translates the project specification (CLAUDE.md) and all collected
 | E2E testing | Playwright | Deferred to post-v1 |
 | Database | PostgreSQL 17 (latest stable) | |
 | ORM | Drizzle | Migration-file workflow throughout (no `drizzle-kit push` in any env) |
-| Sessions | `lucia` (v3) | Robust, secure, Postgres adapter; minimal abstraction |
+| Sessions | Custom (roll-your-own) | Lucia v3 deprecated March 2025; rolling own is now the recommended approach — ~50 lines, crypto-secure token, Postgres-backed, no external session library |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK; handles DPoP/PAR/token refresh |
 | Markdown pipeline | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side only |
 | Markdown editor | CodeMirror 6 | With markdown mode; preview is button-toggled (not live) |
@@ -562,12 +562,30 @@ All SMTP config from env vars. Application code never references a provider name
 
 ## 9. Session Architecture
 
-Lucia v3 with the official Drizzle/Postgres adapter. Session table: `sessions` (see schema above).
+Custom session implementation (no external session library). Lucia v3 was deprecated in March 2025; the Lucia maintainers now recommend rolling your own. Session table: `sessions` (see schema above).
 
-- Sessions expire after 30 days (rolling — refreshed on each request)
-- Lucia handles session validation and rotation
-- `locals.session` and `locals.user` populated in `hooks.server.ts`
+### Token Design
+
+- Session token = 32 random bytes (via `crypto.getRandomValues`) encoded as hex — this is the cookie value
+- Stored token = SHA-256 hash of the raw token — only the hash goes in the DB, never the raw token
+- Verification: hash the cookie value, compare to stored hash in `sessions` table
+- This means a DB breach does not expose valid session tokens (same principle as password hashing)
+
+### Session Lifecycle
+
+- **Create:** generate token → hash → insert `sessions` row with `expires_at = now() + 30 days` → set cookie
+- **Validate (every request):** read cookie → hash → look up in `sessions` → if found and not expired, extend by 30 days if < 15 days remaining → populate `locals.user` and `locals.session`
+- **Invalidate (logout):** delete `sessions` row → clear cookie
+- Cookie attributes: `SameSite=Strict`, `HttpOnly`, `Secure` (in production)
+
+### Implementation Location
+
+`src/lib/auth/session.ts` — exports `createSession`, `validateSession`, `invalidateSession`, `setSessionCookie`, `deleteSessionCookie`.
+
+`hooks.server.ts` calls `validateSession` on every request and populates `locals`.
+
 - No Redis; all session state in Postgres
+- No external session library
 
 ---
 

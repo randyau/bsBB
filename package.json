@@ -17,16 +17,23 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/vite": "^4.3.0",
+		"@types/node": "^25.8.0",
 		"@vitest/coverage-v8": "^4.1.6",
+		"drizzle-kit": "^0.31.10",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.3.0",
+		"tsx": "^4.22.0",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.7",
 		"vitest": "^4.1.6"
 	},
 	"dependencies": {
+		"@atproto/api": "^0.19.18",
+		"@atproto/oauth-client-node": "^0.3.17",
 		"@sveltejs/adapter-node": "^5.5.4",
+		"drizzle-orm": "^0.45.2",
+		"postgres": "^3.4.9",
 		"rolldown": "^1.0.1"
 	}
 }

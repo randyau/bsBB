@@ -1,0 +1,21 @@
+# Dev-only compose: just the database. Run the app with `npm run dev`.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: forum
+      POSTGRES_PASSWORD: forum
+      POSTGRES_DB: forum
+    ports:
+      - "5432:5432"
+    volumes:
+      - forum_data_dev:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forum -d forum"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  forum_data_dev:
