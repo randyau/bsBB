@@ -2,6 +2,10 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
+## Status — Phase 1 ✅ Complete
+
+**Phase 1 (Foundations):** All 35 tests passing. `tsc --noEmit` clean. Database schema, auth system, sessions, OAuth, and setup scripts done. See ARCHITECTURE.md for implementation status details and QUICK_REFERENCE.md for navigation.
+
 ---
 
 ## Project Overview
@@ -92,7 +96,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | ORM | Drizzle | TypeScript-native, thin, generates clean SQL, no magic; migration-file workflow only — no `drizzle-kit push` in any env |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK handles DPoP, PAR, token management |
 | Markdown | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side pipeline, sanitized before storage |
-| Sessions | Lucia v3 (Postgres adapter) | Robust, secure, minimal abstraction; replaces ad-hoc Postgres sessions |
+| Sessions | Custom roll-your-own (Postgres) | Lucia v3 deprecated March 2025; rolling own is now the Lucia maintainers' recommended approach — crypto-secure token + SHA-256 hash, Postgres-backed, no external library |
 | Email transport | Nodemailer over SMTP | Provider-agnostic; swap providers via env vars only |
 | OG/link metadata | `open-graph-scraper` | Server-side at post submit; only for bare URLs on their own line |
 
@@ -248,13 +252,13 @@ Global `admin` and `banned` on `users.global_role` always override this table. O
 | `reason` | TEXT NULLABLE | |
 | `created_at` | TIMESTAMPTZ | |
 
-### `sessions` (Lucia-managed)
+### `sessions` (custom, roll-your-own)
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | TEXT PRIMARY KEY | |
+| `id` | TEXT PRIMARY KEY | SHA-256 hash of the token; token itself lives only in cookie |
 | `user_did` | TEXT FK → users.did | |
-| `expires_at` | TIMESTAMPTZ | Rolling 30-day expiry |
+| `expires_at` | TIMESTAMPTZ | Rolling 30-day expiry; invalidated on logout or expiry |
 
 ### `instance_settings`
 
@@ -296,7 +300,7 @@ Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_compl
 1. User initiates login → redirect to their PDS authorization server
 2. OAuth callback → `@atproto/oauth-client-node` handles token exchange
 3. DID extracted from token response `sub` field (verified)
-4. Lucia session created, session cookie set (`SameSite=Strict`, `HttpOnly`, `Secure`)
+4. Custom session created: 32-byte random token → SHA-256 hash stored in DB, raw token in cookie (`SameSite=Strict`, `HttpOnly`, `Secure`)
 5. User record upserted in `users` table (create on first login, update profile cache)
 6. If `instance_settings.first_admin_claimed = 'false'`: promote user to `global_role = 'admin'`, set `first_admin_claimed = 'true'`, write `mod_log` entry, show one-time banner
 
@@ -476,7 +480,7 @@ Total time from bare server to running: under 30 minutes.
 |---|---|
 | Flat reply model | Nested replies degrade at scale; flat-chronological with quote links is how successful long-form forums actually work |
 | DIDs not handles as PKs | Handles are mutable; DIDs are permanent |
-| No Redis in v1 | Unnecessary at this scale; adds operational overhead; sessions in Postgres via Lucia are fine |
+| No Redis in v1 | Unnecessary at this scale; adds operational overhead; sessions in Postgres (roll-your-own) are fine |
 | No bitmask permissions | Premature optimization; explicit rows in `forum_permissions` are easier to debug and reason about |
 | SvelteKit monolith not Hono+frontend | SSR is mandatory for forum SEO; no reason for API boundary at this scale |
 | Nodemailer not provider SDK | Vendor lock-in prevention; SMTP is universal |
@@ -486,7 +490,7 @@ Total time from bare server to running: under 30 minutes.
 | `pg_dump` not managed backup service | Keeps infrastructure minimal; R2/B2 are cheap and reliable enough |
 | Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
 | `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
-| Lucia v3 for sessions | Robust, secure, well-documented; avoids rolling custom session logic |
+| Roll-your-own sessions (no Lucia) | Lucia v3 deprecated March 2025; maintainers now recommend implementing sessions directly — crypto token + SHA-256 hash stored in Postgres `sessions` table, ~50 lines, no external library |
 | CodeMirror 6 editor | Better UX than plain textarea; preview via server endpoint keeps no client-side markdown renderer |
 | Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
 | Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |
