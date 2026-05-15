@@ -83,6 +83,16 @@ export async function validateSession(
 			.where(eq(sessions.id, tokenHash));
 	}
 
+	// Self-pruning: probabilistic cleanup of expired sessions (1% of requests)
+	// This eliminates the need for a separate maintenance cron or worker task.
+	// Cleanup rate scales with traffic, ensuring tables stay lean without overhead.
+	if (Math.random() < 0.01) {
+		// Fire-and-forget; don't await or block the user's request
+		db.delete(sessions)
+			.where(eq(sessions.expiresAt, now))
+			.catch((err) => console.error('[session cleanup error]', err));
+	}
+
 	return {
 		sessionId: row.sessionId,
 		user: {

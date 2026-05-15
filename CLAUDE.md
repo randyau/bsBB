@@ -252,13 +252,15 @@ Global `admin` and `banned` on `users.global_role` always override this table. O
 | `reason` | TEXT NULLABLE | |
 | `created_at` | TIMESTAMPTZ | |
 
-### `sessions` (custom, roll-your-own)
+### `sessions` (custom, roll-your-own, self-pruning)
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | TEXT PRIMARY KEY | SHA-256 hash of the token; token itself lives only in cookie |
 | `user_did` | TEXT FK → users.did | |
 | `expires_at` | TIMESTAMPTZ | Rolling 30-day expiry; invalidated on logout or expiry |
+
+**Self-pruning maintenance:** `validateSession()` includes a 1% probabilistic `DELETE` of expired rows. Cleanup scales with traffic and requires no external cron or maintenance worker.
 
 ### `instance_settings`
 
@@ -288,12 +290,13 @@ Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_compl
 
 ### Client Metadata
 
-- `client-metadata.json` must be served at a stable public HTTPS URL
+- `client-metadata.json` is served at a stable public HTTPS URL: `{PUBLIC_BASE_URL}/client-metadata.json`
 - This file is the forum's OAuth client identity on the ATproto network
-- **Generated from config — never hand-edited**
-- Served by Caddy as a static file from a mounted directory
-- Contains: `client_id` (its own URL), redirect URIs, public JWK, scopes
-- Setup script generates the P-256 (ES256) JWK keypair and produces this file
+- **Constructed dynamically** from environment variables, not written to disk (eliminates filesystem coupling)
+- A SvelteKit server route (`src/routes/client-metadata.json/+server.ts`) builds and serves it on-demand
+- Contains: `client_id` (its own URL), redirect URIs, public JWK, scopes — all from `ATPROTO_PRIVATE_KEY` env var
+- Consequence: **The app is stateless** across multiple horizontally-scaled instances
+- Setup script generates the P-256 (ES256) JWK keypair and stores it in `ATPROTO_PRIVATE_KEY` env var only
 
 ### Session Flow
 
@@ -336,12 +339,14 @@ Do NOT send:
 
 ### Notification Worker
 
-- Runs inside the SvelteKit server process (not a separate container)
-- `setInterval` polling `notification_queue` for `status = 'pending'` every 60 seconds
+- **Separate process** from the web tier (runs `src/worker.ts` in its own container)
+- Polls `notification_queue` for `status = 'pending'` every 60 seconds
+- Uses PostgreSQL's `FOR UPDATE SKIP LOCKED` to safely scale across multiple worker instances without race conditions
 - Sends via `@atproto/api` chat methods using the service account credentials
 - Rate limiting check before send: no more than 1 DM per recipient per hour
 - Marks records `sent` or `failed` with timestamp
 - Unprocessed notifications survive server restarts (persisted in DB)
+- **Consequence:** Web tier remains stateless; can scale independently of worker tier
 
 ---
 
@@ -484,6 +489,10 @@ Total time from bare server to running: under 30 minutes.
 | No bitmask permissions | Premature optimization; explicit rows in `forum_permissions` are easier to debug and reason about |
 | SvelteKit monolith not Hono+frontend | SSR is mandatory for forum SEO; no reason for API boundary at this scale |
 | Nodemailer not provider SDK | Vendor lock-in prevention; SMTP is universal |
+| Worker as separate process, not hooks.server.ts loop | Eliminates competing loops and race conditions if web tier scales. PostgreSQL's FOR UPDATE SKIP LOCKED handles queue distribution safely. |
+| Dynamic client-metadata route, not static file | Eliminates filesystem state. App becomes stateless across instances. Setup writes to env vars only. |
+| Atomic rate-limit upserts, not read-then-write | Concurrent requests are safe via SQL `INSERT ... ON CONFLICT`. Abstraction layer unchanged if switching to Redis later. |
+| Probabilistic session cleanup, not cron job | 1% per request proportional to traffic. Eliminates external maintenance task. |
 | Notifications opt-in not opt-out | Audience is Bluesky users who are sensitive to spam; trust is more valuable than reach |
 | ATproto write-back deferred | Scope creep in v1; product decision about pushing content to users' feeds deserves its own deliberation |
 | No email to regular users | Bluesky DMs are the native channel for this audience |
