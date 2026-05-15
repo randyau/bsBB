@@ -87,20 +87,20 @@ The forum is intended to be open sourced so that others can self-host it. All se
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Framework | SvelteKit (monolith) | SSR mandatory for SEO and fast first loads; server actions handle DB + auth + markdown in one codebase; no artificial API boundary |
-| Database | PostgreSQL | Relational data model; `tsvector` search; `JSONB` for link metadata |
-| ORM | Drizzle | TypeScript-native, thin, generates clean SQL, no magic |
+| Framework | SvelteKit (monolith), `adapter-node` | SSR mandatory for SEO and fast first loads; server actions handle DB + auth + markdown in one codebase; no artificial API boundary |
+| Database | PostgreSQL 17 | Relational data model; `tsvector` search; `JSONB` for link metadata |
+| ORM | Drizzle | TypeScript-native, thin, generates clean SQL, no magic; migration-file workflow only — no `drizzle-kit push` in any env |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK handles DPoP, PAR, token management |
-| Markdown | `unified` + `remark` + `rehype-sanitize` | Server-side pipeline, sanitized before storage |
-| Sessions | Postgres-backed sessions | Redis removed — unnecessary at this scale; add later if needed |
+| Markdown | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side pipeline, sanitized before storage |
+| Sessions | Lucia v3 (Postgres adapter) | Robust, secure, minimal abstraction; replaces ad-hoc Postgres sessions |
 | Email transport | Nodemailer over SMTP | Provider-agnostic; swap providers via env vars only |
-| oEmbed/OG | `oembed-parser` or equivalent | Server-side at post submission time |
+| OG/link metadata | `open-graph-scraper` | Server-side at post submit; only for bare URLs on their own line |
 
 ### Frontend
 
 - SvelteKit (same codebase as backend via server actions)
-- No heavy client-side framework needed beyond what SvelteKit provides
-- Markdown editor: plain textarea + preview pane, or CodeMirror 6
+- CSS: Tailwind CSS v4 + shadcn-svelte component primitives
+- Markdown editor: CodeMirror 6 with markdown mode; preview is button-toggled via `POST /api/preview/` (server-rendered — no client-side markdown library)
 
 ### Infrastructure
 
@@ -125,6 +125,8 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 
 ## Database Schema (Logical)
 
+> Full SQL-level schema with indexes is in ARCHITECTURE.md §3. This section is the logical summary.
+
 ### `users`
 
 | Column | Type | Notes |
@@ -134,7 +136,7 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 | `display_name` | TEXT | Cached |
 | `avatar_url` | TEXT | Cached |
 | `last_profile_sync` | TIMESTAMPTZ | Triggers re-sync if > 24h on post |
-| `role` | ENUM | `admin`, `moderator`, `member`, `banned` |
+| `global_role` | TEXT | `admin`, `member`, `banned` — moderator is per-forum only |
 | `notify_via_bluesky` | BOOLEAN | Default false — opt-in DM notifications |
 | `chat_session_encrypted` | TEXT NULLABLE | Encrypted ATproto chat tokens, null until opt-in |
 | `created_at` | TIMESTAMPTZ | |
@@ -159,6 +161,7 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 | `forum_id` | UUID FK → forums | |
 | `author_did` | TEXT FK → users.did | |
 | `title` | TEXT | |
+| `slug` | TEXT | Generated from title; unique per forum |
 | `is_locked` | BOOLEAN | Default false |
 | `is_pinned` | BOOLEAN | Default false |
 | `created_at` | TIMESTAMPTZ | |
@@ -174,10 +177,25 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 | `body_markdown` | TEXT | Raw markdown as submitted |
 | `body_html` | TEXT | Sanitized HTML, generated server-side at submit |
 | `reply_to_post_id` | UUID NULLABLE FK → posts | For quote/reference links — flat model |
-| `link_metadata` | JSONB NULLABLE | Stored OG/oEmbed data for first link in post |
+| `link_metadata` | JSONB NULLABLE | OG data for first bare-line URL in post |
 | `is_deleted` | BOOLEAN | Soft delete — preserve thread integrity |
 | `created_at` | TIMESTAMPTZ | |
 | `edited_at` | TIMESTAMPTZ NULLABLE | |
+| `body_tsv` | TSVECTOR | Generated column for full-text search |
+
+### `post_revisions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PRIMARY KEY | |
+| `post_id` | UUID FK → posts | |
+| `revision_number` | INTEGER | Increments per post; unique with post_id |
+| `body_markdown` | TEXT | Full snapshot |
+| `body_html` | TEXT | Full snapshot, sanitized |
+| `edited_by_did` | TEXT FK → users.did | |
+| `created_at` | TIMESTAMPTZ | |
+
+Revisions are append-only. Current version lives in `posts`. Accessible at `/post/[id]/revisions/`.
 
 ### `forum_permissions`
 
@@ -185,12 +203,24 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 |---|---|---|
 | `id` | UUID PRIMARY KEY | |
 | `forum_id` | UUID FK → forums | |
-| `role` | ENUM | Which role this rule applies to |
+| `role` | TEXT | `guest`, `member`, `moderator`, `admin` |
 | `can_read` | BOOLEAN | |
 | `can_post` | BOOLEAN | |
 | `can_moderate` | BOOLEAN | |
 
-Permission inheritance: if no explicit row exists for a child forum, inherit from parent. Explicit rows override inherited permissions.
+`guest` = unauthenticated visitors. Permission inheritance: walk up `parent_id` chain until a row is found; instance default applies if none exists. Explicit rows override inherited permissions.
+
+### `user_forum_roles`
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_did` | TEXT FK → users.did | Composite PK with forum_id |
+| `forum_id` | UUID FK → forums | |
+| `role` | TEXT | Currently: `moderator` only |
+| `assigned_by` | TEXT FK → users.did | |
+| `assigned_at` | TIMESTAMPTZ | |
+
+Global `admin` and `banned` on `users.global_role` always override this table. One role per user per forum.
 
 ### `notification_queue`
 
@@ -198,9 +228,9 @@ Permission inheritance: if no explicit row exists for a child forum, inherit fro
 |---|---|---|
 | `id` | UUID PRIMARY KEY | |
 | `recipient_did` | TEXT FK → users.did | |
-| `type` | ENUM | `reply`, `quote`, `mod_action`, etc. |
+| `type` | TEXT | `reply_to_thread`, `quote`, `new_reply_in_thread`, `mod_action` |
 | `payload` | JSONB | Notification-specific data |
-| `status` | ENUM | `pending`, `sent`, `failed` |
+| `status` | TEXT | `pending`, `sent`, `failed` |
 | `created_at` | TIMESTAMPTZ | |
 | `sent_at` | TIMESTAMPTZ NULLABLE | |
 
@@ -210,12 +240,30 @@ Permission inheritance: if no explicit row exists for a child forum, inherit fro
 |---|---|---|
 | `id` | UUID PRIMARY KEY | |
 | `moderator_did` | TEXT FK → users.did | |
-| `action` | ENUM | `ban`, `delete_post`, `lock_thread`, etc. |
+| `action` | TEXT | `ban`, `unban`, `delete_post`, `restore_post`, `lock_thread`, `unlock_thread`, `pin_thread`, `unpin_thread`, `assign_forum_mod`, `remove_forum_mod`, `promote_admin` |
 | `target_did` | TEXT NULLABLE | User acted upon, if applicable |
 | `target_post_id` | UUID NULLABLE | |
 | `target_thread_id` | UUID NULLABLE | |
+| `target_forum_id` | UUID NULLABLE | |
 | `reason` | TEXT NULLABLE | |
 | `created_at` | TIMESTAMPTZ | |
+
+### `sessions` (Lucia-managed)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | TEXT PRIMARY KEY | |
+| `user_did` | TEXT FK → users.did | |
+| `expires_at` | TIMESTAMPTZ | Rolling 30-day expiry |
+
+### `instance_settings`
+
+| Column | Type | Notes |
+|---|---|---|
+| `key` | TEXT PRIMARY KEY | |
+| `value` | TEXT | |
+
+Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_complete`, `first_admin_claimed`.
 
 ---
 
@@ -248,8 +296,9 @@ Permission inheritance: if no explicit row exists for a child forum, inherit fro
 1. User initiates login → redirect to their PDS authorization server
 2. OAuth callback → `@atproto/oauth-client-node` handles token exchange
 3. DID extracted from token response `sub` field (verified)
-4. Server-side session created (Postgres-backed), session cookie set (`SameSite=Strict`)
+4. Lucia session created, session cookie set (`SameSite=Strict`, `HttpOnly`, `Secure`)
 5. User record upserted in `users` table (create on first login, update profile cache)
+6. If `instance_settings.first_admin_claimed = 'false'`: promote user to `global_role = 'admin'`, set `first_admin_claimed = 'true'`, write `mod_log` entry, show one-time banner
 
 ---
 
@@ -363,16 +412,19 @@ These must be in place from day one, not added later:
 
 ### First-Run Setup (for open source deployers)
 
-The setup script (`setup.js` or `setup.sh`) automates:
+`scripts/setup.sh` (bash for early steps, offloads to Node for API validation) automates:
 
-1. Generates P-256 JWK keypair
+1. Generates P-256 JWK keypair via `scripts/gen-keypair.js`
 2. Writes private key to `.env`
 3. Generates and writes `client-metadata.json` with public key + config
-4. Prompts for service notification account handle + App Password
-5. Validates both by making test ATproto API calls
-6. Prompts for SMTP credentials, sends test email
+4. Prompts for service notification account handle + App Password; validates via test API call
+5. Prompts for SMTP credentials; sends test email
+6. Prompts for default forum visibility (`public` or `members-only`)
 7. Writes `SETUP_COMPLETE=true` to `.env`
-8. On first login after setup, the first user to authenticate is auto-promoted to admin
+8. All output also written to `logs/setup.log`
+9. On first login after setup, the first user to authenticate is auto-promoted to admin (one-time only, gated on `instance_settings.first_admin_claimed`)
+
+**Breakglass admin promotion:** `scripts/admin-promote.sh` runs via `docker exec` on the server. Requires SSH access — that is the safeguard. No web UI, no endpoint. Writes a `mod_log` entry with `action = 'promote_admin'` and `reason = 'breakglass'`.
 
 ### Deployment Workflow
 
@@ -424,7 +476,7 @@ Total time from bare server to running: under 30 minutes.
 |---|---|
 | Flat reply model | Nested replies degrade at scale; flat-chronological with quote links is how successful long-form forums actually work |
 | DIDs not handles as PKs | Handles are mutable; DIDs are permanent |
-| No Redis in v1 | Unnecessary at this scale; adds operational overhead; sessions in Postgres are fine |
+| No Redis in v1 | Unnecessary at this scale; adds operational overhead; sessions in Postgres via Lucia are fine |
 | No bitmask permissions | Premature optimization; explicit rows in `forum_permissions` are easier to debug and reason about |
 | SvelteKit monolith not Hono+frontend | SSR is mandatory for forum SEO; no reason for API boundary at this scale |
 | Nodemailer not provider SDK | Vendor lock-in prevention; SMTP is universal |
@@ -432,3 +484,17 @@ Total time from bare server to running: under 30 minutes.
 | ATproto write-back deferred | Scope creep in v1; product decision about pushing content to users' feeds deserves its own deliberation |
 | No email to regular users | Bluesky DMs are the native channel for this audience |
 | `pg_dump` not managed backup service | Keeps infrastructure minimal; R2/B2 are cheap and reliable enough |
+| Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
+| `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
+| Lucia v3 for sessions | Robust, secure, well-documented; avoids rolling custom session logic |
+| CodeMirror 6 editor | Better UX than plain textarea; preview via server endpoint keeps no client-side markdown renderer |
+| Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
+| Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |
+| Post revisions: full snapshots | Simple to query and render; storage cost negligible at forum scale |
+| OG fetch only for bare-line URLs | Reduces noise; matches user expectation (Slack/Discord behaviour); can be disabled instance-wide |
+| Per-forum visibility tiers (`guest\|member\|moderator\|admin`) | Flexible enough for most community configurations without complex RBAC |
+| Instance-level default visibility setting | Deployers choose public or members-only at setup; individual forums can override |
+| First-admin via `instance_settings` gate | One-time, audited, survives restarts; gated on `first_admin_claimed` flag |
+| Breakglass as `docker exec` only | SSH access is the safeguard; no web surface to attack; action is always logged |
+| Seed a General forum at setup | Gives deployer something to log into immediately |
+| Tailwind CSS v4 + shadcn-svelte | Most-documented utility framework; accessible components; clean to edit for frontend newcomers |
