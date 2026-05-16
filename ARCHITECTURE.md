@@ -81,7 +81,7 @@ This document translates the project specification (CLAUDE.md) and all collected
 | E2E testing | Playwright | Deferred to post-v1 |
 | Database | PostgreSQL 17 (latest stable) | |
 | ORM | Drizzle | Migration-file workflow throughout (no `drizzle-kit push` in any env) |
-| Sessions | Custom (roll-your-own) | Lucia v3 deprecated March 2025; rolling own is now the recommended approach — 32-byte random token, SHA-256 hashed in DB, Postgres-backed, no external session library |
+| Sessions | Custom (roll-your-own) | 32-byte random token, SHA-256 hashed in DB, Postgres-backed, no external session library. Simple, proven, and secure |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK; handles DPoP/PAR/token refresh |
 | Markdown pipeline | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side only |
 | Markdown editor | CodeMirror 6 | With markdown mode; preview is button-toggled (not live) |
@@ -654,7 +654,7 @@ All SMTP config from env vars. Application code never references a provider name
 
 ## 9. Session Architecture
 
-Custom session implementation (no external session library — Lucia v3 was deprecated and the maintainers now recommend rolling your own). Session storage: `sessions` table in PostgreSQL (see schema above).
+Custom session implementation with no external session library. Session storage: `sessions` table in PostgreSQL (see schema above).
 
 ### Token Design
 
