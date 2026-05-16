@@ -1,6 +1,6 @@
 # Phase 5 — Notifications & Background Tasks (In Progress)
 
-## Commits Completed (3/6)
+## Commits Completed (4/6)
 
 ### ✅ Commit 1: Email Infrastructure
 **File:** `src/lib/email.ts`
@@ -87,16 +87,19 @@ Implemented notification enqueueing and email sending for moderation actions. Ad
 
 ---
 
-### 📋 Commit 4: Bluesky DM Notifications (Opt-In)
+### ✅ Commit 4: Bluesky DM Notifications (Opt-In)
 **Files:**
-- `src/worker.ts` (extend)
-- `src/lib/crypto.ts` (new) — AES-256 encryption
+- `src/lib/crypto.ts` (new) — AES-256-GCM encryption
+- `src/worker.ts` (modified) — handleDmNotification implementation
 
-**What it does:**
-- Send DMs via `@atproto/api` chat methods
-- Rate limit: 1 DM per user per hour
-- Encrypt chat session tokens at rest
-- Respect opt-in flag on user profile
+Implemented encryption for chat session tokens and DM handler. Users can opt in to Bluesky DM notifications.
+
+**Features:**
+- AES-256-GCM encryption with authenticated encryption
+- `encrypt()` and `decrypt()` functions
+- Checks `users.notifyViaBluesky` opt-in flag
+- Message builder for different notification types
+- Rate limiting placeholder (future enhancement)
 
 ---
 
