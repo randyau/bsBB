@@ -6,6 +6,8 @@
 	let modUserId = $state('');
 	let selectedForumId = $state('');
 	let userSearchQuery = $state('');
+	let modForumFilter = $state('');
+	let modUserFilter = $state('');
 
 	const filteredUsers = $derived.by(() => {
 		if (!userSearchQuery.trim()) return data.users;
@@ -16,6 +18,17 @@
 				(u.displayName?.toLowerCase().includes(query) ?? false) ||
 				u.did.toLowerCase().includes(query)
 		);
+	});
+
+	const filteredMods = $derived.by(() => {
+		return data.mods.filter(mod => {
+			const forumMatch = !modForumFilter || mod.forumId === modForumFilter;
+			const userQuery = modUserFilter.toLowerCase().trim();
+			const userMatch = !userQuery ||
+				mod.userHandle.toLowerCase().includes(userQuery) ||
+				(mod.userDisplayName?.toLowerCase().includes(userQuery) ?? false);
+			return forumMatch && userMatch;
+		});
 	});
 
 	function selectUser(user: typeof data.users[0]) {
@@ -151,16 +164,46 @@
 			{#if data.mods.length === 0}
 				<p class="text-sm text-muted">No forum moderators assigned yet.</p>
 			{:else}
-				<table class="w-full text-sm">
-					<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
-						<tr>
-							<th class="px-4 py-3 text-left font-semibold">Forum</th>
-							<th class="px-4 py-3 text-left font-semibold">User</th>
-							<th class="px-4 py-3 text-left font-semibold">Action</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.mods as mod (mod.userDid + mod.forumId)}
+				<!-- Filter bar -->
+				<div class="flex gap-3 mb-4 pb-4 border-b border-[rgb(var(--color-border))]">
+					<select bind:value={modForumFilter} class="form-control text-sm w-48">
+						<option value="">All forums</option>
+						{#each data.forums as forum}
+							<option value={forum.id}>{forum.name}</option>
+						{/each}
+					</select>
+					<input
+						type="text"
+						bind:value={modUserFilter}
+						placeholder="Search user..."
+						class="form-control text-sm flex-1 max-w-xs"
+					/>
+					{#if modForumFilter || modUserFilter}
+						<button
+							onclick={() => { modForumFilter = ''; modUserFilter = ''; }}
+							class="btn btn-sm btn-secondary whitespace-nowrap"
+						>
+							Clear
+						</button>
+					{/if}
+					<span class="text-xs text-muted whitespace-nowrap pt-2">
+						{filteredMods.length} of {data.mods.length}
+					</span>
+				</div>
+
+				{#if filteredMods.length === 0}
+					<p class="text-sm text-muted italic">No results matching filter.</p>
+				{:else}
+					<table class="w-full text-sm">
+						<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+							<tr>
+								<th class="px-4 py-3 text-left font-semibold">Forum</th>
+								<th class="px-4 py-3 text-left font-semibold">User</th>
+								<th class="px-4 py-3 text-left font-semibold">Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each filteredMods as mod (mod.userDid + mod.forumId)}
 							<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
 								<td class="px-4 py-3 font-semibold">{mod.forumName}</td>
 								<td class="px-4 py-3 text-sm">
@@ -177,9 +220,10 @@
 									</form>
 								</td>
 							</tr>
-						{/each}
-					</tbody>
-				</table>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
 			{/if}
 		</div>
 	</div>

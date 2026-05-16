@@ -13,10 +13,6 @@
 	function isRoleAssigned(roleId: string): boolean {
 		return data.customRoles.some((r) => r.id === roleId);
 	}
-
-	function handleAssignMod(forumId: string) {
-		forumModSelect = '';
-	}
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -144,51 +140,59 @@
 				<!-- Forum moderator assignments -->
 				{#if data.allForums.length > 0}
 					<div class="box-secondary">
-						<h3 class="font-semibold mb-3">Forum Moderator</h3>
+						<h3 class="font-semibold mb-4">Forum Moderator</h3>
 
-						{#if data.forumModAssignments.length > 0}
-							<div class="mb-4 space-y-2">
-								<p class="text-sm text-[rgb(var(--color-text-muted))] mb-2">Currently moderating:</p>
-								{#each data.forumModAssignments as assignment}
-									<div class="flex items-center justify-between p-2 bg-[rgb(var(--color-bg))] rounded border border-[rgb(var(--color-border))]">
-										<span class="text-sm font-medium">{assignment.forumName}</span>
-										<form method="POST" action="?/removeForumMod" class="inline">
-											<input type="hidden" name="targetDid" value={data.profileUser.did} />
-											<input type="hidden" name="forumId" value={assignment.forumId} />
-											<button type="submit" class="text-red-600 hover:text-red-700 text-xs underline">
-												Remove
-											</button>
-										</form>
-									</div>
-								{/each}
-							</div>
-						{/if}
+						<!-- Currently moderating -->
+						<div class="mb-4">
+							<p class="text-sm font-medium text-[rgb(var(--color-text))] mb-2">Currently moderating:</p>
+							{#if data.forumModAssignments.length === 0}
+								<p class="text-sm text-[rgb(var(--color-text-muted))] italic">None</p>
+							{:else}
+								<div class="space-y-2">
+									{#each data.forumModAssignments as assignment}
+										<div class="flex items-center justify-between p-2 bg-[rgb(var(--color-bg))] rounded border border-[rgb(var(--color-border))]">
+											<span class="text-sm font-medium">{assignment.forumName}</span>
+											<form method="POST" action="?/removeForumMod" class="inline">
+												<input type="hidden" name="targetDid" value={data.profileUser.did} />
+												<input type="hidden" name="forumId" value={assignment.forumId} />
+												<button type="submit" class="text-red-600 hover:text-red-700 text-xs underline">
+													Remove
+												</button>
+											</form>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
 
-						<div class="flex gap-2">
-							<select bind:value={forumModSelect} class="form-control text-sm flex-1">
-								<option value="">Select a forum to assign...</option>
-								{#each data.allForums as forum}
-									{#if !data.forumModAssignments.some((a) => a.forumId === forum.id)}
-										<option value={forum.id}>{forum.name}</option>
-									{/if}
-								{/each}
-							</select>
-							<form
-								method="POST"
-								action="?/assignForumMod"
-								onsubmit={() => handleAssignMod(forumModSelect)}
-								class="inline"
-							>
-								<input type="hidden" name="targetDid" value={data.profileUser.did} />
-								<input type="hidden" name="forumId" value={forumModSelect} />
-								<button
-									type="submit"
-									disabled={!forumModSelect}
-									class="btn btn-sm btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+						<!-- Assign new moderator -->
+						<div>
+							<p class="text-sm font-medium text-[rgb(var(--color-text))] mb-2">Assign to forum:</p>
+							<div class="flex gap-2">
+								<select bind:value={forumModSelect} class="form-control text-sm flex-1">
+									<option value="">Select a forum...</option>
+									{#each data.allForums as forum}
+										{#if !data.forumModAssignments.some((a) => a.forumId === forum.id)}
+											<option value={forum.id}>{forum.name}</option>
+										{/if}
+									{/each}
+								</select>
+								<form
+									method="POST"
+									action="?/assignForumMod"
+									class="inline"
 								>
-									Assign
-								</button>
-							</form>
+									<input type="hidden" name="targetDid" value={data.profileUser.did} />
+									<input type="hidden" name="forumId" value={forumModSelect} />
+									<button
+										type="submit"
+										disabled={!forumModSelect}
+										class="btn btn-sm btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										Assign
+									</button>
+								</form>
+							</div>
 						</div>
 					</div>
 				{/if}
