@@ -11,6 +11,10 @@ export default defineConfig({
 			interval: 500
 		}
 	},
+	build: {
+		// Disable minification in dev for readable HTML debugging
+		minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false
+	},
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}']
 	}
