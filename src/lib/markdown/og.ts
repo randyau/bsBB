@@ -7,12 +7,29 @@ export interface LinkMetadata {
 	imageUrl: string | null;
 }
 
-export async function fetchLinkMetadata(markdown: string): Promise<LinkMetadata | null> {
+// Block requests to private/loopback addresses to prevent SSRF attacks.
+function isPrivateAddress(urlStr: string): boolean {
+	try {
+		const { hostname } = new URL(urlStr);
+		return /^(localhost|127\.|0\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(
+			hostname
+		);
+	} catch {
+		return true; // malformed URL — treat as private
+	}
+}
+
+export async function fetchLinkMetadata(
+	markdown: string,
+	ip?: string
+): Promise<LinkMetadata | null> {
 	const url = extractBareLineUrl(markdown);
 	if (!url) return null;
 
+	if (isPrivateAddress(url)) return null;
+
 	try {
-		await checkAbuse({ type: 'og_fetch', ip: '' });
+		await checkAbuse({ type: 'og_fetch', ip: ip ?? '' });
 	} catch {
 		return null;
 	}

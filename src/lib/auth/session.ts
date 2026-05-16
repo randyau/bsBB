@@ -1,6 +1,6 @@
 import { db } from '$lib/db/index.js';
 import { sessions, users } from '$lib/db/schema.js';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, lt } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export type SessionUser = {
@@ -89,7 +89,7 @@ export async function validateSession(
 	if (Math.random() < 0.01) {
 		// Fire-and-forget; don't await or block the user's request
 		db.delete(sessions)
-			.where(eq(sessions.expiresAt, now))
+			.where(lt(sessions.expiresAt, now))
 			.catch((err) => console.error('[session cleanup error]', err));
 	}
 

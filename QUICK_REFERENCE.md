@@ -127,6 +127,7 @@ SMTP_PORT=587
 SMTP_USER=postmaster@yourdomain.com
 SMTP_PASS=<password>
 SMTP_FROM=noreply@yourforum.com
+ADMIN_EMAIL=admin@yourforum.com   # Receives moderator alert emails
 ```
 
 ### App

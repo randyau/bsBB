@@ -22,24 +22,23 @@
 import { db } from '$lib/db';
 import { notificationQueue, users } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
 
 async function processNotifications() {
 	try {
 		// Fetch up to 10 pending notifications atomically.
-		// FOR UPDATE SKIP LOCKED ensures multiple worker instances don't process the same row.
-		const pending = await db.execute(
-			db.raw(
-				`
+		// FOR UPDATE SKIP LOCKED must run inside a transaction to hold the row locks.
+		const pending = await db.transaction(async (tx) => {
+			return tx.execute(sql`
 				SELECT id, recipient_did, type, payload, created_at
 				FROM notification_queue
 				WHERE status = 'pending'
 				ORDER BY created_at ASC
 				LIMIT 10
 				FOR UPDATE SKIP LOCKED
-				`
-			)
-		);
+			`);
+		});
 
 		if (!pending || pending.length === 0) {
 			if (process.env.NODE_ENV === 'development') {
@@ -121,12 +120,13 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 		<p><small>This is an automated alert from your forum.</small></p>
 	`;
 
-	// Send email (or log in dev mode)
-	await sendEmail(
-		`${recipient.handle}@example.com`, // Would use real email from user profile
-		subject,
-		html
-	);
+	// Moderator alerts go to the configured admin email address.
+	// The forum doesn't store user emails — ADMIN_EMAIL is set during setup.
+	const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM;
+	if (!adminEmail) {
+		throw new Error('ADMIN_EMAIL or SMTP_FROM must be set to receive moderator alerts');
+	}
+	await sendEmail(adminEmail, subject, html);
 
 	console.log(`[worker:moderator_alert] sent to ${recipient.handle} (${recipientDid})`);
 }

@@ -2,27 +2,21 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phase 6 ✅ Complete (Post Edits, Search & Shipping) — FORUM READY TO SHIP
-
-**Phase 3 (Post Creation):** All 36+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. 
-
-**Phase 3.1 (Polish):** Character counters, form validation, improved quote UX — all complete.
-
-**Phase 4 (Moderation & Admin):** All 7 commits complete:
-- ✅ Commit 1: Rate limiting (atomic upserts on rate_limit_buckets)
-- ✅ Commit 2: Admin guard + nav link
-- ✅ Commit 3: Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
-- ✅ Commit 4: Admin users page (ban/unban/promote/demote)
-- ✅ Commit 5: Admin threads page (lock/unlock/pin/unpin)
-- ✅ Commit 6: Admin posts page (delete/restore soft-delete)
-- ✅ Commit 7: Admin mod log viewer (read-only audit trail)
+## Status — All Phases Complete (1–6) — Post-Launch Cleanup & Phase 7 Planned
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
 - **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail)
 - **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata)
 - **Phase 3.1 ✅** — Polish (form validation, character counters, quote UX)
-- **Phase 4 🚀** — Moderation & Admin Interface (in progress)
+- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log)
+- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync)
+- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker)
+
+### Next: Phase 7 — Design, UI & Interaction Refinements
+- Light/dark mode toggle
+- Cohesive visual theme (replacing bare-bones Tailwind defaults)
+- UX polish across all views
 
 ---
 
@@ -406,6 +400,7 @@ SMTP_PORT=587
 SMTP_USER=postmaster@yourdomain.com
 SMTP_PASS=<password>
 SMTP_FROM=noreply@yourforum.com
+ADMIN_EMAIL=admin@yourforum.com
 
 # Database
 DATABASE_URL=postgresql://user:password@db:5432/forum

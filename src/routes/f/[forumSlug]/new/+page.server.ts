@@ -73,7 +73,7 @@ export const actions: Actions = {
 		for (let i = 2; i <= 5; i++) {
 			try {
 				const bodyHtml = await renderMarkdown(body);
-				const linkMetadata = await fetchLinkMetadata(body);
+				const linkMetadata = await fetchLinkMetadata(body, ip);
 
 				const result = await db.transaction(async (tx) => {
 					const threadResult = await tx
