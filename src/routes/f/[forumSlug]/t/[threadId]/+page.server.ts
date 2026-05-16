@@ -207,7 +207,7 @@ export const actions: Actions = {
 
 		try {
 			const bodyHtml = await renderMarkdown(body);
-			const linkMetadata = await fetchLinkMetadata(body);
+			const linkMetadata = await fetchLinkMetadata(body, ip);
 
 			await db.transaction(async (tx) => {
 				await tx.insert(posts).values({

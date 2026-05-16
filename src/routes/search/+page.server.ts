@@ -1,12 +1,12 @@
 import type { PageServerLoad } from './$types';
-import { searchPosts, searchPostsCount } from '$lib/search';
+import { searchPosts, searchPostsCount, type SearchResult } from '$lib/search';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const query = url.searchParams.get('q')?.trim() || '';
 	const pageStr = url.searchParams.get('page') || '1';
 	const page = Math.max(1, parseInt(pageStr));
 
-	let results = [];
+	let results: SearchResult[] = [];
 	let total = 0;
 	let error = '';
 

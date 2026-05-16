@@ -156,12 +156,12 @@ bsBB/
 ├── drizzle.config.ts           # Drizzle ORM config
 ├── CLAUDE.md                   # Full specification and architecture (read this!)
 ├── ARCHITECTURE.md             # Detailed implementation status per phase
-└── PHASE_4_STATUS.md           # Phase 4 (moderation) commit checklist
+└── HUMAN_TODO.md               # Manual testing checklist and human setup tasks
 ```
 
 ### Running Tests
 
-The project includes unit tests and an **integration test suite** for Phase 4 features:
+The project includes unit tests and integration tests covering auth, permissions, moderation, and rate limiting:
 
 **Unit tests:**
 ```bash
@@ -170,7 +170,7 @@ npm run test -- src/routes     # Run tests in specific directory
 npm run test:watch             # Watch mode
 ```
 
-**Integration tests (Phase 4):**
+**Integration tests:**
 
 The integration test suite validates moderation, admin features, and rate limiting:
 
@@ -366,18 +366,16 @@ docker compose exec app npm run db:migrate
 
 ## Roadmap
 
-**Phase 1–3:** ✅ Complete (auth, forums, posts)
+**Phases 1–6:** ✅ Complete
 
-**Phase 4:** 🚀 In Progress (moderation & admin interface)
-- ✅ Real rate limiting
-- ✅ Admin layout & navigation
-- ✅ SQL query interface
-- ✅ User management (ban/unban/promote)
-- ⏳ Thread management (lock/pin)
-- ⏳ Post management (delete/restore)
-- ⏳ Mod log viewer
+- Auth (ATproto OAuth), sessions, DB, Docker
+- Forum/thread/post views with permissions
+- Post creation, markdown, OG metadata, quote links
+- Moderation: ban/lock/pin/delete, rate limiting, admin UI, mod log
+- Notifications: email alerts, Bluesky DM (opt-in), background worker
+- Post editing with revision history, full-text search, production Docker stack
 
-**Future phases:** Search, full-text indexing, notifications, performance optimizations
+**Phase 7 (Next):** Design & UI refinements — light/dark mode, visual theme, UX polish
 
 ---
 

@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
 import { posts, postRevisions, users, threads, forums } from '$lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, max } from 'drizzle-orm';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 
@@ -12,7 +12,7 @@ import { fetchLinkMetadata } from '$lib/markdown/og.js';
  * Edit a post (markdown + link metadata).
  * Only the post author or an admin can edit.
  */
-export const PATCH: RequestHandler = async ({ locals, params, request }) => {
+export const PATCH: RequestHandler = async ({ locals, params, request, getClientAddress }) => {
 	if (!locals.user) {
 		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
@@ -56,14 +56,21 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 
 		// Render markdown and fetch link metadata
 		const newBodyHtml = await renderMarkdown(newBodyMarkdown);
-		const newLinkMetadata = await fetchLinkMetadata(newBodyMarkdown);
+		const newLinkMetadata = await fetchLinkMetadata(newBodyMarkdown, getClientAddress());
 
 		// Transaction: create revision, update post
 		await db.transaction(async (tx) => {
+			// Get next revision number for this post
+			const [lastRev] = await tx
+				.select({ maxRev: max(postRevisions.revisionNumber) })
+				.from(postRevisions)
+				.where(eq(postRevisions.postId, post.id));
+			const nextRevisionNumber = (lastRev?.maxRev ?? 0) + 1;
+
 			// Create revision entry (snapshot of old content)
 			await tx.insert(postRevisions).values({
 				postId: post.id,
-				revisionNumber: 1, // Will be auto-incremented in real impl
+				revisionNumber: nextRevisionNumber,
 				bodyMarkdown: post.bodyMarkdown,
 				bodyHtml: post.bodyHtml,
 				editedByDid: locals.user!.did,

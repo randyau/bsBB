@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { users, modLog } from '$lib/db/schema';
+import { users, modLog, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
@@ -40,6 +40,8 @@ export const actions: Actions = {
 			});
 
 			await db.update(users).set({ globalRole: 'banned' }).where(eq(users.did, targetDid));
+			// Immediately invalidate all active sessions so the ban takes effect now
+			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
 
 			await db.insert(modLog).values({
 				moderatorDid: locals.user!.did,
