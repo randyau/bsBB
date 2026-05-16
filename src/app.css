@@ -408,6 +408,27 @@ select:focus {
 	opacity: 0.9;
 }
 
+/* Text color utilities */
+.text-primary {
+	color: rgb(var(--color-primary));
+}
+
+/* Compact inline input — for action rows (ban reason, delete reason, etc.) */
+.input-inline {
+	height: 1.75rem;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+/* Fixed-width select variants for filter bars */
+.select-w-sm {
+	width: 10rem; /* 160px */
+}
+
+.select-w-md {
+	width: 12.5rem; /* 200px */
+}
+
 /* Link styles */
 .link {
 	color: rgb(var(--color-primary));

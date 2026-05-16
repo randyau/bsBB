@@ -1,10 +1,38 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { threads, forums, users, posts, modLog } from '$lib/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, and, gte, count, ilike, or } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async () => {
+const PAGE_SIZE = 25;
+
+export const load: PageServerLoad = async ({ url }) => {
+	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
+	const forumFilter = url.searchParams.get('forum') ?? '';
+	const period = url.searchParams.get('period') ?? 'all';
+	const q = url.searchParams.get('q') ?? '';
+
+	const cutoffMs: Record<string, number | null> = {
+		week: Date.now() - 7 * 86400000,
+		month: Date.now() - 30 * 86400000,
+		year: Date.now() - 365 * 86400000,
+		all: null
+	};
+	const cutoff = cutoffMs[period] ?? null;
+
+	const conditions = [];
+	if (forumFilter) conditions.push(eq(forums.slug, forumFilter));
+	if (cutoff) conditions.push(gte(threads.lastPostAt, new Date(cutoff)));
+	if (q.trim()) conditions.push(or(ilike(threads.title, `%${q}%`), ilike(users.handle, `%${q}%`)));
+	const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(threads)
+		.innerJoin(forums, eq(threads.forumId, forums.id))
+		.innerJoin(users, eq(threads.authorDid, users.did))
+		.where(where);
+
 	const threadList = await db
 		.select({
 			id: threads.id,
@@ -24,11 +52,26 @@ export const load: PageServerLoad = async () => {
 		.innerJoin(forums, eq(threads.forumId, forums.id))
 		.innerJoin(users, eq(threads.authorDid, users.did))
 		.leftJoin(posts, eq(threads.id, posts.threadId))
+		.where(where)
 		.groupBy(threads.id, forums.name, forums.slug, users.handle, users.did)
-		.orderBy(desc(threads.lastPostAt));
+		.orderBy(desc(threads.lastPostAt))
+		.limit(PAGE_SIZE)
+		.offset((page - 1) * PAGE_SIZE);
+
+	const forumList = await db
+		.select({ name: forums.name, slug: forums.slug })
+		.from(forums)
+		.orderBy(forums.name);
 
 	return {
-		threads: threadList
+		threads: threadList,
+		forums: forumList,
+		page,
+		pageSize: PAGE_SIZE,
+		total: Number(total),
+		forumFilter,
+		period,
+		q
 	};
 };
 

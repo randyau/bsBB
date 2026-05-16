@@ -1,14 +1,20 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db';
 import { modLog, users, posts, threads } from '$lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, ilike, and } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const actionFilter = url.searchParams.get('action');
+	const q = url.searchParams.get('q') ?? '';
 
 	const moderatorUser = alias(users, 'moderator');
 	const targetUser = alias(users, 'target_user');
+
+	const conditions = [];
+	if (actionFilter) conditions.push(eq(modLog.action, actionFilter));
+	if (q.trim()) conditions.push(ilike(moderatorUser.handle, `%${q}%`));
+	const where = conditions.length > 0 ? and(...conditions) : undefined;
 
 	const baseQuery = db
 		.select({
@@ -29,8 +35,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		.leftJoin(posts, eq(modLog.targetPostId, posts.id))
 		.leftJoin(threads, eq(modLog.targetThreadId, threads.id));
 
-	const entries = await (actionFilter
-		? baseQuery.where(eq(modLog.action, actionFilter))
+	const entries = await (where
+		? baseQuery.where(where)
 		: baseQuery
 	).orderBy(desc(modLog.createdAt)).limit(200);
 
@@ -43,6 +49,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	return {
 		entries,
 		actionTypes: actionTypes.map((a) => a.action),
-		currentFilter: actionFilter || undefined
+		currentFilter: actionFilter || undefined,
+		q
 	};
 };

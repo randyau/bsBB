@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { roles, userRoles, users, modLog } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { count } from 'drizzle-orm';
 
@@ -206,19 +206,13 @@ export const actions: Actions = {
 			await db
 				.delete(userRoles)
 				.where(
-					eq(userRoles.roleId, roleId) &&
-					eq(userRoles.userDid, userDid)
+					and(eq(userRoles.roleId, roleId), eq(userRoles.userDid, userDid))
 				);
 
 			// Get role name for logging
 			const role = await db.query.roles.findFirst({
 				where: eq(roles.id, roleId),
 				columns: { name: true }
-			});
-
-			const user = await db.query.users.findFirst({
-				where: eq(users.did, userDid),
-				columns: { handle: true }
 			});
 
 			await db.insert(modLog).values({
