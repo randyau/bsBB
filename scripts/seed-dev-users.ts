@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 // Dev-only seed: inserts fake users for local testing without ATproto OAuth.
-// Safe to re-run (ON CONFLICT DO NOTHING).
+// Idempotent: updates roles back to defaults if manually changed.
 // Never import or run this in production — it creates users with no real ATproto identity.
 
 import 'dotenv/config';
@@ -36,18 +36,25 @@ const DEV_USERS = [
 
 const now = new Date();
 
-await db
-	.insert(users)
-	.values(
-		DEV_USERS.map((u) => ({
+// Seed users, updating roles if they already exist (idempotent: resets permissions on re-run)
+for (const u of DEV_USERS) {
+	await db
+		.insert(users)
+		.values({
 			...u,
 			avatarUrl: null,
 			lastProfileSync: now,
 			notifyViaBluesky: false,
 			chatSessionEncrypted: null,
-		}))
-	)
-	.onConflictDoNothing();
+		})
+		.onConflictDoUpdate({
+			target: users.did,
+			set: {
+				globalRole: u.globalRole,
+				lastProfileSync: now,
+			},
+		});
+}
 
 console.log('Dev users seeded:');
 for (const u of DEV_USERS) {

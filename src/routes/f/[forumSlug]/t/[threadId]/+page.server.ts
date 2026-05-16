@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, threads, posts, users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
@@ -24,25 +24,12 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		throw error(403, 'Access denied');
 	}
 
-	// Find thread by ID
+	// Find thread by slug (unique per forum)
 	const thread = await db.query.threads.findFirst({
-		where: eq(threads.id, params.threadId),
+		where: and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)),
 	});
 
 	if (!thread) {
-		throw error(404, 'Thread not found');
-	}
-
-	// Validate that thread belongs to this forum
-	if (thread.forumId !== forum.id) {
-		const correctForum = await db.query.forums.findFirst({
-			where: eq(forums.id, thread.forumId),
-		});
-
-		if (correctForum) {
-			throw redirect(301, `/f/${correctForum.slug}/t/${thread.id}`);
-		}
-
 		throw error(404, 'Thread not found');
 	}
 
@@ -120,10 +107,10 @@ export const actions: Actions = {
 		}
 
 		const thread = await db.query.threads.findFirst({
-			where: eq(threads.id, params.threadId),
+			where: and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)),
 		});
 
-		if (!thread || thread.forumId !== forum.id) {
+		if (!thread) {
 			throw error(404, 'Thread not found');
 		}
 
@@ -183,6 +170,6 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to post reply' });
 		}
 
-		throw redirect(303, `/f/${forum.slug}/t/${thread.id}`);
+		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
 	},
 };

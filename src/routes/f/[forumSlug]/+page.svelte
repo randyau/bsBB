@@ -20,12 +20,22 @@
 
 <div class="space-y-6 py-8">
 	<!-- Forum Header -->
-	<div>
-		<h1 class="text-3xl font-bold">{data.forum.name}</h1>
-		{#if data.forum.description}
-			<p class="mt-2 text-gray-600">{data.forum.description}</p>
+	<div class="flex items-start justify-between gap-4">
+		<div class="flex-1">
+			<h1 class="text-3xl font-bold">{data.forum.name}</h1>
+			{#if data.forum.description}
+				<p class="mt-2 text-gray-600">{data.forum.description}</p>
+			{/if}
+			<p class="mt-3 text-sm text-gray-500">{data.totalThreads} thread{data.totalThreads !== 1 ? 's' : ''}</p>
+		</div>
+		{#if data.user}
+			<a
+				href="/f/{data.forum.slug}/new"
+				class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex-shrink-0"
+			>
+				New Thread
+			</a>
 		{/if}
-		<p class="mt-3 text-sm text-gray-500">{data.totalThreads} thread{data.totalThreads !== 1 ? 's' : ''}</p>
 	</div>
 
 	<!-- Thread List -->
@@ -46,7 +56,7 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
 								<h3 class="text-lg font-semibold">
-									<a href="/f/{data.forum.slug}/t/{thread.id}" class="text-blue-600 hover:underline break-words">
+									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="text-blue-600 hover:underline break-words">
 										{thread.title}
 									</a>
 								</h3>
