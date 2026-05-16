@@ -2,6 +2,63 @@ import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { validateSession, getSessionToken } from '$lib/auth/session.js';
 
+function formatHtml(html: string): string {
+	if (process.env.NODE_ENV === 'production') return html;
+
+	let indentLevel = 0;
+	const indent = '  ';
+	let result = '';
+	let inTag = false;
+	let tagContent = '';
+
+	for (let i = 0; i < html.length; i++) {
+		const char = html[i];
+
+		if (char === '<') {
+			if (tagContent.trim()) {
+				result += indent.repeat(indentLevel) + tagContent.trim() + '\n';
+				tagContent = '';
+			}
+			inTag = true;
+		}
+
+		if (inTag) {
+			tagContent += char;
+
+			if (char === '>') {
+				inTag = false;
+				const tag = tagContent.trim();
+
+				// Self-closing tags, void elements, or comments
+				if (tag.endsWith('/>') || /^<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)/.test(tag) || tag.startsWith('<!--')) {
+					result += indent.repeat(indentLevel) + tag + '\n';
+				}
+				// Closing tags
+				else if (tag.startsWith('</')) {
+					indentLevel = Math.max(0, indentLevel - 1);
+					result += indent.repeat(indentLevel) + tag + '\n';
+				}
+				// Opening tags
+				else {
+					result += indent.repeat(indentLevel) + tag + '\n';
+					if (!tag.includes('/>')) {
+						indentLevel++;
+					}
+				}
+				tagContent = '';
+			}
+		} else if (!inTag && char.trim()) {
+			tagContent += char;
+		}
+	}
+
+	if (tagContent.trim()) {
+		result += indent.repeat(indentLevel) + tagContent.trim() + '\n';
+	}
+
+	return result;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	// Session hydration
 	const token = getSessionToken(event);
@@ -31,5 +88,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		redirect(302, '/banned');
 	}
 
-	return resolve(event);
+	const response = await resolve(event, {
+		transformPageChunk({ html }) {
+			return formatHtml(html);
+		}
+	});
+
+	return response;
 };

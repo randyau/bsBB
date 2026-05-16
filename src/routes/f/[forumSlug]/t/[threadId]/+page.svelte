@@ -7,11 +7,17 @@
 	let previewMode: 'write' | 'preview' = $state('write');
 	let previewHtml: string = $state('');
 	let isLoadingPreview: boolean = $state(false);
+	let replyBody: string = $state('');
+	let quotedPostId: string | null = $state(null);
 
 	async function handlePreview() {
-		const body = (document.querySelector('textarea[name="body"]') as HTMLTextAreaElement)?.value || '';
+		if (previewMode === 'preview') {
+			// Toggle back to write mode
+			previewMode = 'write';
+			return;
+		}
 
-		if (!body.trim()) {
+		if (!replyBody.trim()) {
 			previewHtml = '';
 			previewMode = 'preview';
 			return;
@@ -20,7 +26,7 @@
 		isLoadingPreview = true;
 		try {
 			const formData = new FormData();
-			formData.append('body', body);
+			formData.append('body', replyBody);
 
 			const response = await fetch('/api/preview', {
 				method: 'POST',
@@ -41,10 +47,30 @@
 	}
 
 	function setQuoteTarget(postId: string) {
-		const input = document.querySelector('input[name="replyToPostId"]') as HTMLInputElement;
-		if (input) {
-			input.value = postId;
+		const post = data.posts.find(p => p.id === postId);
+		if (!post) return;
+
+		if (quotedPostId === postId) {
+			// Already quoted, clicking again clears it
+			quotedPostId = null;
+			// Remove the quoted text from the body
+			const lines = replyBody.split('\n');
+			const quoteLines = post.bodyMarkdown.split('\n').map((line: string) => `> ${line}`);
+			let newBody = replyBody;
+			for (const quoteLine of quoteLines) {
+				newBody = newBody.replace(quoteLine + '\n', '').replace(quoteLine, '');
+			}
+			replyBody = newBody.trim();
+		} else {
+			quotedPostId = postId;
+			// Insert the quoted text as a blockquote at the start
+			const quotedText = post.bodyMarkdown
+				.split('\n')
+				.map((line: string) => `> ${line}`)
+				.join('\n');
+			replyBody = quotedText + (replyBody ? '\n\n' + replyBody : '');
 		}
+
 		document.querySelector('textarea[name="body"]')?.focus();
 	}
 
@@ -109,7 +135,7 @@
 									class="w-10 h-10 rounded-full"
 								/>
 							{:else}
-								<div class="w-10 h-10 rounded-full bg-gray-300" />
+								<div class="w-10 h-10 rounded-full bg-gray-300"></div>
 							{/if}
 
 							<div>
@@ -132,9 +158,11 @@
 								<button
 									type="button"
 									onclick={() => setQuoteTarget(post.id)}
-									class="text-xs text-blue-600 hover:underline"
+									class="text-xs {quotedPostId === post.id
+										? 'text-blue-600 font-semibold underline'
+										: 'text-blue-600 hover:underline'}"
 								>
-									Quote
+									{quotedPostId === post.id ? '✓ Quoted' : 'Quote'}
 								</button>
 							{/if}
 						</div>
@@ -181,9 +209,19 @@
 					</div>
 				{/if}
 
+				{#if quotedPostId}
+					<button
+						type="button"
+						onclick={() => setQuoteTarget(quotedPostId!)}
+						class="text-xs text-blue-600 mb-3 italic hover:bg-blue-50 px-2 py-1 rounded cursor-pointer block w-full text-left transition"
+					>
+						💬 Quoted @{data.posts.find(p => p.id === quotedPostId)?.authorHandle} — click to remove, or edit the blockquote below
+					</button>
+				{/if}
+
 				<form method="POST" action="?/reply" class="space-y-4">
 					<!-- Hidden reply target -->
-					<input type="hidden" name="replyToPostId" value="" />
+					<input type="hidden" name="replyToPostId" value={quotedPostId || ''} />
 
 					<!-- Body textarea/preview -->
 					<div>
@@ -206,10 +244,16 @@
 								maxlength="50000"
 								required
 								placeholder="Write your reply..."
-								value={form?.body || ''}
+								bind:value={replyBody}
 								rows="6"
 								class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-							/>
+							></textarea>
+							<p class="text-xs text-gray-500 mt-1">
+								{replyBody.length} / 50,000 characters
+								{#if replyBody.length > 45000}
+									<span class="text-amber-600 font-semibold">(approaching limit)</span>
+								{/if}
+							</p>
 						{:else}
 							<div
 								class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 prose prose-sm max-w-none min-h-[150px]"

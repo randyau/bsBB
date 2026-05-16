@@ -2,14 +2,17 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phase 3 ✅ Complete
+## Status — Phase 3.1 ✅ Complete
 
-**Phase 3 (Post Creation):** All 35+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. See ARCHITECTURE.md for detailed implementation status and QUICK_REFERENCE.md for navigation.
+**Phase 3 (Post Creation):** All 36+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. 
+
+**Phase 3.1 (Polish):** Character counters, form validation, improved quote UX — all complete.
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
 - **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail)
 - **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata)
+- **Phase 3.1 ✅** — Polish (form validation, character counters, quote UX)
 
 **Next:** Phase 4 (moderation & rate limiting)
 

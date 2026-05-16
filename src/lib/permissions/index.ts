@@ -131,8 +131,8 @@ export async function canPost(
 		}
 	}
 
-	// No explicit permission found — members cannot post by default (post requires explicit allow)
-	return false;
+	// No explicit permission found — members can post by default, only guests cannot
+	return true;
 }
 
 /**

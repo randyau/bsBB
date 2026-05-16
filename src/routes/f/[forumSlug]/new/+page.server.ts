@@ -109,7 +109,9 @@ export const actions: Actions = {
 				threadId = result;
 				break;
 			} catch (err: any) {
-				if (err.code === '23505' && i < 5) {
+				// Check for unique constraint violation (code 23505) in either err or err.cause
+				const errorCode = err.code || err.cause?.code;
+				if (errorCode === '23505' && i < 5) {
 					slug = `${generateSlug(title)}-${i}`;
 					continue;
 				}
@@ -122,6 +124,6 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to create thread', title, body });
 		}
 
-		throw redirect(303, `/f/${forum.slug}/t/${threadId}`);
+		throw redirect(303, `/f/${forum.slug}/t/${slug}`);
 	},
 };

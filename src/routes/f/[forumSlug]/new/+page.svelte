@@ -5,15 +5,17 @@
 	let { data }: { data: PageData } = $props();
 	let form: ActionData = $state(undefined);
 
+	let titleValue: string = $state(form?.title || '');
+	let bodyValue: string = $state(form?.body || '');
 	let previewMode: 'write' | 'preview' = $state('write');
 	let previewHtml: string = $state('');
 	let isLoadingPreview: boolean = $state(false);
 
-	async function handlePreview() {
-		const title = (document.querySelector('input[name="title"]') as HTMLInputElement)?.value || '';
-		const body = (document.querySelector('textarea[name="body"]') as HTMLTextAreaElement)?.value || '';
+	const TITLE_MAX = 300;
+	const BODY_MAX = 50000;
 
-		if (!body.trim()) {
+	async function handlePreview() {
+		if (!bodyValue.trim()) {
 			previewHtml = '';
 			previewMode = 'preview';
 			return;
@@ -22,7 +24,7 @@
 		isLoadingPreview = true;
 		try {
 			const formData = new FormData();
-			formData.append('body', body);
+			formData.append('body', bodyValue);
 
 			const response = await fetch('/api/preview', {
 				method: 'POST',
@@ -39,6 +41,14 @@
 			previewHtml = '<p style="color: red;">Failed to load preview</p>';
 		} finally {
 			isLoadingPreview = false;
+		}
+	}
+
+	function togglePreview() {
+		if (previewMode === 'preview') {
+			previewMode = 'write';
+		} else {
+			handlePreview();
 		}
 	}
 </script>
@@ -69,13 +79,20 @@
 				type="text"
 				id="title"
 				name="title"
-				maxlength="300"
+				maxlength={TITLE_MAX}
 				required
 				placeholder="What's on your mind?"
-				value={form?.title || ''}
+				bind:value={titleValue}
 				class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 			/>
-			<p class="text-xs text-gray-500 mt-1">1-300 characters</p>
+			<p class="text-xs text-gray-500 mt-1">
+				{titleValue.length} / {TITLE_MAX} characters
+				{#if titleValue.length >= TITLE_MAX}
+					<span class="text-red-600 font-semibold">(at limit)</span>
+				{:else if titleValue.length > TITLE_MAX * 0.8}
+					<span class="text-amber-600 font-semibold">(approaching limit)</span>
+				{/if}
+			</p>
 		</div>
 
 		<!-- Body -->
@@ -84,7 +101,7 @@
 				<label for="body" class="block text-sm font-semibold">Body (Markdown)</label>
 				<button
 					type="button"
-					onclick={handlePreview}
+					onclick={togglePreview}
 					disabled={isLoadingPreview}
 					class="text-sm text-blue-600 hover:underline disabled:opacity-50"
 				>
@@ -96,13 +113,21 @@
 				<textarea
 					id="body"
 					name="body"
-					maxlength="50000"
+					maxlength={BODY_MAX}
 					required
 					placeholder="Write your message in Markdown..."
-					value={form?.body || ''}
+					bind:value={bodyValue}
 					rows="12"
 					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-				/>
+				></textarea>
+				<p class="text-xs text-gray-500 mt-1">
+					{bodyValue.length} / {BODY_MAX} characters
+					{#if bodyValue.length >= BODY_MAX}
+						<span class="text-red-600 font-semibold">(at limit)</span>
+					{:else if bodyValue.length > BODY_MAX * 0.8}
+						<span class="text-amber-600 font-semibold">(approaching limit)</span>
+					{/if}
+				</p>
 			{:else}
 				<div
 					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 prose prose-sm max-w-none min-h-[300px]"
@@ -110,15 +135,23 @@
 					{@html previewHtml}
 				</div>
 			{/if}
-
-			<p class="text-xs text-gray-500 mt-1">1-50,000 characters, Markdown supported</p>
 		</div>
 
 		<!-- Submit -->
 		<div class="pt-4">
+			{#if titleValue.length === 0}
+				<p class="text-sm text-red-600 mb-2">Title is required</p>
+			{:else if titleValue.length > TITLE_MAX}
+				<p class="text-sm text-red-600 mb-2">Title exceeds {TITLE_MAX} character limit</p>
+			{:else if bodyValue.length === 0}
+				<p class="text-sm text-red-600 mb-2">Body is required</p>
+			{:else if bodyValue.length > BODY_MAX}
+				<p class="text-sm text-red-600 mb-2">Body exceeds {BODY_MAX} character limit</p>
+			{/if}
 			<button
 				type="submit"
-				class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+				disabled={titleValue.length === 0 || titleValue.length > TITLE_MAX || bodyValue.length === 0 || bodyValue.length > BODY_MAX}
+				class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Create Thread
 			</button>
