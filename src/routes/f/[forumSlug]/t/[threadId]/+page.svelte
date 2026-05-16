@@ -233,7 +233,12 @@
 							<div class="text-sm text-gray-500 text-right">
 								<p>{formatTime(post.createdAt)}</p>
 								{#if post.editedAt}
-									<p class="text-xs italic">edited {formatTime(post.editedAt)}</p>
+									<a
+										href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
+										class="text-xs italic text-blue-600 hover:underline"
+									>
+										edited {formatTime(post.editedAt)} (history)
+									</a>
 								{/if}
 							</div>
 

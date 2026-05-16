@@ -1,6 +1,6 @@
 # Phase 6 — Post Edits, Search & Shipping (In Progress)
 
-## Commits Completed (1/6)
+## Commits Completed (2/6)
 
 ---
 
@@ -30,9 +30,34 @@ Implemented post editing with revision history. Authors and admins can edit post
 
 ---
 
-## Remaining Commits (5/6)
+### ✅ Commit 2: Post Revisions Viewer
+**Files:**
+- `src/routes/f/[forumSlug]/t/[threadId]/post/[postId]/revisions/+page.server.ts` (new)
+- `src/routes/f/[forumSlug]/t/[threadId]/post/[postId]/revisions/+page.svelte` (new)
+- `src/routes/f/[forumSlug]/t/[threadId]/+page.svelte` (modified) — Link to revisions
 
-### 📋 Commit 2: Post Revisions Viewer
+Implemented revision history viewer. Shows all edits to a post with original content, editor, and timestamp.
+
+**Features:**
+- `/f/[forum]/t/[thread]/post/[postId]/revisions` page
+- Chronological list of all edits
+- Click to expand each revision
+- Shows original content + markdown source (details toggle)
+- For last revision, also shows current content
+- Link from post edit timestamp to revision history
+- Back link to thread
+
+**Edit Timeline:**
+- Each revision shows: editor handle, timestamp (relative + absolute)
+- Hover state for collapsible content
+- Expandable markdown source view
+- Original post creation timestamp in blue box
+
+---
+
+## Remaining Commits (4/6)
+
+### 📋 Commit 3: Full-Text Search Implementation
 **Files:**
 - `src/routes/f/[forumSlug]/t/[threadId]/post/[postId]/+server.ts` (new)
 - `src/routes/f/[forumSlug]/t/[threadId]/+page.server.ts` (modify)
