@@ -1,1 +1,144 @@
 @import "tailwindcss";
+
+:root[data-theme="light"] {
+	/* Primary colors */
+	--color-primary: 59 130 246; /* blue-500 */
+	--color-primary-dark: 37 99 235; /* blue-600 */
+	--color-primary-light: 96 165 250; /* blue-400 */
+
+	/* Neutral colors */
+	--color-bg: 255 255 255;
+	--color-bg-secondary: 249 250 251; /* gray-50 */
+	--color-bg-tertiary: 243 244 246; /* gray-100 */
+
+	--color-text: 17 24 39; /* gray-900 */
+	--color-text-secondary: 55 65 81; /* gray-700 */
+	--color-text-muted: 107 114 128; /* gray-500 */
+
+	--color-border: 229 231 235; /* gray-200 */
+	--color-border-light: 243 244 246; /* gray-100 */
+
+	/* Status colors */
+	--color-success: 34 197 94; /* green-500 */
+	--color-warning: 217 119 6; /* amber-600 */
+	--color-error: 239 68 68; /* red-500 */
+
+	/* Semantic */
+	--color-deleted: 107 114 128; /* gray-500 */
+}
+
+:root[data-theme="dark"] {
+	/* Primary colors */
+	--color-primary: 96 165 250; /* blue-400 */
+	--color-primary-dark: 59 130 246; /* blue-500 */
+	--color-primary-light: 147 197 253; /* blue-300 */
+
+	/* Neutral colors */
+	--color-bg: 17 24 39; /* gray-900 */
+	--color-bg-secondary: 31 41 55; /* gray-800 */
+	--color-bg-tertiary: 55 65 81; /* gray-700 */
+
+	--color-text: 243 244 246; /* gray-100 */
+	--color-text-secondary: 209 213 219; /* gray-300 */
+	--color-text-muted: 156 163 175; /* gray-400 */
+
+	--color-border: 75 85 99; /* gray-600 */
+	--color-border-light: 55 65 81; /* gray-700 */
+
+	/* Status colors */
+	--color-success: 52 211 153; /* emerald-400 */
+	--color-warning: 251 191 36; /* amber-400 */
+	--color-error: 248 113 113; /* red-400 */
+
+	/* Semantic */
+	--color-deleted: 107 114 128; /* gray-500 */
+}
+
+/* Base element styles using CSS variables */
+html {
+	color-scheme: light dark;
+}
+
+body {
+	@apply bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] transition-colors duration-200;
+}
+
+a {
+	@apply text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-primary-dark))];
+}
+
+button {
+	@apply transition-colors duration-200;
+}
+
+/* Border colors */
+.border {
+	@apply border-[rgb(var(--color-border))];
+}
+
+.border-b {
+	@apply border-b-[rgb(var(--color-border))];
+}
+
+.border-l {
+	@apply border-l-[rgb(var(--color-border))];
+}
+
+/* Background variants */
+.bg-secondary {
+	@apply bg-[rgb(var(--color-bg-secondary))];
+}
+
+.bg-tertiary {
+	@apply bg-[rgb(var(--color-bg-tertiary))];
+}
+
+/* Text colors */
+.text-secondary {
+	@apply text-[rgb(var(--color-text-secondary))];
+}
+
+.text-muted {
+	@apply text-[rgb(var(--color-text-muted))];
+}
+
+/* Input styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+	@apply bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] border-[rgb(var(--color-border))] transition-colors duration-200;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+	@apply ring-[rgb(var(--color-primary))];
+}
+
+/* Button variants */
+.btn-primary {
+	@apply bg-[rgb(var(--color-primary))] text-white hover:bg-[rgb(var(--color-primary-dark))] transition-colors;
+}
+
+.btn-secondary {
+	@apply bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-border))];
+}
+
+/* Status colors */
+.text-success {
+	@apply text-[rgb(var(--color-success))];
+}
+
+.text-warning {
+	@apply text-[rgb(var(--color-warning))];
+}
+
+.text-error {
+	@apply text-[rgb(var(--color-error))];
+}
+
+.text-deleted {
+	@apply text-[rgb(var(--color-deleted))];
+}

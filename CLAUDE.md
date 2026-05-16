@@ -2,7 +2,7 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Post-Launch Cleanup & Phase 7 Planned
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
@@ -13,10 +13,10 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync)
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker)
 
-### Next: Phase 7 — Design, UI & Interaction Refinements
-- Light/dark mode toggle
-- Cohesive visual theme (replacing bare-bones Tailwind defaults)
-- UX polish across all views
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (1/10 commits)
+- **Commit 1 ✅** — Theme System & Light/Dark Mode (CSS variables, toggle, persistence)
+- **Commit 2** — Typography & Spacing Scale (consistent sizing and layout)
+- **Commits 3–10** — Components, accessibility, animations, responsive design
 
 ---
 
