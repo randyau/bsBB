@@ -14,7 +14,7 @@
 	class="p-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] transition-colors"
 	aria-label="Toggle theme"
 >
-	{#if currentTheme === 'light'}
+	{#if currentTheme === 'dark'}
 		<svg
 			class="w-5 h-5"
 			fill="currentColor"
@@ -26,15 +26,23 @@
 	{:else}
 		<svg
 			class="w-5 h-5"
-			fill="currentColor"
-			viewBox="0 0 20 20"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
 			aria-hidden="true"
 		>
-			<path
-				fill-rule="evenodd"
-				d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.536l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.464 7.464a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zm1.414-4.828a1 1 0 000-1.414L4.757.757a1 1 0 00-1.414 1.414l.707.707a1 1 0 001.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z"
-				clip-rule="evenodd"
-			/>
+			<circle cx="12" cy="12" r="5" />
+			<line x1="12" y1="1" x2="12" y2="3" />
+			<line x1="12" y1="21" x2="12" y2="23" />
+			<line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+			<line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+			<line x1="1" y1="12" x2="3" y2="12" />
+			<line x1="21" y1="12" x2="23" y2="12" />
+			<line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+			<line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
 		</svg>
 	{/if}
 </button>

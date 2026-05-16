@@ -14,7 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (2/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (3/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -28,7 +28,27 @@ This file contains the full specification, architecture decisions, and design ra
   - Dark mode consistency across all pages with semantic CSS classes
   - Search result cards render cleanly without hydration issues
   - "New Thread" button displays properly in light/dark modes
-- **Commits 3–10** — Typography & spacing scale, button/form styles, cards, modals, loading states, responsive design, accessibility, animations, component docs
+- **Commit 3 ✅** — Markdown preview, responsive layout, global CSS, dark mode defaults
+  - Fix markdown preview rendering with .prose-content CSS class
+  - Responsive container layout with max-widths per breakpoint
+  - Abstract CSS into global semantic classes (.box, .alert, .btn-*, .form-*, .post, .thread-item, etc.)
+  - Set dark mode as system default
+  - Fix theme toggle sun/moon icons
+- **Commits 4–10** — Custom roles system, user role management, typography scale, button/form refinement, cards/modals, loading states, accessibility, animations, component docs
+  - **Commit 4 (planned)** — Custom roles & role-based forum access
+    - New `roles` table for admin-defined custom roles (name, description, optional color for UI)
+    - Refactor `userForumRoles` → `userRoles` (global role assignments, many-to-many with users)
+    - `forumPermissions` already supports granular access: per-role, per-forum
+      - `canRead`: user can view forum and threads
+      - `canPost`: user can create/reply to threads (independent of canRead — allows read-only or write-only forums)
+      - `canModerate`: user can perform mod actions (delete, lock, ban, etc.)
+    - Use case examples: read-only announcements forum (canRead=true, canPost=false), contributor-only discussion (custom role with canRead+canPost), moderator-only (canModerate=true)
+    - Admin UI for forum management:
+      - Permissions tab: per-role matrix (read/post/moderate toggles for each role)
+      - Visibility selector: choose which roles have access to this forum
+      - Role member management: add/remove users from roles (with audit trail in mod_log)
+    - Forum visibility enforced: users see only forums where their roles grant `canRead`
+    - Mod log entries for: role creation, role edits, user role assignments/removals
 
 ---
 
