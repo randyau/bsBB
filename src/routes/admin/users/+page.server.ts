@@ -23,6 +23,7 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	ban: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -47,6 +48,7 @@ export const actions: Actions = {
 	},
 
 	unban: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 
@@ -68,6 +70,7 @@ export const actions: Actions = {
 	},
 
 	promote: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 
@@ -89,6 +92,7 @@ export const actions: Actions = {
 	},
 
 	demote: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 

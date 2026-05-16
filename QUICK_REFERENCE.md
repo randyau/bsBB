@@ -220,6 +220,8 @@ This does not affect scripts run directly with `tsx` (e.g. seed scripts), where 
 
 ## Dev Auth (Local Testing Without Bluesky)
 
+> **Run curl and browser tests from the Windows/VS Code terminal, not WSL.** Docker ports are on the Windows network stack; `localhost:5173` does not resolve from inside WSL2. See `TESTING.md` for the full explanation.
+
 ATproto OAuth requires a publicly reachable HTTPS URL, so it cannot work on localhost. For local manual testing, there is a dev-only login bypass.
 
 **How it works:**

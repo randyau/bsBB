@@ -33,21 +33,22 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 
 	try {
 		// Atomic upsert: increment count if same window, reset if new window
+		const windowStartIso = windowStart.toISOString();
 		const result = await db.execute(
 			sql`
 			INSERT INTO rate_limit_buckets (key, count, window_start)
-			VALUES (${key}, 1, ${windowStart})
+			VALUES (${key}, 1, ${windowStartIso}::timestamptz)
 			ON CONFLICT (key) DO UPDATE
 			SET count = CASE
-				WHEN rate_limit_buckets.window_start = ${windowStart} THEN rate_limit_buckets.count + 1
+				WHEN rate_limit_buckets.window_start = ${windowStartIso}::timestamptz THEN rate_limit_buckets.count + 1
 				ELSE 1
 			END,
-			window_start = ${windowStart}
+			window_start = ${windowStartIso}::timestamptz
 			RETURNING count
 			`
 		);
 
-		const count = (result[0] as { count: number }).count;
+		const count = Number((result as Array<{ count: unknown }>)[0]?.count ?? 0);
 
 		if (count > config.limit) {
 			return {
@@ -60,7 +61,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 		return { allowed: true };
 	} catch (err) {
 		// If rate_limit_buckets doesn't exist yet, log and allow (graceful fallback)
-		console.error('[abuse check error]', err);
+		console.error('[abuse check error]', String(err));
 		return { allowed: true };
 	}
 }

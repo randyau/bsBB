@@ -1,27 +1,31 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db';
 import { modLog, users, posts, threads } from '$lib/db/schema';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const actionFilter = url.searchParams.get('action');
+
+	const moderatorUser = alias(users, 'moderator');
+	const targetUser = alias(users, 'target_user');
 
 	let query = db
 		.select({
 			id: modLog.id,
 			createdAt: modLog.createdAt,
-			moderatorHandle: users.handle,
+			moderatorHandle: moderatorUser.handle,
 			action: modLog.action,
 			targetDid: modLog.targetDid,
-			targetUserHandle: users.handle,
+			targetUserHandle: targetUser.handle,
 			targetPostId: modLog.targetPostId,
 			targetThreadId: modLog.targetThreadId,
 			targetThreadTitle: threads.title,
 			reason: modLog.reason
 		})
 		.from(modLog)
-		.innerJoin(users, eq(modLog.moderatorDid, users.did))
-		.leftJoin(users, eq(modLog.targetDid, users.did))
+		.innerJoin(moderatorUser, eq(modLog.moderatorDid, moderatorUser.did))
+		.leftJoin(targetUser, eq(modLog.targetDid, targetUser.did))
 		.leftJoin(posts, eq(modLog.targetPostId, posts.id))
 		.leftJoin(threads, eq(modLog.targetThreadId, threads.id));
 

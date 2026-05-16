@@ -49,9 +49,8 @@ export const actions: Actions = {
 		}
 
 		const ip = getClientAddress();
-		try {
-			await checkAbuse({ type: 'thread_create', did: locals.user.did, ip });
-		} catch {
+		const verdict = await checkAbuse({ type: 'thread_create', did: locals.user.did, ip });
+		if (!verdict.allowed) {
 			return fail(429, { error: 'Too many requests. Please try again later.' });
 		}
 
