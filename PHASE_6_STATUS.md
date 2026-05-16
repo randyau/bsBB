@@ -1,6 +1,6 @@
 # Phase 6 — Post Edits, Search & Shipping (In Progress)
 
-## Commits Completed (3/6)
+## Commits Completed (4/6)
 
 ---
 
@@ -76,9 +76,29 @@ Implemented PostgreSQL full-text search using tsvector. Searches across all post
 
 ---
 
-## Remaining Commits (3/6)
+### ✅ Commit 4: Search UI & Results Page
+**Files:**
+- `src/routes/search/+page.server.ts` (new) — Load search results
+- `src/routes/search/+page.svelte` (new) — Search results UI
+- `src/routes/+layout.svelte` (modified) — Add search bar to nav
 
-### 📋 Commit 4: Search UI & Results Page
+Implemented full search UI with results page, pagination, and search bar in main navigation.
+
+**Features:**
+- `/search?q=keyword&page=1` results page
+- Paginated results (20 per page)
+- Result cards with snippet preview, relevance score
+- Match percentage badge
+- Linked to thread for easy navigation
+- Search bar in header (all pages)
+- Breadcrumb nav
+- Empty states & error handling
+
+---
+
+## Remaining Commits (2/6)
+
+### 📋 Commit 5: Production Docker Build
 **Files:**
 - `src/routes/f/[forumSlug]/t/[threadId]/post/[postId]/+server.ts` (new)
 - `src/routes/f/[forumSlug]/t/[threadId]/+page.server.ts` (modify)
