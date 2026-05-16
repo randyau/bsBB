@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+      - ATPROTO_PRIVATE_KEY=${ATPROTO_PRIVATE_KEY}
+      - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
+      - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - forum
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: npx tsx src/worker.ts
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
+      - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
+      - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - forum
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-forum}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-forum}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-forum}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forum
+
+  caddy:
+    image: caddy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN}
+      - APP_HOST=app:3000
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - forum
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  forum:
