@@ -15,6 +15,9 @@
 	<a href="/" class="font-bold text-lg">bsBB</a>
 	<div class="flex items-center gap-4 text-sm">
 		{#if user}
+			{#if user.globalRole === 'admin'}
+				<a href="/admin" class="text-blue-600 hover:underline font-semibold">Admin</a>
+			{/if}
 			<span class="text-gray-600">@{user.handle}</span>
 			<form method="POST" action="/logout">
 				<button type="submit" class="hover:underline">Sign out</button>
