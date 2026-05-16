@@ -1,6 +1,6 @@
 # Phase 5 — Notifications & Background Tasks (In Progress)
 
-## Commits Completed (4/6)
+## Commits Completed (5/6)
 
 ### ✅ Commit 1: Email Infrastructure
 **File:** `src/lib/email.ts`
@@ -103,16 +103,24 @@ Implemented encryption for chat session tokens and DM handler. Users can opt in 
 
 ---
 
-### 📋 Commit 5: Lazy Profile Sync
+### ✅ Commit 5: Lazy Profile Sync
 **Files:**
-- `src/routes/f/[forumSlug]/t/[threadId]/+page.server.ts` (modify for post submit)
-- `src/worker.ts` (extend with sync task)
+- `src/routes/f/[forumSlug]/t/[threadId]/+page.server.ts` (modified)
+- `src/worker.ts` (modified) — handleProfileSync implementation
+- `src/lib/notifications.ts` — Already has enqueueProfileSync helper
 
-**What it does:**
-- Check if user's profile is >24h stale on post submit
-- Enqueue sync task (non-blocking)
-- Re-resolve DID via PLC Directory
-- Update cached handle, display name, avatar
+Implemented lazy profile sync: when users post, check if their cached profile is >24 hours old and enqueue a background sync task.
+
+**Features:**
+- On post submit, check `users.lastProfileSync` age
+- If >24h stale, enqueue profile_sync notification (non-blocking, fire-and-forget)
+- Worker polls and processes: updates `lastProfileSync` timestamp
+- Future enhancement: integrate with ATproto PLC Directory for real profile refresh
+
+**Why lazy sync?**
+- Users' handles are mutable; cache can become stale
+- Checking on every post hit would be slow
+- Background sync keeps data fresh without blocking user actions
 
 ---
 

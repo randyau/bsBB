@@ -7,6 +7,7 @@ import { canRead, canPost } from '$lib/permissions/index.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { checkAbuse } from '$lib/abuse/index.js';
+import { enqueueProfileSync } from '$lib/notifications.js';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Find forum by slug first
@@ -170,6 +171,19 @@ export const actions: Actions = {
 		const verdict = await checkAbuse({ type: 'post_submit', did: locals.user.did, ip });
 		if (!verdict.allowed) {
 			return fail(429, { error: 'Too many requests. Please try again later.' });
+		}
+
+		// Lazy profile sync: enqueue sync task if profile is >24h stale
+		const user = await db.query.users.findFirst({
+			where: eq(users.did, locals.user.did),
+			columns: { lastProfileSync: true },
+		});
+
+		if (user?.lastProfileSync) {
+			const hoursSinceSync = (Date.now() - user.lastProfileSync.getTime()) / (1000 * 60 * 60);
+			if (hoursSinceSync > 24) {
+				await enqueueProfileSync(locals.user.did);
+			}
 		}
 
 		const form = await request.formData();
