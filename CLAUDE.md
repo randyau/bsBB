@@ -9,9 +9,9 @@ This file contains the full specification, architecture decisions, and design ra
 **Phase 3.1 (Polish):** Character counters, form validation, improved quote UX — all complete.
 
 **Phase 4 (Moderation & Admin):** Implementing in 7 commits:
-- Rate limiting (atomic upserts on rate_limit_buckets)
-- Admin guard + nav link
-- Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
+- ✅ Rate limiting (atomic upserts on rate_limit_buckets)
+- ✅ Admin guard + nav link
+- 🚀 Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
 - Admin users page (ban/unban/promote/demote)
 - Admin threads page (lock/unlock/pin/unpin)
 - Admin posts page (delete/restore soft-delete)
