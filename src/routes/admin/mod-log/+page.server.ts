@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const moderatorUser = alias(users, 'moderator');
 	const targetUser = alias(users, 'target_user');
 
-	let query = db
+	const baseQuery = db
 		.select({
 			id: modLog.id,
 			createdAt: modLog.createdAt,
@@ -29,11 +29,10 @@ export const load: PageServerLoad = async ({ url }) => {
 		.leftJoin(posts, eq(modLog.targetPostId, posts.id))
 		.leftJoin(threads, eq(modLog.targetThreadId, threads.id));
 
-	if (actionFilter) {
-		query = query.where(eq(modLog.action, actionFilter));
-	}
-
-	const entries = await query.orderBy(desc(modLog.createdAt)).limit(200);
+	const entries = await (actionFilter
+		? baseQuery.where(eq(modLog.action, actionFilter))
+		: baseQuery
+	).orderBy(desc(modLog.createdAt)).limit(200);
 
 	// Get distinct action types for filter dropdown
 	const actionTypes = await db

@@ -48,7 +48,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 			`
 		);
 
-		const count = Number((result as Array<{ count: unknown }>)[0]?.count ?? 0);
+		const count = Number((result as unknown as Array<{ count: unknown }>)[0]?.count ?? 0);
 
 		if (count > config.limit) {
 			return {
