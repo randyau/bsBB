@@ -88,6 +88,94 @@ if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error
 
 ---
 
+## Phase 5: Worker & Background Jobs
+
+### Running the Worker Locally
+
+The notification worker processes pending notifications from the queue every 60 seconds. Run it separately from the dev server:
+
+**Terminal 1 (dev server):**
+```bash
+npm run dev
+```
+
+**Terminal 2 (worker process):**
+```bash
+npx tsx src/worker.ts
+```
+
+Or in watch mode for development:
+```bash
+npm run dev:watch -- src/worker.ts
+```
+
+### Worker Unit Tests
+
+Test encryption, email sending, and notification payloads (no database required):
+
+```bash
+npm test -- src/worker.test.ts
+```
+
+Tests cover:
+- AES-256-GCM encryption/decryption
+- Email sending (dev-mode logging)
+- Notification payload schemas
+- Worker polling pattern (FIFO, atomic claiming)
+
+### How It Works
+
+1. **Admin actions enqueue notifications** — When an admin bans/unbans/promotes a user, notification records are created in `notification_queue` table with status `pending`
+2. **Worker polls queue** — Every 60 seconds, fetches up to 10 pending notifications using `FOR UPDATE SKIP LOCKED`
+3. **Routes by type** — Dispatches to handler based on notification type:
+   - `moderator_alert` → Send email to all admins
+   - `dm_notification` → Send Bluesky DM to opted-in user
+   - `profile_sync` → Update user's cached profile data
+4. **Marks as sent/failed** — Updates status in DB after processing
+5. **Safe under concurrency** — Multiple worker instances can run without race conditions (PostgreSQL's `FOR UPDATE SKIP LOCKED` prevents duplicate processing)
+
+### Testing Worker Processing
+
+**Manually enqueue a notification (in psql or admin SQL interface):**
+```sql
+INSERT INTO notification_queue (recipient_did, type, payload, status)
+VALUES ('did:plc:testuser', 'moderator_alert', '{"action":"ban","targetLabel":"user@example.com","moderatorHandle":"admin"}', 'pending');
+```
+
+Then watch the worker logs:
+```
+[worker] processing 1 notifications
+[worker:moderator_alert] sent to admin (did:plc:admin)
+[worker] ✓ notification abc123 sent
+```
+
+### Environment Variables
+
+**For email notifications (optional in dev):**
+```env
+SMTP_HOST=smtp.mailgun.org
+SMTP_PORT=587
+SMTP_USER=postmaster@example.com
+SMTP_PASS=password
+SMTP_FROM=noreply@example.com
+```
+
+In dev without these vars, emails are logged to console.
+
+**For DM notifications (Bluesky):**
+```env
+ATPROTO_SERVICE_HANDLE=notifications@example.bsky.social
+ATPROTO_SERVICE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+ENCRYPTION_KEY=<32-byte hex string>
+```
+
+Generate ENCRYPTION_KEY:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+---
+
 ## Quick Start: Testing with Curl
 
 ### 1. Create a Test Session
