@@ -454,9 +454,9 @@ export const actions: Actions = {
 
 ### Generate slug from title
 ```typescript
-import { slugify } from '$lib/utils/slug';
+import { generateSlug } from '$lib/markdown/slug';
 
-const threadSlug = slugify(title);
+const threadSlug = generateSlug(title);
 // "My Cool Thread" → "my-cool-thread"
 ```
 

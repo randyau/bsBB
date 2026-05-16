@@ -71,35 +71,26 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 ## Common Commands
 
 ```bash
-# Set up PATH for Node v24
-export PATH=/home/agi/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+# One-command dev startup (DB + migrate + seed + server)
+npm run dev:setup
+
+# Or manually, step by step:
+docker compose -f docker/docker-compose.dev.yml up -d  # start DB only
+npm run db:migrate                                      # run schema migrations
+npx tsx scripts/seed.ts                                 # seed instance_settings + General forum
+npx tsx scripts/seed-dev-users.ts                       # seed dev login users (once)
+npm run dev                                             # start SvelteKit on localhost:5173
 
 # Type check
-npx svelte-kit sync && npx tsc --noEmit
+npm run check
 
-# Run tests (fast, no database)
-npm test
+# Run tests
+npm test                                                # unit tests (fast, ~1s)
+bash scripts/test-integration.sh                        # integration tests (dev server must be running)
 
-# Verify all tests pass (includes type, build, unit, DB tests)
-bash scripts/verify-tests.sh
-
-# Run integration tests with database
-bash scripts/test-integration.sh
-
-# Start dev server (slow first start ~21s due to /mnt/e/ I/O, normal)
-npm run dev
-
-# Start dev DB
-docker compose -f docker/docker-compose.dev.yml up -d
-
-# Run migrations
-bash scripts/migrate.sh
-
-# Seed instance_settings + General forum
-npx tsx scripts/seed.ts
-
-# Seed dev users (run once after migrations)
-npx tsx scripts/seed-dev-users.ts
+# Generate a new DB migration after editing schema.ts
+npm run db:generate                                     # creates SQL in src/lib/db/migrations/
+npm run db:migrate                                      # applies it
 ```
 
 See `TESTING.md` for detailed testing documentation.
@@ -201,7 +192,7 @@ This does not affect scripts run directly with `tsx` (e.g. seed scripts), where 
 | Task | Start Here |
 |---|---|
 | Add a new route | `src/routes/` — SvelteKit file-based routing, `+page.svelte` + `+page.server.ts` |
-| Add a DB table | `src/lib/db/schema.ts`, then `drizzle-kit generate`, add migration to `migrations/` |
+| Add a DB table | `src/lib/db/schema.ts`, then `npm run db:generate` + `npm run db:migrate` |
 | Add a test | Create `src/lib/**/*.test.ts`, run `npm test` |
 | Change session TTL | `src/lib/auth/session.ts` line ~30 |
 | Change password/auth | Not applicable — ATproto OAuth only |
@@ -214,7 +205,7 @@ This does not affect scripts run directly with `tsx` (e.g. seed scripts), where 
 | Add a moderator action | `mod_log` table + action enum |
 | Change email provider | `.env` SMTP_* vars only — no code changes |
 | Setup a new instance | `bash scripts/setup.sh` (generates keypair, validates OAuth, seeds DB) |
-| Promote breakglass admin | `docker exec forum-app bash scripts/admin-promote.sh <did>` (requires SSH) |
+| Promote breakglass admin | Run `UPDATE users SET global_role = 'admin' WHERE did = '<did>';` via `/admin/query` or psql |
 | Log in locally without Bluesky | See **Dev Auth** section below |
 
 ---
@@ -258,10 +249,13 @@ http://localhost:5173/dev/login
 
 ## Phase Status
 
-- **Phase 1 ✅** — Auth, sessions, DB, Docker, abuse stub, setup scripts. Ready for manual E2E testing.
-- **Phase 2 ✅** — Forum index, thread listing (with pagination), thread detail (flat posts). Permission enforcement. Slug redirects.
-- **Phase 3 ✅** — Post creation (new threads, replies), markdown preview, OG metadata, slug uniqueness. canPost permission.
-- **Phase 4** — Moderation & rate limiting (ban/unban, delete/restore, content flagging, real rate limit checks)
-- **Phase 5** — Notifications & admin UI (DM worker, email, admin tools, audit log)
-- **Phase 6** — Post edits/revisions, full-text search, Docker prod, README, ship
+- **Phase 1 ✅** — Auth, sessions, DB, Docker, setup scripts
+- **Phase 2 ✅** — Forum index, thread listing, thread detail, permission enforcement, slug redirects
+- **Phase 3 ✅** — Post creation, replies, markdown preview, OG metadata, slug uniqueness
+- **Phase 4 ✅** — Moderation: ban/unban, delete/restore posts, lock/pin threads, rate limiting, admin UI, mod log
+- **Phase 5 ✅** — Notifications: email (Nodemailer), Bluesky DM (opt-in), background worker, lazy profile sync
+- **Phase 6 ✅** — Post editing with revision history, full-text search, production Docker stack
+- **Phase 7 🚀** — Theme system, light/dark mode, UI refinements (in progress)
+
+See `STATUS.md` for detailed breakdown.
 

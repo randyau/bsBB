@@ -32,6 +32,42 @@ This file contains the full specification, architecture decisions, and design ra
 
 ---
 
+## Dev Workflow (Local Development)
+
+The fastest path to a running dev environment:
+
+```bash
+npm install
+cp .env.example .env          # then set SESSION_SECRET and uncomment DEV_AUTH_ENABLED=true
+npm run dev:setup             # starts DB, runs migrations, seeds dev users, starts server
+```
+
+Or step by step:
+
+```bash
+docker compose -f docker/docker-compose.dev.yml up -d   # PostgreSQL only (localhost:5432)
+npm run db:migrate                                       # run schema migrations
+npx tsx scripts/seed.ts                                  # seed instance_settings + General forum
+npx tsx scripts/seed-dev-users.ts                        # seed dev login users (first time)
+npm run dev                                              # SvelteKit on http://localhost:5173
+```
+
+Dev login (no ATproto OAuth needed): `http://localhost:5173/dev/login`
+Requires `DEV_AUTH_ENABLED=true` in `.env`. Only shows users with `did:example:*` DIDs.
+
+**Key npm scripts:**
+
+| Script | What it does |
+|---|---|
+| `npm run dev:setup` | One-command dev startup (DB + migrate + seed + server) |
+| `npm run dev` | Start SvelteKit dev server only (DB must already be running) |
+| `npm test` | Run all unit tests |
+| `npm run db:migrate` | Apply pending Drizzle migrations |
+| `npm run db:generate` | Generate a new migration from schema changes |
+| `npm run check` | TypeScript + Svelte type check |
+
+---
+
 ## Project Overview
 
 A long-form, semi-durable threaded discussion forum — spiritually similar to classic phpBB but modernized. The defining architectural decision is that **all authentication and user identity is ATproto/Bluesky-based**. There are no traditional user accounts, no passwords, no email-based auth. Users sign in with their Bluesky identity.
@@ -64,7 +100,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 ### Content
 
 - **Markdown only** — no WYSIWYG editor
-- Plain `<textarea>` with a live preview pane, or CodeMirror 6 with markdown mode
+- Plain `<textarea>` with a button-toggled preview pane (server-rendered via `POST /api/preview`)
 - Markdown rendered server-side via `unified`/`remark` pipeline
 - HTML output sanitized with `rehype-sanitize` **before storage**, not just at render time
 - Embedded media via server-side oEmbed/OpenGraph resolution — **no local media storage**
@@ -127,28 +163,33 @@ The forum is intended to be open sourced so that others can self-host it. All se
 ### Frontend
 
 - SvelteKit (same codebase as backend via server actions)
-- CSS: Tailwind CSS v4 + shadcn-svelte component primitives
-- Markdown editor: Plain `<textarea>` (Phase 3 MVP); can upgrade to CodeMirror 6 with markdown mode in Phase 5+
-  - Preview is button-toggled via `POST /api/preview/` (server-rendered — no client-side markdown library)
+- CSS: Tailwind CSS v4 with CSS custom properties for light/dark theming
+- Markdown editor: Plain `<textarea>` with button-toggled preview via `POST /api/preview` (server-rendered — no client-side markdown library)
 
 ### Infrastructure
 
 | Concern | Choice |
 |---|---|
 | Server | Hetzner CAX11 (Arm64, 2 vCPU, 4GB RAM, ~€3.29/mo) or CX22 (x86) |
-| Containerization | Docker Compose — 3 services only |
-| Services | SvelteKit app + PostgreSQL + Caddy |
+| Containerization | Docker Compose |
+| Prod services | app + worker + db + caddy (4 services) |
+| Dev services | db only — app runs via `npm run dev` |
 | HTTPS | Caddy automatic Let's Encrypt |
 | Reverse proxy | Caddy (also serves `client-metadata.json` as static file) |
 | Backups | Daily `pg_dump` → Cloudflare R2 or Backblaze B2 via cron, 7-day rolling |
 
-### Docker Compose Services
+### Docker Compose Services (Production)
+
+Defined in `docker-compose.prod.yml`:
 
 1. **`app`** — SvelteKit container, built from repo, internal network only
-2. **`db`** — Official Postgres image, data on named volume, internal network only
-3. **`caddy`** — Reverse proxy, ports 80/443 exposed, serves `client-metadata.json` from mounted directory
+2. **`worker`** — Same image as `app`, runs `npx tsx src/worker.ts` — notification queue processor
+3. **`db`** — PostgreSQL 17 Alpine image, data on named volume, internal network only
+4. **`caddy`** — Reverse proxy, ports 80/443 exposed, automatic HTTPS via Let's Encrypt
 
-Only Caddy is exposed to the internet. Postgres and app are unreachable from outside.
+Only Caddy is exposed to the internet. All other services are unreachable from outside.
+
+**Dev** uses `docker/docker-compose.dev.yml` — PostgreSQL only on `localhost:5432`. The app runs locally via `npm run dev`.
 
 ---
 
@@ -224,7 +265,7 @@ Only Caddy is exposed to the internet. Postgres and app are unreachable from out
 | `edited_by_did` | TEXT FK → users.did | |
 | `created_at` | TIMESTAMPTZ | |
 
-Revisions are append-only. Current version lives in `posts`. Accessible at `/post/[id]/revisions/`.
+Revisions are append-only. Current version lives in `posts`. Accessible at `/f/[forumSlug]/t/[threadId]/post/[postId]/revisions`.
 
 ### `forum_permissions`
 
@@ -340,9 +381,8 @@ Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_compl
 
 - Nodemailer over SMTP — provider configured entirely via environment variables
 - No Mailgun SDK or any provider SDK in application code
-- Application code calls only `sendEmail(to, subject, body)` from `lib/email.ts`
-- Initial provider: Mailgun (deployer's existing account)
-- Switching providers = changing 4 env vars, no code changes
+- Application code calls only `sendEmail(to, subject, body)` from `src/lib/email.ts`
+- Switching providers = changing SMTP env vars only, no code changes
 
 Triggers:
 - New item in moderation queue → notify moderators
@@ -364,13 +404,14 @@ Do NOT send:
 
 ### Notification Worker
 
-- **Separate process** from the web tier (runs `src/worker.ts` in its own container)
+- **Separate process** from the web tier (runs `src/worker.ts` in its own container via `docker-compose.prod.yml`)
 - Polls `notification_queue` for `status = 'pending'` every 60 seconds
 - Uses PostgreSQL's `FOR UPDATE SKIP LOCKED` to safely scale across multiple worker instances without race conditions
 - Sends via `@atproto/api` chat methods using the service account credentials
 - Rate limiting check before send: no more than 1 DM per recipient per hour
 - Marks records `sent` or `failed` with timestamp
 - Unprocessed notifications survive server restarts (persisted in DB)
+- **Notification helpers** live in `src/lib/notifications.ts` (enqueue functions called by routes)
 - **Consequence:** Web tier remains stateless; can scale independently of worker tier
 
 ---
@@ -395,14 +436,14 @@ App Password (not full OAuth) — simpler for server-to-server, static credentia
 
 ---
 
-## Email & Notification Environment Variables
+## Environment Variables
 
 ```
 # ATproto OAuth Client
 ATPROTO_CLIENT_ID=https://yourforum.com/client-metadata.json
-ATPROTO_PRIVATE_KEY=<JWK JSON string>
+ATPROTO_PRIVATE_KEY=<JWK JSON string — generated by scripts/gen-keypair.js>
 
-# ATproto Service/Notification Account
+# ATproto Service/Notification Account (for Bluesky DM notifications)
 ATPROTO_SERVICE_HANDLE=notifications.yourforum.bsky.social
 ATPROTO_SERVICE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 
@@ -415,14 +456,21 @@ SMTP_FROM=noreply@yourforum.com
 ADMIN_EMAIL=admin@yourforum.com
 
 # Database
-DATABASE_URL=postgresql://user:password@db:5432/forum
+DATABASE_URL=postgresql://forum:forum@localhost:5432/forum   # dev
+# DATABASE_URL=postgresql://forum:<password>@db:5432/forum   # prod (db = Docker service name)
 
 # Sessions
 SESSION_SECRET=<random 32+ byte string>
 
+# Encryption (for chat_session_encrypted column)
+ENCRYPTION_KEY=<random 32-byte hex string>
+
 # App
 PUBLIC_BASE_URL=https://yourforum.com
 SETUP_COMPLETE=true
+
+# Dev only — never set in production
+# DEV_AUTH_ENABLED=true
 ```
 
 ---
@@ -466,8 +514,8 @@ These must be in place from day one, not added later:
 ```bash
 # On the server
 git pull
-docker compose build app
-docker compose up -d
+docker compose -f docker-compose.prod.yml build app worker
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 Two-minute deploy. Rolling restart acceptable at this scale.
@@ -475,8 +523,9 @@ Two-minute deploy. Rolling restart acceptable at this scale.
 ### Backup Cron (on host, not in container)
 
 ```bash
-# Daily at 2am — adjust path and bucket as needed
-0 2 * * * docker exec forum-db pg_dump -U postgres forum | gzip | \
+# Daily at 2am — adjust project name and bucket as needed
+0 2 * * * docker compose -f /path/to/docker-compose.prod.yml exec -T db \
+  pg_dump -U forum forum | gzip | \
   rclone rcat r2:forum-backups/$(date +\%Y-\%m-\%d).sql.gz
 ```
 
@@ -487,8 +536,8 @@ Keep 7 days rolling. Use `rclone` configured for R2 or B2.
 1. Provision new Hetzner instance, point DNS
 2. Clone repo
 3. Copy `.env` (from password manager) and latest backup (from R2/B2)
-4. `docker compose up -d`
-5. Restore: `gunzip < backup.sql.gz | docker exec -i forum-db psql -U postgres forum`
+4. `docker compose -f docker-compose.prod.yml up -d`
+5. Restore: `gunzip < backup.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U forum forum`
 
 Total time from bare server to running: under 30 minutes.
 
@@ -526,7 +575,7 @@ Total time from bare server to running: under 30 minutes.
 | Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
 | `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
 | Custom sessions (no external library) | 32-byte random token + SHA-256 hash in Postgres `sessions` table, ~50 lines. Simple, proven, easier to reason about than external libraries |
-| Plain textarea editor (Phase 3) | MVP approach; CodeMirror 6 can be added as progressive enhancement in Phase 5+ for better UX; preview via server endpoint keeps no client-side markdown renderer either way |
+| Plain textarea editor | Simple and sufficient; preview via server endpoint means no client-side markdown renderer needed; CodeMirror 6 is a future option if editing UX becomes a priority |
 | Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
 | Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |
 | Post revisions: full snapshots | Simple to query and render; storage cost negligible at forum scale |
