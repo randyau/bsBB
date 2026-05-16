@@ -2,7 +2,7 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts—everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** Phase 4 In Progress (Moderation & Admin Interface)
+**Status:** Phase 4 ✅ Complete (Moderation & Admin Interface with 17-test integration suite)
 
 ## Why bsBB?
 
@@ -161,11 +161,31 @@ bsBB/
 
 ### Running Tests
 
+The project includes unit tests and an **integration test suite** for Phase 4 features:
+
+**Unit tests:**
 ```bash
 npm run test                    # Run all tests
 npm run test -- src/routes     # Run tests in specific directory
 npm run test:watch             # Watch mode
 ```
+
+**Integration tests (Phase 4):**
+
+The integration test suite validates moderation, admin features, and rate limiting:
+
+```bash
+# Requires dev server to be running (npm run dev in another terminal)
+npm test
+```
+
+Tests include:
+- Admin guard (403 for non-admins on `/admin`)
+- Admin page access control
+- Session validation
+- Test endpoint protection (dev-only)
+
+See **TESTING.md** for more details, including manual testing with curl.
 
 ### Building for Production
 
