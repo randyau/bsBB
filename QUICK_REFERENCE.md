@@ -77,8 +77,14 @@ export PATH=/home/agi/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local
 # Type check
 npx svelte-kit sync && npx tsc --noEmit
 
-# Run tests
+# Run tests (fast, no database)
 npm test
+
+# Verify all tests pass (includes type, build, unit, DB tests)
+bash scripts/verify-tests.sh
+
+# Run integration tests with database
+bash scripts/test-integration.sh
 
 # Start dev server (slow first start ~21s due to /mnt/e/ I/O, normal)
 npm run dev
@@ -92,6 +98,8 @@ bash scripts/migrate.sh
 # Seed instance_settings + General forum
 npx tsx scripts/seed.ts
 ```
+
+See `TESTING.md` for detailed testing documentation.
 
 ---
 

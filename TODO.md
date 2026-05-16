@@ -236,6 +236,19 @@ Items to gather before moving to production:
 
 ---
 
+## Test Verification Before Commits
+
+Before committing code changes:
+
+- [ ] Run fast unit tests: `npm test`
+- [ ] Verify all checks: `bash scripts/verify-tests.sh`
+- [ ] (If database available) Run integration tests: `bash scripts/test-integration.sh`
+- [ ] Type checking passes: `npx tsc --noEmit`
+
+For detailed testing instructions, see TESTING.md.
+
+---
+
 ## Notes
 
 - All `.env` variables must be set before `docker compose up`
@@ -243,4 +256,5 @@ Items to gather before moving to production:
 - `SETUP_COMPLETE=true` is set by `scripts/setup.sh` — do not set manually unless you know what you're doing
 - See QUICK_REFERENCE.md for environment variable details
 - See CLAUDE.md for full design decisions
+- See TESTING.md for testing strategy and troubleshooting
 
