@@ -365,12 +365,13 @@ See detailed section below.
    - Emoji should be allowed in thread titles, post content, forum descriptions
    - Consider rate-limiting emoji-heavy posts as spam if needed (low priority)
 
-### **Action Items for Emoji Support**
-- [ ] Verify PostgreSQL encoding is UTF-8
-- [ ] Add `remark-emoji` or similar to markdown pipeline (optional, only if shortcode support desired)
-- [ ] Test emoji in thread titles, post content, forum names
-- [ ] Verify CSS font stack includes system-ui (modern Tailwind does this by default)
-- [ ] Document that emoji are supported natively (no special syntax needed)
+### **Implemented: Emoji Support (Phase 7 Commit 2)**
+- ✅ PostgreSQL encoding is UTF-8
+- ✅ Added `node-emoji` to markdown pipeline (converts `:shortcode:` → unicode)
+  - Both client-side (`markdown-it`) and server-side (`unified` pipeline) support emoji
+  - Users can type `:wave:`, `:smile:`, `:tada:` etc., and they render as 👋, 😄, 🎉
+- ✅ CSS font stack is system-ui (Tailwind v4 default)
+- ✅ Emoji supported in thread titles, post content, forum descriptions, and all user-generated content
 
 ---
 

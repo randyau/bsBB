@@ -1,53 +1,33 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import { renderMarkdownClient } from '$lib/markdown/client';
 
 	let { data }: { data: PageData } = $props();
 	let form: ActionData = $state(undefined);
 
-	let previewMode: 'write' | 'preview' = $state('write');
 	let previewHtml: string = $state('');
-	let isLoadingPreview: boolean = $state(false);
 	let replyBody: string = $state('');
 	let quotedPostId: string | null = $state(null);
 	let editingPostId: string | null = $state(null);
 	let editBody: string = $state('');
+	let editPreviewHtml: string = $state('');
 	let isEditSaving: boolean = $state(false);
 
-	async function handlePreview() {
-		if (previewMode === 'preview') {
-			// Toggle back to write mode
-			previewMode = 'write';
-			return;
-		}
-
-		if (!replyBody.trim()) {
-			previewHtml = '';
-			previewMode = 'preview';
-			return;
-		}
-
-		isLoadingPreview = true;
-		try {
-			const formData = new FormData();
-			formData.append('body', replyBody);
-
-			const response = await fetch('/api/preview', {
-				method: 'POST',
-				body: formData,
-			});
-
-			if (!response.ok) throw new Error('Preview failed');
-
-			const result = await response.json();
-			previewHtml = result.html || '';
-			previewMode = 'preview';
-		} catch (err) {
-			console.error('Preview error:', err);
-			previewHtml = '<p style="color: red;">Failed to load preview</p>';
-		} finally {
-			isLoadingPreview = false;
-		}
+	function updateReplyPreview() {
+		previewHtml = renderMarkdownClient(replyBody);
 	}
+
+	function updateEditPreview() {
+		editPreviewHtml = renderMarkdownClient(editBody);
+	}
+
+	$effect(() => {
+		updateReplyPreview();
+	});
+
+	$effect(() => {
+		updateEditPreview();
+	});
 
 	function setQuoteTarget(postId: string) {
 		const post = data.posts.find(p => p.id === postId);
@@ -371,42 +351,44 @@
 
 					<!-- Body textarea/preview -->
 					<div>
-						<div class="flex gap-2 mb-2">
-							<label for="reply-body" class="block text-sm font-semibold">Your reply (Markdown)</label>
-							<button
-								type="button"
-								onclick={handlePreview}
-								disabled={isLoadingPreview}
-								class="text-sm text-[rgb(var(--color-primary))] hover:underline disabled:opacity-50"
-							>
-								{isLoadingPreview ? 'Loading...' : previewMode === 'write' ? 'Preview' : 'Edit'}
-							</button>
-						</div>
+						<label for="reply-body" class="block text-sm font-semibold mb-2">Your reply (Markdown)</label>
 
-						{#if previewMode === 'write'}
-							<textarea
-								id="reply-body"
-								name="body"
-								maxlength="50000"
-								required
-								placeholder="Write your reply..."
-								bind:value={replyBody}
-								rows="6"
-								class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
-							></textarea>
-							<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
-								{replyBody.length} / 50,000 characters
-								{#if replyBody.length > 45000}
-									<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
-								{/if}
-							</p>
-						{:else}
-							<div
-								class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm max-w-none min-h-[150px]"
-							>
-								{@html previewHtml}
+						<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+							<!-- Editor -->
+							<div>
+								<label for="reply-body" class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Write</label>
+								<textarea
+									id="reply-body"
+									name="body"
+									maxlength="50000"
+									required
+									placeholder="Write your reply..."
+									bind:value={replyBody}
+									rows="6"
+									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
+								></textarea>
+								<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
+									{replyBody.length} / 50,000 characters
+									{#if replyBody.length > 45000}
+										<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
+									{/if}
+								</p>
 							</div>
-						{/if}
+
+							<!-- Live Preview -->
+							<div>
+								<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
+								<div
+									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm prose-invert max-w-none min-h-[150px] overflow-auto"
+								>
+									{#if replyBody.trim()}
+										{@html previewHtml}
+									{:else}
+										<p class="text-[rgb(var(--color-text-muted))]">Preview appears here...</p>
+									{/if}
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<!-- Submit -->

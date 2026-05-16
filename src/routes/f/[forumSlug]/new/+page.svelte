@@ -1,56 +1,25 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { ActionData } from './$types';
+	import { renderMarkdownClient } from '$lib/markdown/client';
 
 	let { data }: { data: PageData } = $props();
 	let form: ActionData = $state(undefined);
 
 	let titleValue: string = $state(form?.title || '');
 	let bodyValue: string = $state(form?.body || '');
-	let previewMode: 'write' | 'preview' = $state('write');
 	let previewHtml: string = $state('');
-	let isLoadingPreview: boolean = $state(false);
 
 	const TITLE_MAX = 300;
 	const BODY_MAX = 50000;
 
-	async function handlePreview() {
-		if (!bodyValue.trim()) {
-			previewHtml = '';
-			previewMode = 'preview';
-			return;
-		}
-
-		isLoadingPreview = true;
-		try {
-			const formData = new FormData();
-			formData.append('body', bodyValue);
-
-			const response = await fetch('/api/preview', {
-				method: 'POST',
-				body: formData,
-			});
-
-			if (!response.ok) throw new Error('Preview failed');
-
-			const result = await response.json();
-			previewHtml = result.html || '';
-			previewMode = 'preview';
-		} catch (err) {
-			console.error('Preview error:', err);
-			previewHtml = '<p style="color: red;">Failed to load preview</p>';
-		} finally {
-			isLoadingPreview = false;
-		}
+	function updatePreview() {
+		previewHtml = renderMarkdownClient(bodyValue);
 	}
 
-	function togglePreview() {
-		if (previewMode === 'preview') {
-			previewMode = 'write';
-		} else {
-			handlePreview();
-		}
-	}
+	$effect(() => {
+		updatePreview();
+	});
 </script>
 
 <div class="space-y-6 py-8">
@@ -97,44 +66,46 @@
 
 		<!-- Body -->
 		<div>
-			<div class="flex gap-2 mb-2">
-				<label for="body" class="block text-sm font-semibold">Body (Markdown)</label>
-				<button
-					type="button"
-					onclick={togglePreview}
-					disabled={isLoadingPreview}
-					class="text-sm text-blue-600 hover:underline disabled:opacity-50"
-				>
-					{isLoadingPreview ? 'Loading...' : previewMode === 'write' ? 'Preview' : 'Edit'}
-				</button>
-			</div>
+			<label for="body" class="block text-sm font-semibold mb-2">Body (Markdown)</label>
 
-			{#if previewMode === 'write'}
-				<textarea
-					id="body"
-					name="body"
-					maxlength={BODY_MAX}
-					required
-					placeholder="Write your message in Markdown..."
-					bind:value={bodyValue}
-					rows="12"
-					class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
-				></textarea>
-				<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
-					{bodyValue.length} / {BODY_MAX} characters
-					{#if bodyValue.length >= BODY_MAX}
-						<span class="text-red-600 font-semibold">(at limit)</span>
-					{:else if bodyValue.length > BODY_MAX * 0.8}
-						<span class="text-amber-600 font-semibold">(approaching limit)</span>
-					{/if}
-				</p>
-			{:else}
-				<div
-					class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm max-w-none min-h-[300px]"
-				>
-					{@html previewHtml}
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+				<!-- Editor -->
+				<div>
+					<label for="body" class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Write</label>
+					<textarea
+						id="body"
+						name="body"
+						maxlength={BODY_MAX}
+						required
+						placeholder="Write your message in Markdown..."
+						bind:value={bodyValue}
+						rows="12"
+						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
+					></textarea>
+					<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
+						{bodyValue.length} / {BODY_MAX} characters
+						{#if bodyValue.length >= BODY_MAX}
+							<span class="text-red-600 font-semibold">(at limit)</span>
+						{:else if bodyValue.length > BODY_MAX * 0.8}
+							<span class="text-amber-600 font-semibold">(approaching limit)</span>
+						{/if}
+					</p>
 				</div>
-			{/if}
+
+				<!-- Live Preview -->
+				<div>
+					<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
+					<div
+						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm prose-invert max-w-none min-h-[300px] overflow-auto"
+					>
+						{#if bodyValue.trim()}
+							{@html previewHtml}
+						{:else}
+							<p class="text-[rgb(var(--color-text-muted))]">Preview appears here...</p>
+						{/if}
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Submit -->
