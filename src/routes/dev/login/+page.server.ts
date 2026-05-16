@@ -4,13 +4,14 @@ import { db } from '$lib/db/index.js';
 import { users } from '$lib/db/schema.js';
 import { like } from 'drizzle-orm';
 import { createSession, setSessionCookie } from '$lib/auth/session.js';
+import { env } from '$env/dynamic/private';
 
 // Hard block: this route must never be reachable in production.
 function assertDevOnly() {
-	if (process.env.NODE_ENV === 'production') {
+	if (env.NODE_ENV === 'production') {
 		error(404, 'Not found');
 	}
-	if (process.env.DEV_AUTH_ENABLED !== 'true') {
+	if (env.DEV_AUTH_ENABLED !== 'true') {
 		error(404, 'Not found');
 	}
 }
