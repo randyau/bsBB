@@ -20,7 +20,7 @@
  */
 
 import { db } from '$lib/db';
-import { notificationQueue } from '$lib/db/schema';
+import { notificationQueue, users } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
 
@@ -97,8 +97,38 @@ async function processNotifications() {
 }
 
 async function handleModeratorAlert(recipientDid: string, payload: any) {
-	// Placeholder: actual email sending implemented in Commit 3
-	console.log(`[worker:moderator_alert] to=${recipientDid} action=${payload.action}`);
+	const { action, targetType, targetLabel, moderatorHandle, reason } = payload;
+
+	// Get recipient's email address
+	// For now, use handle as fallback (in production, would query user preferences)
+	const recipient = await db.query.users.findFirst({
+		where: eq(users.did, recipientDid),
+		columns: { handle: true }
+	});
+
+	if (!recipient?.handle) {
+		throw new Error(`Could not find user ${recipientDid} for email`);
+	}
+
+	// Build email body
+	const subject = `[Forum Alert] ${action} — ${targetLabel}`;
+	const html = `
+		<h2>Moderation Alert</h2>
+		<p><strong>Action:</strong> ${action}</p>
+		<p><strong>Target:</strong> ${targetType} — ${targetLabel}</p>
+		<p><strong>Moderator:</strong> @${moderatorHandle}</p>
+		${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+		<p><small>This is an automated alert from your forum.</small></p>
+	`;
+
+	// Send email (or log in dev mode)
+	await sendEmail(
+		`${recipient.handle}@example.com`, // Would use real email from user profile
+		subject,
+		html
+	);
+
+	console.log(`[worker:moderator_alert] sent to ${recipient.handle} (${recipientDid})`);
 }
 
 async function handleDmNotification(recipientDid: string, payload: any) {
