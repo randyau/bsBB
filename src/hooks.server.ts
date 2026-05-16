@@ -5,14 +5,32 @@ import { validateSession, getSessionToken } from '$lib/auth/session.js';
 function formatHtml(html: string): string {
 	if (process.env.NODE_ENV === 'production') return html;
 
+	// Don't format style/script tag contents — preserve them as-is
+	const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+	const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+
+	let workingHtml = html;
+	let styleBlock = '';
+	let scriptBlock = '';
+
+	if (styleMatch) {
+		styleBlock = styleMatch[0];
+		workingHtml = workingHtml.replace(styleBlock, '<!--STYLE_PLACEHOLDER-->');
+	}
+
+	if (scriptMatch) {
+		scriptBlock = scriptMatch[0];
+		workingHtml = workingHtml.replace(scriptBlock, '<!--SCRIPT_PLACEHOLDER-->');
+	}
+
 	let indentLevel = 0;
 	const indent = '  ';
 	let result = '';
 	let inTag = false;
 	let tagContent = '';
 
-	for (let i = 0; i < html.length; i++) {
-		const char = html[i];
+	for (let i = 0; i < workingHtml.length; i++) {
+		const char = workingHtml[i];
 
 		if (char === '<') {
 			if (tagContent.trim()) {
@@ -55,6 +73,10 @@ function formatHtml(html: string): string {
 	if (tagContent.trim()) {
 		result += indent.repeat(indentLevel) + tagContent.trim() + '\n';
 	}
+
+	// Restore style and script blocks
+	result = result.replace('<!--STYLE_PLACEHOLDER-->', styleBlock);
+	result = result.replace('<!--SCRIPT_PLACEHOLDER-->', scriptBlock);
 
 	return result;
 }
