@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { ActionData } from './$types.js';
+	import type { ActionData, PageData } from './$types.js';
 
-	let { form }: { form: ActionData } = $props();
+	let { form, data }: { form: ActionData; data: PageData } = $props();
 </script>
 
 <svelte:head>
@@ -36,5 +36,13 @@
 				Continue
 			</button>
 		</form>
+
+		{#if data.devAuthEnabled}
+			<div class="border-t pt-4 text-center">
+				<a href="/dev/login" class="text-sm text-amber-600 hover:underline">
+					⚠ Dev login (local only)
+				</a>
+			</div>
+		{/if}
 	</div>
 </main>

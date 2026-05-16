@@ -1,6 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
-import type { Actions } from './$types.js';
+import type { Actions, PageServerLoad } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
+import { env } from '$env/dynamic/private';
+
+export const load: PageServerLoad = () => ({
+	devAuthEnabled: env.NODE_ENV !== 'production' && env.DEV_AUTH_ENABLED === 'true',
+});
 
 export const actions: Actions = {
 	default: async ({ request }) => {
