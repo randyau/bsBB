@@ -3,6 +3,19 @@
 
 	let { data }: { data: PageData } = $props();
 	let searchInput = $state(data.query);
+	let sortBy = $state('relevance');
+	let sortedResults = $derived.by(() => {
+		const results = [...data.results];
+		switch (sortBy) {
+			case 'newest':
+				return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+			case 'oldest':
+				return results.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+			case 'relevance':
+			default:
+				return results.sort((a, b) => b.relevance - a.relevance);
+		}
+	});
 
 	function handleSearch(e: Event) {
 		e.preventDefault();
@@ -28,11 +41,11 @@
 				type="text"
 				bind:value={searchInput}
 				placeholder="Search posts..."
-				class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+				class="flex-1 px-4 py-3 border rounded-lg"
 			/>
 			<button
 				type="submit"
-				class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+				class="px-6 py-3 btn-primary rounded-lg"
 			>
 				Search
 			</button>
@@ -40,58 +53,68 @@
 	</form>
 
 	{#if data.error}
-		<div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-800 mb-6">
+		<div class="card-secondary text-error mb-6">
 			{data.error}
 		</div>
 	{:else if !data.query}
-		<div class="rounded-lg bg-gray-50 border border-gray-200 p-8 text-center text-gray-600">
+		<div class="card-secondary text-center text-secondary p-8">
 			Enter a search term to find posts
 		</div>
 	{:else if data.results.length === 0}
-		<div class="rounded-lg bg-gray-50 border border-gray-200 p-8 text-center text-gray-600">
+		<div class="card-secondary text-center text-secondary p-8">
 			No results found for "{data.query}"
 		</div>
 	{:else}
 		<!-- Results Header -->
 		<div class="mb-6">
 			<h1 class="text-2xl font-bold mb-2">Search Results</h1>
-			<p class="text-gray-600">
+			<p class="text-secondary">
 				Found {data.total} result{data.total === 1 ? '' : 's'} for "<strong>{data.query}</strong>"
 			</p>
 		</div>
 
+		<!-- Sort Controls -->
+		<div class="mb-6 flex items-center gap-4">
+			<label for="sort" class="text-sm text-secondary">Sort by:</label>
+			<select id="sort" bind:value={sortBy} class="px-3 py-2 border rounded">
+				<option value="relevance">Relevance</option>
+				<option value="newest">Newest First</option>
+				<option value="oldest">Oldest First</option>
+			</select>
+			<span class="text-xs text-muted">
+				{sortedResults.length} result{sortedResults.length !== 1 ? 's' : ''}
+			</span>
+		</div>
+
 		<!-- Results List -->
 		<div class="space-y-4 mb-8">
-			{#each data.results as result (result.postId)}
-				<a
-					href="/f/{result.forumSlug}/t/{result.threadSlug}"
-					class="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-md transition"
-				>
+			{#each sortedResults as result (result.postId)}
+				<a href="/f/{result.forumSlug}/t/{result.threadSlug}" class="block card">
 					<div class="flex items-start justify-between gap-4 mb-2">
 						<div>
-							<h3 class="font-semibold text-blue-600 hover:underline">
+							<h3 class="font-semibold hover:underline" style="color: rgb(var(--color-primary))">
 								{result.threadTitle}
 							</h3>
-							<p class="text-sm text-gray-600">
+							<p class="text-sm text-secondary">
 								by <span class="font-mono">@{result.authorHandle}</span> in <span class="italic">{result.forumSlug}</span>
 							</p>
 						</div>
-						<div class="text-right text-xs text-gray-500 whitespace-nowrap">
+						<div class="text-right text-xs text-muted whitespace-nowrap">
 							{formatDate(result.createdAt)}
 						</div>
 					</div>
 
 					<!-- Preview -->
-					<p class="text-sm text-gray-700 line-clamp-3">
+					<p class="text-sm line-clamp-3">
 						{result.bodyPreview || '[no preview available]'}
 					</p>
 
 					<!-- Relevance Badge -->
 					{#if result.relevance > 0}
 						<div class="mt-2 flex items-center gap-2">
-							<div class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+							<span class="badge badge-primary">
 								{(result.relevance * 100).toFixed(0)}% match
-							</div>
+							</span>
 						</div>
 					{/if}
 				</a>
@@ -104,7 +127,7 @@
 				{#if data.page > 1}
 					<a
 						href="/search?q={encodeURIComponent(data.query)}&page={data.page - 1}"
-						class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+						class="px-4 py-2 border rounded hover:bg-tertiary"
 					>
 						← Previous
 					</a>
@@ -117,8 +140,8 @@
 					<a
 						href="/search?q={encodeURIComponent(data.query)}&page={pageNum}"
 						class="px-4 py-2 rounded border {pageNum === data.page
-							? 'bg-blue-600 text-white border-blue-600'
-							: 'border-gray-300 hover:bg-gray-50'}"
+							? 'btn-primary text-white'
+							: 'hover:bg-tertiary'}"
 					>
 						{pageNum}
 					</a>
@@ -127,7 +150,7 @@
 				{#if data.page < data.totalPages}
 					<a
 						href="/search?q={encodeURIComponent(data.query)}&page={data.page + 1}"
-						class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+						class="px-4 py-2 border rounded hover:bg-tertiary"
 					>
 						Next →
 					</a>

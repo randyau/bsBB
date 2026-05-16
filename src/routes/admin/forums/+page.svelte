@@ -1,0 +1,184 @@
+<script lang="ts">
+	import type { PageData, ActionData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+	let form: ActionData = $state(undefined);
+	let modUserId = $state('');
+	let selectedForumId = $state('');
+	let userSearchQuery = $state('');
+
+	const filteredUsers = $derived.by(() => {
+		if (!userSearchQuery.trim()) return data.users;
+		const query = userSearchQuery.toLowerCase();
+		return data.users.filter(
+			u =>
+				u.handle.toLowerCase().includes(query) ||
+				(u.displayName?.toLowerCase().includes(query) ?? false) ||
+				u.did.toLowerCase().includes(query)
+		);
+	});
+
+	function selectUser(user: typeof data.users[0]) {
+		modUserId = user.did;
+		userSearchQuery = '';
+	}
+</script>
+
+<div class="space-y-6">
+	<h1 class="text-3xl font-bold">Forum Management</h1>
+
+	{#if form?.error}
+		<div class="card-secondary text-error">
+			{form.error}
+		</div>
+	{/if}
+
+	{#if form?.success}
+		<div class="card-secondary text-success">
+			✓ Action completed: {form.action}
+		</div>
+	{/if}
+
+	<!-- Forums List -->
+	<div class="space-y-2">
+		<h2 class="text-xl font-semibold mb-4">Forums</h2>
+		<div class="card-secondary">
+			<table class="w-full text-sm">
+				<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+					<tr>
+						<th class="px-4 py-3 text-left font-semibold">Name</th>
+						<th class="px-4 py-3 text-left font-semibold">Parent</th>
+						<th class="px-4 py-3 text-left font-semibold">Order</th>
+						<th class="px-4 py-3 text-left font-semibold">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.forums as forum (forum.id)}
+						<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
+							<td class="px-4 py-3 font-semibold">{forum.name}</td>
+							<td class="px-4 py-3 text-sm">{forum.parentName || '—'}</td>
+							<td class="px-4 py-3 text-sm text-muted">{forum.sortOrder}</td>
+							<td class="px-4 py-3 space-x-2 flex gap-2">
+								<form method="POST" action="?/reorder" class="inline">
+									<input type="hidden" name="forumId" value={forum.id} />
+									<input type="hidden" name="direction" value="up" />
+									<button type="submit" class="text-xs hover:underline">↑</button>
+								</form>
+								<form method="POST" action="?/reorder" class="inline">
+									<input type="hidden" name="forumId" value={forum.id} />
+									<input type="hidden" name="direction" value="down" />
+									<button type="submit" class="text-xs hover:underline">↓</button>
+								</form>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<!-- Moderator Assignment -->
+	<div class="space-y-4">
+		<h2 class="text-xl font-semibold">Assign Moderators</h2>
+		<div class="card-secondary space-y-4">
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label for="forumSelect" class="block text-sm font-semibold mb-1">Forum</label>
+					<select id="forumSelect" bind:value={selectedForumId} class="w-full border rounded px-3 py-2">
+						<option value="">Select a forum</option>
+						{#each data.forums as forum (forum.id)}
+							<option value={forum.id}>{forum.name}</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label for="userSearch" class="block text-sm font-semibold mb-1">User (Search or Select)</label>
+					<div class="relative">
+						<input
+							id="userSearch"
+							type="text"
+							bind:value={userSearchQuery}
+							placeholder="Search by handle, name, or DID..."
+							class="w-full border rounded px-3 py-2"
+						/>
+						{#if userSearchQuery && filteredUsers.length > 0}
+							<div class="absolute top-full left-0 right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+								{#each filteredUsers as user (user.did)}
+									<button
+										type="button"
+										onclick={() => selectUser(user)}
+										class="w-full text-left px-3 py-2 hover:bg-[rgb(var(--color-bg-secondary))] text-sm"
+									>
+										<div class="font-semibold">{user.displayName || user.handle}</div>
+										<div class="text-xs text-muted font-mono">{user.did}</div>
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
+					{#if modUserId}
+						<div class="mt-2 text-xs">
+							Selected: <span class="font-mono">{modUserId}</span>
+							<button
+								type="button"
+								onclick={() => (modUserId = '')}
+								class="ml-2 text-error hover:underline"
+							>
+								Clear
+							</button>
+						</div>
+					{/if}
+				</div>
+			</div>
+			<form method="POST" action="?/assignMod">
+				<input type="hidden" name="forumId" value={selectedForumId} />
+				<input type="hidden" name="userDid" value={modUserId} />
+				<button
+					type="submit"
+					disabled={!selectedForumId || !modUserId}
+					class="px-4 py-2 btn-primary rounded disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					Assign Moderator
+				</button>
+			</form>
+		</div>
+	</div>
+
+	<!-- Current Moderators -->
+	<div class="space-y-2">
+		<h2 class="text-xl font-semibold mb-4">Forum Moderators</h2>
+		<div class="card-secondary">
+			{#if data.mods.length === 0}
+				<p class="text-sm text-muted">No forum moderators assigned yet.</p>
+			{:else}
+				<table class="w-full text-sm">
+					<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+						<tr>
+							<th class="px-4 py-3 text-left font-semibold">Forum</th>
+							<th class="px-4 py-3 text-left font-semibold">User</th>
+							<th class="px-4 py-3 text-left font-semibold">Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each data.mods as mod (mod.userDid + mod.forumId)}
+							<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
+								<td class="px-4 py-3 font-semibold">{mod.forumName}</td>
+								<td class="px-4 py-3 text-sm">
+									<div>{mod.userDisplayName || mod.userHandle}</div>
+									<div class="text-xs text-muted font-mono">{mod.userDid}</div>
+								</td>
+								<td class="px-4 py-3">
+									<form method="POST" action="?/removeMod" class="inline">
+										<input type="hidden" name="forumId" value={mod.forumId} />
+										<input type="hidden" name="userDid" value={mod.userDid} />
+										<button type="submit" class="text-xs text-error hover:underline">Remove</button>
+									</form>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+		</div>
+	</div>
+</div>

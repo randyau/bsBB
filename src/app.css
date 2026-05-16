@@ -60,85 +60,160 @@ html {
 }
 
 body {
-	@apply bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] transition-colors duration-200;
+	background-color: rgb(var(--color-bg));
+	color: rgb(var(--color-text));
+	transition: colors 200ms;
 }
 
 a {
-	@apply text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-primary-dark))];
+	color: rgb(var(--color-primary));
+}
+
+a:hover {
+	color: rgb(var(--color-primary-dark));
 }
 
 button {
-	@apply transition-colors duration-200;
+	transition: colors 200ms;
 }
 
 /* Border colors */
 .border {
-	@apply border-[rgb(var(--color-border))];
+	border-color: rgb(var(--color-border));
 }
 
 .border-b {
-	@apply border-b-[rgb(var(--color-border))];
+	border-bottom-color: rgb(var(--color-border));
 }
 
 .border-l {
-	@apply border-l-[rgb(var(--color-border))];
+	border-left-color: rgb(var(--color-border));
 }
 
 /* Background variants */
 .bg-secondary {
-	@apply bg-[rgb(var(--color-bg-secondary))];
+	background-color: rgb(var(--color-bg-secondary));
 }
 
 .bg-tertiary {
-	@apply bg-[rgb(var(--color-bg-tertiary))];
+	background-color: rgb(var(--color-bg-tertiary));
 }
 
 /* Text colors */
 .text-secondary {
-	@apply text-[rgb(var(--color-text-secondary))];
+	color: rgb(var(--color-text-secondary));
 }
 
 .text-muted {
-	@apply text-[rgb(var(--color-text-muted))];
+	color: rgb(var(--color-text-muted));
 }
 
-/* Input styling */
+/* Input & Select styling */
 input[type="text"],
 input[type="email"],
 input[type="password"],
 textarea,
 select {
-	@apply bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] border-[rgb(var(--color-border))] transition-colors duration-200;
+	background-color: rgb(var(--color-bg));
+	color: rgb(var(--color-text));
+	border-color: rgb(var(--color-border));
+	border-width: 1px;
+	border-radius: 0.375rem;
+	transition: colors 200ms;
+	padding: 0.5rem 0.75rem;
+}
+
+select {
+	cursor: pointer;
+	padding: 0.375rem 0.5rem;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-	@apply ring-[rgb(var(--color-primary))];
+	outline: none;
+	box-shadow: 0 0 0 2px rgb(var(--color-primary));
 }
 
 /* Button variants */
 .btn-primary {
-	@apply bg-[rgb(var(--color-primary))] text-white hover:bg-[rgb(var(--color-primary-dark))] transition-colors;
+	background-color: rgb(var(--color-primary));
+	color: white !important;
+	transition: background-color 200ms;
+	display: inline-block;
+}
+
+.btn-primary:hover {
+	background-color: rgb(var(--color-primary-dark));
+	color: white !important;
 }
 
 .btn-secondary {
-	@apply bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-border))];
+	background-color: rgb(var(--color-bg-tertiary));
+	color: rgb(var(--color-text));
+	transition: background-color 200ms;
+}
+
+.btn-secondary:hover {
+	background-color: rgb(var(--color-border));
 }
 
 /* Status colors */
 .text-success {
-	@apply text-[rgb(var(--color-success))];
+	color: rgb(var(--color-success));
 }
 
 .text-warning {
-	@apply text-[rgb(var(--color-warning))];
+	color: rgb(var(--color-warning));
 }
 
 .text-error {
-	@apply text-[rgb(var(--color-error))];
+	color: rgb(var(--color-error));
 }
 
 .text-deleted {
-	@apply text-[rgb(var(--color-deleted))];
+	color: rgb(var(--color-deleted));
+}
+
+/* Common card/container styles */
+.card {
+	background-color: rgb(var(--color-bg));
+	border: 1px solid rgb(var(--color-border));
+	border-radius: 0.5rem;
+	padding: 1rem;
+}
+
+.card:hover {
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-secondary {
+	background-color: rgb(var(--color-bg-secondary));
+	border: 1px solid rgb(var(--color-border));
+	border-radius: 0.5rem;
+	padding: 1rem;
+}
+
+/* Badge styles */
+.badge {
+	display: inline-block;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+.badge-primary {
+	background-color: rgb(var(--color-bg-secondary));
+	color: rgb(var(--color-primary));
+}
+
+.badge-success {
+	background-color: rgb(var(--color-bg-secondary));
+	color: rgb(var(--color-success));
+}
+
+.badge-error {
+	background-color: rgb(var(--color-bg-secondary));
+	color: rgb(var(--color-error));
 }

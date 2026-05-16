@@ -13,10 +13,15 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync)
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker)
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (1/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (2/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode (CSS variables, toggle, persistence)
-- **Commit 2** — Typography & Spacing Scale (consistent sizing and layout)
-- **Commits 3–10** — Components, accessibility, animations, responsive design
+- **Commit 2 ✅** — Search, Admin UI, & Dark Mode Polish
+  - Improved search with substring matching for short queries
+  - Admin forums management page with reordering and moderator assignment
+  - User search/dropdown for selecting moderators (queryable by handle, name, or DID)
+  - Dark mode consistency across all pages, semantic CSS classes
+  - Search result sorting (relevance, newest, oldest)
+- **Commits 3–10** — Typography & Spacing Scale, Components, accessibility, animations, responsive design
 
 ---
 

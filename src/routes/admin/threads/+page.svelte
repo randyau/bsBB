@@ -9,20 +9,20 @@
 	<h1 class="text-3xl font-bold">Thread Management</h1>
 
 	{#if form?.error}
-		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
+		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))] text-sm">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 text-sm">
+		<div class="rounded-lg border border-[rgb(var(--color-success))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-success))] text-sm">
 			✓ Thread action completed: {form.action}
 		</div>
 	{/if}
 
-	<div class="rounded-lg border border-gray-200 overflow-x-auto">
+	<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
 		<table class="w-full text-sm">
-			<thead class="bg-gray-100 border-b border-gray-200">
+			<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 				<tr>
 					<th class="px-4 py-3 text-left font-semibold">Forum</th>
 					<th class="px-4 py-3 text-left font-semibold">Thread</th>
@@ -35,21 +35,21 @@
 			</thead>
 			<tbody>
 				{#each data.threads as thread (thread.id)}
-					<tr class="border-b border-gray-200 hover:bg-gray-50">
+					<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
 						<td class="px-4 py-3 font-mono text-xs">{thread.forumName}</td>
 						<td class="px-4 py-3">
 							<a
 								href="/f/{thread.forumSlug}/t/{thread.id}/{thread.slug}"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="text-blue-600 hover:underline"
+								class="text-[rgb(var(--color-primary))] hover:underline"
 							>
 								{thread.title}
 							</a>
 						</td>
 						<td class="px-4 py-3 font-mono text-xs">{thread.authorHandle}</td>
 						<td class="px-4 py-3 text-center">{thread.postCount}</td>
-						<td class="px-4 py-3 text-xs text-gray-500">
+						<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-muted))]">
 							{new Date(thread.lastPostAt).toLocaleDateString()}{' '}
 							{new Date(thread.lastPostAt).toLocaleTimeString()}
 						</td>
@@ -71,7 +71,7 @@
 									<input type="hidden" name="threadId" value={thread.id} />
 									<button
 										type="submit"
-										class="text-xs text-green-600 hover:underline font-semibold"
+										class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold"
 									>
 										Unlock
 									</button>
@@ -116,5 +116,5 @@
 		</table>
 	</div>
 
-	<p class="text-xs text-gray-500">Total threads: {data.threads.length}</p>
+	<p class="text-xs text-[rgb(var(--color-text-muted))]">Total threads: {data.threads.length}</p>
 </div>
