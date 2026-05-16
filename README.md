@@ -167,7 +167,8 @@ bsBB/
 ├── vite.config.ts              # Vite build config
 ├── drizzle.config.ts           # Drizzle ORM config
 ├── CLAUDE.md                   # Full specification and architecture (read this!)
-├── ARCHITECTURE.md             # Detailed implementation status per phase
+├── ARCHITECTURE.md             # Architecture decisions and technical design
+├── STATUS.md                   # Implementation status for all phases
 └── HUMAN_TODO.md               # Manual testing checklist and human setup tasks
 ```
 
@@ -316,9 +317,9 @@ See `CLAUDE.md` for detailed deployment architecture and security defaults.
 ## Documentation
 
 - **`CLAUDE.md`** – Full specification, architecture decisions, all requirements. Read this for context on why things are designed the way they are.
-- **`ARCHITECTURE.md`** – Detailed implementation status, SQL schema, per-phase checklist
-- **`PHASE_4_STATUS.md`** – Current phase (moderation & admin) commit checklist
-- **`QUICK_REFERENCE.md`** – (If present) Quick lookup of file locations and responsibilities
+- **`STATUS.md`** – Current implementation status across all 7 phases with commit counts and feature breakdown
+- **`ARCHITECTURE.md`** – Technical architecture, stack decisions, schema, routing structure, and design rationale
+- **`QUICK_REFERENCE.md`** – Quick lookup of file locations, critical facts, and common commands
 
 ---
 
@@ -376,18 +377,11 @@ docker compose exec app npm run db:migrate
 
 ---
 
-## Roadmap
+## Status
 
-**Phases 1–6:** ✅ Complete
+**Phases 1–6 Complete.** See `STATUS.md` for detailed breakdown of all phases (35+ commits).
 
-- Auth (ATproto OAuth), sessions, DB, Docker
-- Forum/thread/post views with permissions
-- Post creation, markdown, OG metadata, quote links
-- Moderation: ban/lock/pin/delete, rate limiting, admin UI, mod log
-- Notifications: email alerts, Bluesky DM (opt-in), background worker
-- Post editing with revision history, full-text search, production Docker stack
-
-**Phase 7 (Next):** Design & UI refinements — light/dark mode, visual theme, UX polish
+**Phase 7 In Progress:** Theme system with dark mode toggle, UI refinements, admin dashboard improvements.
 
 ---
 

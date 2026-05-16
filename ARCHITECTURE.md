@@ -19,7 +19,7 @@ This document translates the project specification (CLAUDE.md) and all collected
 11. [Setup & First-Run Flow](#11-setup--first-run-flow)
 12. [Infrastructure & Deployment](#12-infrastructure--deployment)
 13. [Anti-Abuse, Rate Limiting & Spam Prevention](#13-anti-abuse-rate-limiting--spam-prevention)
-14. [Implementation Phases](#14-implementation-phases)
+14. [Implementation Status](#14-implementation-status)
 
 ---
 
@@ -37,35 +37,6 @@ This document translates the project specification (CLAUDE.md) and all collected
 - 🚀 Phase 7: Theme system, dark mode, admin UI improvements (2/10 commits)
 
 **See STATUS.md for detailed breakdown of all phases and current implementation status.**
-
-### Phase 1 ✅ — Foundations
-- SvelteKit + adapter-node + Tailwind v4 + Vitest scaffold
-- PostgreSQL 17 schema (12 tables) + Drizzle ORM
-- Custom roll-your-own sessions (32-byte token, SHA-256 hash, Postgres-backed)
-- ATproto OAuth integration (@atproto/oauth-client-node)
-- User upsert, lazy profile sync, first-admin gate, banned user redirect
-- Abuse stub module (always allows, ready for Phase 4 real logic)
-- Docker Compose (dev + prod configs)
-- Setup scripts (keypair generation, DB migration, seeding)
-
-### Phase 2 ✅ — Read-Only Forum
-- Forum index with pagination and permission filtering
-- Thread listing per forum with pinned/locked badges
-- Thread detail view with flat post list and quote previews
-- Permission enforcement: `canRead` checks on forum/thread access
-- URL routing with slug-based redirects
-
-### Phase 3 ✅ — Post Creation & Content
-- New thread creation form (`/f/[forumSlug]/new`)
-- Inline reply form on thread detail with quote button
-- Markdown preview endpoint (`POST /api/preview`)
-- Markdown rendering pipeline (unified + remark + rehype + sanitize)
-- OG metadata fetching for bare-line URLs (5s timeout, graceful errors)
-- Thread slug generation with uniqueness retry
-- `canPost` permission checks
-- Atomic thread+post insertion with `lastPostAt` updates
-
-**Ready for Phase 4:** Moderation tools (delete/restore posts, ban/unban) and real rate limiting.
 
 ---
 
@@ -124,18 +95,17 @@ bsBB/
 │   │   │   └── slug.ts                   # generateSlug() — Title → URL slug with uniqueness retry
 │   │   │
 │   │   ├── notifications/
-│   │   │   ├── worker.ts                 # (Phase 5) setInterval polling loop
-│   │   │   ├── send-dm.ts                # (Phase 5) @atproto/api chat send, rate-limit check
-│   │   │   └── send-email.ts             # (Phase 5) Nodemailer wrapper (sendEmail fn only)
+│   │   │   ├── worker.ts                 # setInterval polling loop for notification queue
+│   │   │   ├── send-dm.ts                # @atproto/api chat send with rate-limit check
+│   │   │   └── send-email.ts             # Nodemailer wrapper (sendEmail fn only)
 │   │   │
 │   │   ├── crypto/
-│   │   │   └── index.ts                  # (Phase 5) AES-256 encrypt/decrypt for chat_session_encrypted
+│   │   │   └── index.ts                  # AES-256 encrypt/decrypt for chat_session_encrypted
 │   │   │
 │   │   ├── abuse/
-│   │   │   └── index.ts                  # checkAbuse() — single entry point for all rate-limit/spam checks
-│   │   │                                 # Phase 1-3: stub (always allows). Phase 4: real logic.
+│   │   │   └── index.ts                  # checkAbuse() — rate limiting via atomic PostgreSQL upserts
 │   │   └── utils/
-│   │       └── (phase 6 migrations)
+│   │       └── slug.ts, sanitize.ts, etc.
 │   │
 │   └── routes/
 │       ├── +layout.server.ts             # Global session/user hydration
@@ -148,21 +118,21 @@ bsBB/
 │       │   └── logout/+server.ts
 │       │
 │       ├── (forum)/
-│       │   ├── +page.svelte              # Forum index — list of top-level forums (read-only, Phase 2)
+│       │   ├── +page.svelte              # Forum index — list of top-level forums
 │       │   ├── +page.server.ts
 │       │   │
 │       │   └── f/
 │       │       └── [forumSlug]/
-│       │           ├── +page.svelte          # Thread list for forum (Phase 2)
+│       │           ├── +page.svelte          # Thread list for forum
 │       │           ├── +page.server.ts
-│       │           ├── new/                  # New thread form (Phase 3)
+│       │           ├── new/                  # New thread form
 │       │           │   ├── +page.svelte       # Form with markdown editor + preview toggle
 │       │           │   └── +page.server.ts    # Thread creation, slug generation, OG fetch
 │       │           └── t/
 │       │               └── [threadId]/
-│       │                   ├── +page.svelte       # Thread view — flat post list + inline reply form (Phase 2/3)
-│       │                   ├── +page.server.ts    # Thread load + reply action (Phase 3)
-│       │                   └── [titleSlug]/       # Cosmetic slug — redirects to canonical (Phase 2)
+│       │                   ├── +page.svelte       # Thread view — flat post list + inline reply form
+│       │                   ├── +page.server.ts    # Thread load + reply action
+│       │                   └── [titleSlug]/       # Cosmetic slug — redirects to canonical
 │       │                       └── +server.ts
 │       │
 │       ├── (user)/
@@ -190,7 +160,7 @@ bsBB/
 │       │
 │       └── api/
 │           └── preview/
-│               └── +server.ts            # POST: render markdown server-side for editor preview (Phase 3)
+│               └── +server.ts            # POST: render markdown server-side for editor preview
 │
 ├── scripts/
 │   ├── setup.sh                          # First-run setup (keypair, client-metadata.json, .env)
@@ -557,7 +527,7 @@ If `globalRole === 'banned'`: redirect to `/banned/` immediately (except `/banne
 
 ## 7. Content Pipeline
 
-### Post/Thread Submission Flow (Phase 3)
+### Post/Thread Submission Flow
 
 1. Server action receives `body_markdown` from form
 2. Validate: title (1-300 chars) + body (1-50,000 chars)
@@ -581,10 +551,10 @@ If `globalRole === 'banned'`: redirect to `/banned/` immediately (except `/banne
 7. DB transaction (atomic):
    - For threads: `INSERT threads`, then `INSERT posts` (first post), then `UPDATE threads.last_post_at`
    - For replies: `INSERT posts`, then `UPDATE threads.last_post_at`
-8. (Phase 5) Enqueue notification records to `notification_queue`
-9. (Phase 5) Trigger lazy profile sync if needed (async, non-blocking)
+8. Enqueue notification records to `notification_queue`
+9. Trigger lazy profile sync if needed (async, non-blocking)
 
-### New Thread Form (Phase 3)
+### New Thread Form
 
 Route: `POST /f/[forumSlug]/new`
 - Displays form with title input + markdown body textarea
@@ -593,7 +563,7 @@ Route: `POST /f/[forumSlug]/new`
 - On error: returns form data + error message for repopulation
 - Post-creation: 303 redirect to `/f/[forumSlug]/t/[threadId]`
 
-### Reply Form (Phase 3)
+### Reply Form
 
 Route: `POST /f/[forumSlug]/t/[threadId]?/reply`
 - Inline form on thread detail page
@@ -604,7 +574,7 @@ Route: `POST /f/[forumSlug]/t/[threadId]?/reply`
 
 ### Editor Preview Endpoint
 
-Route: `POST /api/preview/` (Phase 3)
+Route: `POST /api/preview/`
 - Input: FormData with `body` (markdown text)
 - Output: JSON with `{ html: "..." }`
 - Runs same markdown pipeline as post submission
@@ -809,9 +779,7 @@ yourforum.com {
 
 ## 13. Anti-Abuse, Rate Limiting & Spam Prevention
 
-This section defines the architecture for abuse prevention. Full implementation is deferred to
-Phase 4, but **the module interface and stub must exist from Phase 1** so every action site
-can call it without needing to know the implementation status.
+This section describes the architecture for abuse prevention. All rate-limit and anti-spam checks go through a single module, allowing the implementation to evolve without touching call sites.
 
 ### Design Principle
 
@@ -819,7 +787,7 @@ All rate-limit and abuse checks go through a single module: `src/lib/abuse/index
 No inline checks anywhere else. Callers ask the module; the module decides.
 This means the implementation can evolve (in-memory → DB-backed → Redis) without touching call sites.
 
-### Module Interface (stub from Phase 1, filled out in Phase 4)
+### Module Interface
 
 ```typescript
 // src/lib/abuse/index.ts
@@ -840,10 +808,9 @@ export type AbuseVerdict =
 export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict>
 ```
 
-Phase 1 stub returns `{ allowed: true }` unconditionally. Phase 4 fills in real logic.
-Call sites are written once and never change.
+Call sites are written once and never change. The implementation is in `src/lib/abuse/index.ts` using atomic PostgreSQL upserts.
 
-### Call Sites (wired in Phase 1/3, enforced in Phase 4)
+### Call Sites
 
 | Location | Context type | Notes |
 |---|---|---|
@@ -855,7 +822,7 @@ Call sites are written once and never change.
 | `routes/.../flag/+server.ts` | `flag_submit` | Prevent flag spam |
 | `src/lib/og/index.ts` | `og_fetch` | Prevent SSRF/fetch abuse |
 
-### Rate Limit Tiers (Phase 4 targets)
+### Rate Limit Tiers
 
 | Context | Limit | Window | Scope |
 |---|---|---|---|
@@ -872,7 +839,7 @@ Limits are stored in `instance_settings` so admins can tune them without redeplo
 
 ### Storage Backend
 
-**Phase 4 (initial):** PostgreSQL-backed using a `rate_limit_buckets` table with **atomic upserts**:
+**Current Implementation:** PostgreSQL-backed using a `rate_limit_buckets` table with **atomic upserts**:
 
 ```sql
 CREATE TABLE rate_limit_buckets (
@@ -893,7 +860,7 @@ This `INSERT ... ON CONFLICT` pattern is safe for concurrent requests across mul
 
 Expired rows cleaned up by a periodic `DELETE WHERE window_start < now() - interval '1 hour'` in the worker process.
 
-**Future (if needed):** Swap backend to Redis token-bucket or in-memory cache without changing call sites — only `src/lib/abuse/index.ts` implementation changes. Abstraction is preserved.
+The abstraction allows swapping the backend to Redis or in-memory cache without changing call sites — only `src/lib/abuse/index.ts` implementation would change.
 
 ### Additional Spam Vectors & Mitigations
 
@@ -909,17 +876,17 @@ Expired rows cleaned up by a periodic `DELETE WHERE window_start < now() - inter
 - Schema already supports it: no changes needed
 
 **SSRF via OG fetch**
-- `src/lib/og/index.ts` must reject requests to RFC 1918 private address ranges and loopback before fetching
-- Stub the `isPrivateAddress(url)` guard from Phase 3; fill in Phase 4
+- `src/lib/og/index.ts` rejects requests to RFC 1918 private address ranges and loopback before fetching
+- `isPrivateAddress(url)` guard prevents SSRF attacks
 
 **ATproto identity abuse**
 - DIDs are verified cryptographically by `@atproto/oauth-client-node` — cannot be spoofed
 - Handle changes are benign (DID is the key); profile sync updates the cache
 - No additional mitigation needed
 
-### `rate_limit_buckets` Schema Addition
+### `rate_limit_buckets` Schema
 
-Add to `src/lib/db/schema.ts` in Phase 1 (even though the table is empty until Phase 4):
+In `src/lib/db/schema.ts`:
 
 ```typescript
 export const rateLimitBuckets = pgTable('rate_limit_buckets', {
@@ -929,61 +896,19 @@ export const rateLimitBuckets = pgTable('rate_limit_buckets', {
 });
 ```
 
-### Directory Addition
+### Directory
 
 ```
 src/lib/abuse/
-└── index.ts    # checkAbuse() — stub in Phase 1, real logic in Phase 4
+└── index.ts    # checkAbuse() — rate limiting implementation
 ```
 
 ---
 
-## 14. Implementation Phases
+## 14. Implementation Status
 
-Detailed plans are in phase-specific documents and the plan file. Current status:
+**For comprehensive breakdown of all phases (1–7) with detailed commit counts and feature checklists, see `STATUS.md` in the project root.**
 
-### Phase 1 ✅ — Foundations
-- Scaffold, DB, auth, sessions, setup script
-- 35+ unit tests passing
-- All 12 DB tables with migrations
-- Roll-your-own sessions with self-pruning cleanup
-- ATproto OAuth with DPoP/PAR
-- Docker Compose (dev + prod)
-
-### Phase 2 ✅ — Read-Only Forum
-- Forum index, thread listing, thread detail pages
-- Permission enforcement with `canRead` checks
-- Flat post list with quote previews
-- Slug-based URL routing with 301 redirects
-- Pagination (20 items per page)
-
-### Phase 3 ✅ — Posting & Content
-- New thread creation with slug generation + uniqueness retry
-- Inline reply form with quote button
-- Markdown preview endpoint (`POST /api/preview`)
-- Markdown rendering (unified + remark + rehype + sanitize)
-- OG metadata fetching (bare URLs, 5s timeout, graceful errors)
-- `canPost` permission checks
-- Atomic transactions for thread+post insertion
-
-### Phase 4 — Moderation & Rate Limiting (Next)
-- Real `checkAbuse()` implementation with atomic INSERT...ON CONFLICT
-- Ban/unban users (soft flag in `users.global_role`)
-- Post soft-delete + restore
-- Thread lock/pin
-- Rate limit checks by DID post-auth, by IP pre-auth
-
-### Phase 5 — Notifications & Admin
-- Notification worker (separate `src/worker.ts` process with FOR UPDATE SKIP LOCKED)
-- Bluesky DM notifications (opt-in, encrypted tokens)
-- Email notifications (Nodemailer + SMTP)
-- Admin UI (forum management, user roles, instance settings)
-- Audit log viewer
-- Breakglass admin promotion
-
-### Phase 6 — Post Edits, Search & Shipping
-- Post revision tracking (`post_revisions` table)
-- Full-text search (`tsvector` + GIN index)
-- Production Docker build optimization
-- README + deployment guide
-- Setup script validation
+Current status summary:
+- ✅ **Phases 1–6 Complete** (35+ commits, 12 DB tables, 10 admin pages, 40+ integration tests)
+- 🚀 **Phase 7 In Progress** (theme system, dark mode, UI refinements)
