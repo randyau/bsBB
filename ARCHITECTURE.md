@@ -23,15 +23,15 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — Phase 4 🚀 In Progress (6/7 commits)
+## Status — Phase 4 ✅ Complete (7/7 commits)
 
-**Phases 1, 2, 3, and 3.1 are complete.** Phase 4 (moderation) 86% complete:
+**All phases complete through Phase 4 (moderation).** Full moderation & admin interface implemented:
 - ✅ Rate limiting system wired up
 - ✅ Admin dashboard with sidebar nav and SQL query interface
 - ✅ User management (ban/unban/promote/demote)
 - ✅ Thread management (lock/unlock/pin/unpin)
 - ✅ Post management (delete/restore)
-- 📋 Audit trail viewer
+- ✅ Audit trail viewer
 
 All 36+ unit tests passing. TypeScript strict mode clean.
 
