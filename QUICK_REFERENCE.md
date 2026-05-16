@@ -97,6 +97,9 @@ bash scripts/migrate.sh
 
 # Seed instance_settings + General forum
 npx tsx scripts/seed.ts
+
+# Seed dev users (run once after migrations)
+npx tsx scripts/seed-dev-users.ts
 ```
 
 See `TESTING.md` for detailed testing documentation.
@@ -132,6 +135,11 @@ DATABASE_URL=postgresql://user:password@localhost:5432/forum
 PUBLIC_BASE_URL=https://yourforum.com
 SESSION_SECRET=<random 32+ byte string>
 SETUP_COMPLETE=true
+```
+
+### Dev Auth (local only — never set in production)
+```
+DEV_AUTH_ENABLED=true
 ```
 
 ---
@@ -183,6 +191,42 @@ SETUP_COMPLETE=true
 | Change email provider | `.env` SMTP_* vars only — no code changes |
 | Setup a new instance | `bash scripts/setup.sh` (generates keypair, validates OAuth, seeds DB) |
 | Promote breakglass admin | `docker exec forum-app bash scripts/admin-promote.sh <did>` (requires SSH) |
+| Log in locally without Bluesky | See **Dev Auth** section below |
+
+---
+
+## Dev Auth (Local Testing Without Bluesky)
+
+ATproto OAuth requires a publicly reachable HTTPS URL, so it cannot work on localhost. For local manual testing, there is a dev-only login bypass.
+
+**How it works:**
+- `scripts/seed-dev-users.ts` inserts 4 fake users with `did:example:*` DIDs into the DB
+- `GET /dev/login` shows a list of those users; clicking one creates a real session and redirects to `/`
+- The route is double-gated: returns 404 unless **both** `NODE_ENV !== 'production'` AND `DEV_AUTH_ENABLED=true`
+- Only users whose DID starts with `did:example:` are shown — real user DIDs are never listed
+
+**Setup (one-time):**
+```bash
+# 1. Add to .env
+DEV_AUTH_ENABLED=true
+
+# 2. Seed dev users (after migrations)
+npx tsx scripts/seed-dev-users.ts
+
+# 3. Start dev server and visit
+http://localhost:5173/dev/login
+```
+
+**Dev users seeded:**
+
+| DID | Handle | Global Role |
+|---|---|---|
+| `did:example:dev-admin` | dev-admin.test | admin |
+| `did:example:dev-moderator` | dev-moderator.test | member (assign forum-mod role manually) |
+| `did:example:dev-member` | dev-member.test | member |
+| `did:example:dev-banned` | dev-banned.test | banned |
+
+**Safety:** `DEV_AUTH_ENABLED` is not set in `.env.example` and must never appear in a production `.env`. The production guard (`NODE_ENV === 'production'`) is a second independent check. Do not add this variable to Docker Compose prod config.
 
 ---
 
