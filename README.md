@@ -2,7 +2,7 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts—everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** ✅ COMPLETE & SHIPPING-READY (All 6 phases done, 100+ commits, production-grade)
+**Status:** 🚀 PHASE 7 IN PROGRESS (Phases 1–6 complete, 100+ commits, production-grade) — UI/Design refinement underway
 
 ## Why bsBB?
 
