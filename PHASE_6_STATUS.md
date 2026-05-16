@@ -1,6 +1,6 @@
 # Phase 6 — Post Edits, Search & Shipping (In Progress)
 
-## Commits Completed (4/6)
+## Commits Completed (5/6)
 
 ---
 
@@ -96,9 +96,31 @@ Implemented full search UI with results page, pagination, and search bar in main
 
 ---
 
-## Remaining Commits (2/6)
+### ✅ Commit 5: Production Docker Build
+**Files:**
+- `Dockerfile.prod` (new) — Multi-stage optimized build
+- `docker-compose.prod.yml` (new) — Production services (app, worker, db, caddy)
 
-### 📋 Commit 5: Production Docker Build
+Optimized production Docker configuration with multi-stage builds, health checks, and complete service stack.
+
+**Features:**
+- Multi-stage Dockerfile (deps → builder → runtime)
+- Minimal alpine images (node:22-alpine)
+- Production deps only (npm ci --only=production)
+- Non-root nodejs user
+- Health checks on all services
+- Graceful shutdown (dumb-init)
+- Worker service included
+- Caddy reverse proxy with SSL
+- Volume mounts for persistence
+
+**Build size:** ~200MB (optimized from dev ~1GB)
+
+---
+
+## Remaining Commits (1/6)
+
+### 📋 Commit 6: Deployment Guide & Setup
 **Files:**
 - `src/routes/f/[forumSlug]/t/[threadId]/post/[postId]/+server.ts` (new)
 - `src/routes/f/[forumSlug]/t/[threadId]/+page.server.ts` (modify)
