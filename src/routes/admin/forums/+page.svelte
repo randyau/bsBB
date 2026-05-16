@@ -6,6 +6,8 @@
 	let modUserId = $state('');
 	let selectedForumId = $state('');
 	let userSearchQuery = $state('');
+	let modForumFilter = $state('');
+	let modUserFilter = $state('');
 
 	const filteredUsers = $derived.by(() => {
 		if (!userSearchQuery.trim()) return data.users;
@@ -16,6 +18,17 @@
 				(u.displayName?.toLowerCase().includes(query) ?? false) ||
 				u.did.toLowerCase().includes(query)
 		);
+	});
+
+	const filteredMods = $derived.by(() => {
+		return data.mods.filter(mod => {
+			const forumMatch = !modForumFilter || mod.forumId === modForumFilter;
+			const userQuery = modUserFilter.toLowerCase().trim();
+			const userMatch = !userQuery ||
+				mod.userHandle.toLowerCase().includes(userQuery) ||
+				(mod.userDisplayName?.toLowerCase().includes(userQuery) ?? false);
+			return forumMatch && userMatch;
+		});
 	});
 
 	function selectUser(user: typeof data.users[0]) {
@@ -151,21 +164,54 @@
 			{#if data.mods.length === 0}
 				<p class="text-sm text-muted">No forum moderators assigned yet.</p>
 			{:else}
-				<table class="w-full text-sm">
-					<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
-						<tr>
-							<th class="px-4 py-3 text-left font-semibold">Forum</th>
-							<th class="px-4 py-3 text-left font-semibold">User</th>
-							<th class="px-4 py-3 text-left font-semibold">Action</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.mods as mod (mod.userDid + mod.forumId)}
+				<!-- Filter bar -->
+				<div class="flex flex-wrap gap-2 mb-4 pb-4 border-b border-[rgb(var(--color-border))] items-center">
+					<select bind:value={modForumFilter} class="form-control text-sm" style="width: 160px; min-width: 120px; max-width: 200px;">
+						<option value="">All forums</option>
+						{#each data.forums as forum}
+							<option value={forum.id}>{forum.name}</option>
+						{/each}
+					</select>
+					<input
+						type="text"
+						bind:value={modUserFilter}
+						placeholder="Search user by name or handle..."
+						class="form-control text-sm flex-1"
+						style="min-width: 160px;"
+					/>
+					{#if modForumFilter || modUserFilter}
+						<button
+							onclick={() => { modForumFilter = ''; modUserFilter = ''; }}
+							class="btn btn-sm btn-secondary"
+						>
+							Clear
+						</button>
+					{/if}
+					<span class="text-xs text-muted">
+						{filteredMods.length} of {data.mods.length}
+					</span>
+				</div>
+
+				{#if filteredMods.length === 0}
+					<p class="text-sm text-muted italic">No results matching filter.</p>
+				{:else}
+					<table class="w-full text-sm">
+						<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+							<tr>
+								<th class="px-4 py-3 text-left font-semibold">Forum</th>
+								<th class="px-4 py-3 text-left font-semibold">User</th>
+								<th class="px-4 py-3 text-left font-semibold">Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each filteredMods as mod (mod.userDid + mod.forumId)}
 							<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
 								<td class="px-4 py-3 font-semibold">{mod.forumName}</td>
 								<td class="px-4 py-3 text-sm">
-									<div>{mod.userDisplayName || mod.userHandle}</div>
-									<div class="text-xs text-muted font-mono">{mod.userDid}</div>
+									<a href="/user/{mod.userHandle}" class="link font-semibold hover:underline">{mod.userDisplayName || mod.userHandle}</a>
+									<div class="text-xs text-muted font-mono">
+										<a href="/user/{mod.userHandle}" class="link hover:underline">@{mod.userHandle}</a>
+									</div>
 								</td>
 								<td class="px-4 py-3">
 									<form method="POST" action="?/removeMod" class="inline">
@@ -175,9 +221,10 @@
 									</form>
 								</td>
 							</tr>
-						{/each}
-					</tbody>
-				</table>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
 			{/if}
 		</div>
 	</div>

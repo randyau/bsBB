@@ -3,6 +3,7 @@ import {
 	integer,
 	jsonb,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	unique,
@@ -121,7 +122,7 @@ export const forumPermissions = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// user_forum_roles
+// user_forum_roles (per-forum moderator assignments)
 // ---------------------------------------------------------------------------
 export const userForumRoles = pgTable('user_forum_roles', {
 	userDid: text('user_did')
@@ -136,6 +137,37 @@ export const userForumRoles = pgTable('user_forum_roles', {
 		.references(() => users.did),
 	assignedAt: timestamp('assigned_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// roles (admin-defined custom roles with display colors)
+// ---------------------------------------------------------------------------
+export const roles = pgTable('roles', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	name: text('name').notNull().unique(),
+	description: text('description'),
+	color: text('color'), // hex color e.g. '#e11d48'
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// user_roles (global custom role assignments)
+// ---------------------------------------------------------------------------
+export const userRoles = pgTable(
+	'user_roles',
+	{
+		userDid: text('user_did')
+			.notNull()
+			.references(() => users.did),
+		roleId: uuid('role_id')
+			.notNull()
+			.references(() => roles.id, { onDelete: 'cascade' }),
+		assignedBy: text('assigned_by')
+			.notNull()
+			.references(() => users.did),
+		assignedAt: timestamp('assigned_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [primaryKey({ columns: [t.userDid, t.roleId] })],
+);
 
 // ---------------------------------------------------------------------------
 // notification_queue

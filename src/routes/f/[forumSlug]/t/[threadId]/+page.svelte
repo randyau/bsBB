@@ -172,9 +172,9 @@
 		</div>
 
 		<p class="mt-2 text-sm text-[rgb(var(--color-text-secondary))]">
-			Started by <strong>{data.threadAuthor?.displayName || data.threadAuthor?.handle || 'Unknown'}</strong>
+			Started by <a href="/user/{data.threadAuthor?.handle}" class="link font-semibold">{data.threadAuthor?.displayName || data.threadAuthor?.handle || 'Unknown'}</a>
 			{#if data.threadAuthor?.handle}
-				(<code class="text-xs bg-[rgb(var(--color-bg-tertiary))] px-1 rounded">{data.threadAuthor.handle}</code>)
+				(<a href="/user/{data.threadAuthor.handle}" class="link text-xs font-mono">{data.threadAuthor.handle}</a>)
 			{/if}
 		</p>
 	</div>
@@ -202,10 +202,12 @@
 							{/if}
 
 							<div>
-								<p class="font-semibold">
+								<a href="/user/{post.authorHandle}" class="link font-semibold hover:underline">
 									{post.authorDisplayName || post.authorHandle}
+								</a>
+								<p class="text-xs text-[rgb(var(--color-text-muted))]">
+									<a href="/user/{post.authorHandle}" class="link font-mono hover:underline">@{post.authorHandle}</a>
 								</p>
-								<p class="text-xs text-[rgb(var(--color-text-muted))]">{post.authorHandle}</p>
 							</div>
 						</div>
 

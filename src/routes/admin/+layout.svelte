@@ -15,6 +15,9 @@
 			<a href="/admin/users" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
 				👥 Users
 			</a>
+			<a href="/admin/roles" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
+				🏷️ Roles
+			</a>
 			<a href="/admin/threads" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
 				💬 Threads
 			</a>
