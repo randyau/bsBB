@@ -1,6 +1,6 @@
 # Phase 5 — Notifications & Background Tasks (In Progress)
 
-## Commits Completed (2/6)
+## Commits Completed (3/6)
 
 ### ✅ Commit 1: Email Infrastructure
 **File:** `src/lib/email.ts`
@@ -49,9 +49,32 @@ Implemented main polling loop that fetches pending notifications from the queue 
 
 ---
 
-## Remaining Commits (4/6)
+### ✅ Commit 3: Moderator Email Alerts
+**Files:**
+- `src/lib/notifications.ts` (new) — Enqueueing helpers
+- `src/worker.ts` (modified) — handleModeratorAlert implementation
+- `src/routes/admin/users/+page.server.ts` (modified) — Enqueue on ban/unban/promote/demote
 
-### 📋 Commit 3: Moderator Email Alerts
+Implemented notification enqueueing and email sending for moderation actions. Admin actions now automatically enqueue notifications to all admins/mods.
+
+**Features:**
+- `enqueueModerationAlert()` — Enqueue notification for all admins
+- `enqueueDmNotification()` — Enqueue DM (respects opt-in)
+- `enqueueProfileSync()` — Enqueue profile sync task
+- Worker sends emails with action details, target info, moderator, and reason
+- Graceful fallback in dev mode (logs instead of sending)
+
+**Actions now enqueue notifications:**
+- Ban user → all admins notified
+- Unban user → all admins notified
+- Promote to admin → all admins notified
+- Demote from admin → all admins notified
+
+---
+
+## Remaining Commits (3/6)
+
+### 📋 Commit 4: Bluesky DM Notifications (Opt-In)
 **Files:**
 - `src/routes/admin/users/+page.server.ts` (modify)
 - `src/routes/admin/posts/+page.server.ts` (modify)

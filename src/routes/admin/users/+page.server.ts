@@ -3,6 +3,7 @@ import { db } from '$lib/db';
 import { users, modLog } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { enqueueModerationAlert } from '$lib/notifications';
 
 export const load: PageServerLoad = async () => {
 	const userList = await db
@@ -32,6 +33,12 @@ export const actions: Actions = {
 		if (targetDid === locals.user!.did) return fail(422, { error: 'Cannot ban yourself' });
 
 		try {
+			// Get target user's handle for notification
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true }
+			});
+
 			await db.update(users).set({ globalRole: 'banned' }).where(eq(users.did, targetDid));
 
 			await db.insert(modLog).values({
@@ -41,8 +48,19 @@ export const actions: Actions = {
 				reason: reason || undefined
 			});
 
+			// Enqueue moderator alert notification
+			await enqueueModerationAlert(
+				'ban',
+				'user',
+				targetDid,
+				targetUser?.handle || targetDid,
+				locals.user!.handle,
+				reason || undefined
+			);
+
 			return { success: true, action: 'ban', targetDid };
 		} catch (err) {
+			console.error('ban action error:', err);
 			return fail(500, { error: 'Failed to ban user' });
 		}
 	},
@@ -55,6 +73,11 @@ export const actions: Actions = {
 		if (!targetDid) return fail(422, { error: 'User DID is required' });
 
 		try {
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true }
+			});
+
 			await db.update(users).set({ globalRole: 'member' }).where(eq(users.did, targetDid));
 
 			await db.insert(modLog).values({
@@ -63,8 +86,17 @@ export const actions: Actions = {
 				targetDid
 			});
 
+			await enqueueModerationAlert(
+				'unban',
+				'user',
+				targetDid,
+				targetUser?.handle || targetDid,
+				locals.user!.handle
+			);
+
 			return { success: true, action: 'unban', targetDid };
 		} catch (err) {
+			console.error('unban action error:', err);
 			return fail(500, { error: 'Failed to unban user' });
 		}
 	},
@@ -77,6 +109,11 @@ export const actions: Actions = {
 		if (!targetDid) return fail(422, { error: 'User DID is required' });
 
 		try {
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true }
+			});
+
 			await db.update(users).set({ globalRole: 'admin' }).where(eq(users.did, targetDid));
 
 			await db.insert(modLog).values({
@@ -85,8 +122,17 @@ export const actions: Actions = {
 				targetDid
 			});
 
+			await enqueueModerationAlert(
+				'promote_admin',
+				'user',
+				targetDid,
+				targetUser?.handle || targetDid,
+				locals.user!.handle
+			);
+
 			return { success: true, action: 'promote', targetDid };
 		} catch (err) {
+			console.error('promote action error:', err);
 			return fail(500, { error: 'Failed to promote user' });
 		}
 	},
@@ -112,6 +158,11 @@ export const actions: Actions = {
 		}
 
 		try {
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true }
+			});
+
 			await db.update(users).set({ globalRole: 'member' }).where(eq(users.did, targetDid));
 
 			await db.insert(modLog).values({
@@ -120,8 +171,17 @@ export const actions: Actions = {
 				targetDid
 			});
 
+			await enqueueModerationAlert(
+				'demote_admin',
+				'user',
+				targetDid,
+				targetUser?.handle || targetDid,
+				locals.user!.handle
+			);
+
 			return { success: true, action: 'demote', targetDid };
 		} catch (err) {
+			console.error('demote action error:', err);
 			return fail(500, { error: 'Failed to demote user' });
 		}
 	}
