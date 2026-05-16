@@ -2,19 +2,19 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phase 4 🚀 In Progress (5/7)
+## Status — Phase 4 🚀 In Progress (6/7)
 
 **Phase 3 (Post Creation):** All 36+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. 
 
 **Phase 3.1 (Polish):** Character counters, form validation, improved quote UX — all complete.
 
-**Phase 4 (Moderation & Admin):** 5 of 7 commits complete:
+**Phase 4 (Moderation & Admin):** 6 of 7 commits complete:
 - ✅ Commit 1: Rate limiting (atomic upserts on rate_limit_buckets)
 - ✅ Commit 2: Admin guard + nav link
 - ✅ Commit 3: Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
 - ✅ Commit 4: Admin users page (ban/unban/promote/demote)
 - ✅ Commit 5: Admin threads page (lock/unlock/pin/unpin)
-- 📋 Commit 6: Admin posts page (delete/restore soft-delete)
+- ✅ Commit 6: Admin posts page (delete/restore soft-delete)
 - 📋 Commit 7: Admin mod log viewer (read-only audit trail)
 
 ### Completed Phases:
