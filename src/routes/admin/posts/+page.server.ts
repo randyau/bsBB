@@ -31,6 +31,7 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	delete: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -54,6 +55,7 @@ export const actions: Actions = {
 	},
 
 	restore: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 

@@ -105,55 +105,51 @@ Returns `AbuseVerdict` with allowed/denied status and retry-after seconds.
 
 ### Automated Integration Test Suite ✅
 
-**File:** `src/routes/api/test/integration.test.ts`
+**File:** `src/routes/api/test/integration.test.ts` — 28 tests, all passing
 
-Comprehensive Vitest test suite with 17 automated tests:
+**Admin guard:** All 5 admin sub-pages return 403 for members, 200 for admins, 403 unauthenticated
 
-**Admin Guard Tests:**
-- ✅ Non-admin gets 403 on `/admin`
-- ✅ Admin gets 200 on `/admin`
-- ✅ Unauthenticated gets 401/403
+**Admin actions (form action POSTs — body.type, not HTTP status):**
+- ✅ Ban user → `body.type === 'success'`; banned session redirects to `/banned`
+- ✅ Self-ban blocked → `body.type === 'failure'`
+- ✅ Unban → access restored
+- ✅ Thread lock/unlock → `body.type === 'success'`
+- ✅ Post delete/restore → `body.type === 'success'`
+- ✅ SQL SELECT query → success; non-SELECT → failure
+- ✅ Member action POST → failure (action-level auth guard)
 
-**Admin Page Access Tests:**
-- ✅ Admin can access `/admin/users`
-- ✅ Member cannot access `/admin/users`
-- ✅ Admin can access `/admin/threads`
-- ✅ Member cannot access `/admin/threads`
-- ✅ Admin can access `/admin/posts`
-- ✅ Member cannot access `/admin/posts`
-- ✅ Admin can access `/admin/query`
-- ✅ Member cannot access `/admin/query`
-- ✅ Admin can access `/admin/mod-log`
-- ✅ Member cannot access `/admin/mod-log`
+**Rate limiting:**
+- ✅ 11th thread create in same hour window returns rate-limit message in body (HTTP status is still 200 — SvelteKit form action behavior)
 
-**SQL Query Interface Tests:**
-- ✅ Admin can execute SELECT queries
-- ✅ Queries reject non-SELECT statements
+**Session & auth:**
+- ✅ Valid/invalid/missing cookies handled; GET endpoint creates member; POST sets globalRole
 
-**Session & Auth Tests:**
-- ✅ Valid session cookie grants access
-- ✅ Invalid session cookie denies access
-- ✅ Missing session cookie denies access
-- ✅ Test endpoint is dev-only (404 in prod)
-- ✅ Test endpoint validates required parameters
-
-**Run tests:**
+**Run tests (from WSL terminal):**
 ```bash
-npm test                 # Run once
-npm run test:watch      # Watch mode during development
+npm test
 ```
+
+### Bugs Found and Fixed During Testing
+
+The following bugs were discovered during manual testing and are now fixed:
+
+1. **`checkAbuse` never enforced limits** — call sites used `try/catch` but the function returns a verdict object, never throws. Fixed: check `verdict.allowed` instead.
+2. **Rate limit SQL silently failed** — passing a plain `Date` to Drizzle's `sql` template with postgres-js doesn't serialize correctly. Fixed: use `.toISOString()` with `::timestamptz` cast.
+3. **`/admin/mod-log` 500** — joined `users` table twice without table aliases, which Drizzle rejects. Fixed: `alias(users, 'moderator')` and `alias(users, 'target_user')`.
+4. **Admin form actions had no auth guard** — SvelteKit does NOT run layout `load()` before form action POSTs, so any session could POST to `/admin/users?/ban` etc. Fixed: added `if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, ...)` to all 10 admin actions.
 
 ### Manual Testing Checklist
 
-For exploratory/UI testing, verify manually:
+For end-to-end UI verification (automated tests cover the HTTP layer):
 
-- [ ] Rate limiting: Spam post endpoint >10 times, get 429 on 11th
-- [ ] Users: Ban user → redirected to /banned; unban → can post
-- [ ] Threads: Lock → reply form disappears; unlock → form appears
-- [ ] Posts: Delete → "[post deleted]" shown; restore → content back
-- [ ] Mod log: Perform actions → appear in log with correct fields
-
-(Automated tests verify admin guard + page access; these manual checks verify end-to-end UX)
+- [x] Rate limiting: 11th thread create shows rate limit message in page
+- [x] Admin guard: member → 403; admin → 200
+- [x] Ban/unban: banned session → `/banned` redirect; unbanned → access restored
+- [x] Thread lock/unlock: DB `is_locked` flips correctly
+- [x] Post delete/restore: DB `is_deleted` flips correctly
+- [x] Mod log: actions logged with correct moderator DID, action type, target, reason
+- [ ] Thread lock UI: reply form disappears when thread is locked (browser check)
+- [ ] Post delete UI: "[post deleted]" shown in thread view (browser check)
 
 ---
 

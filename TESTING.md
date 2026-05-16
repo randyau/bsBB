@@ -12,6 +12,7 @@ This project runs in a hybrid Windows + WSL2 setup. **The right context depends 
 |---|---|
 | `npm`, `node`, `tsc`, test suite, scripts | **WSL terminal** |
 | HTTP requests to `localhost:5173` | **Windows terminal (VS Code or PowerShell)** |
+| `curl.exe` for API testing | **VS Code terminal** — use `curl.exe` explicitly, NOT `curl` (PowerShell aliases `curl` to `Invoke-WebRequest`) |
 
 **Why it matters for testing:** Docker on Windows exposes ports on the Windows network stack. `localhost:5173` resolves correctly from the Windows side. From inside WSL2, `localhost` often does not route to those ports — `curl http://localhost:5173/...` from a WSL shell will silently hang or fail with a connection error.
 
@@ -31,105 +32,59 @@ curl http://localhost:5173/api/test/session?did=did:plc:test  # ← don't do thi
 
 ## Automated Integration Test Suite
 
-Phase 4 includes a comprehensive Vitest integration test suite that validates all moderation, admin, and rate-limiting features.
+Phase 4 includes a Vitest integration test suite that validates admin, moderation, rate limiting, ban, and session behavior against a live dev server.
 
 ### Running the Tests
 
-**Run once:**
+**Run from the WSL terminal** (where node_modules has Linux binaries):
 ```bash
-npm test
+npm test        # run once
+npm run test:watch  # watch mode
 ```
 
-**Watch mode (re-run on file changes):**
-```bash
-npm run test:watch
-```
+The integration tests make real HTTP requests to `localhost:5173`, so the dev server must be running. Because these run in WSL (Node process) but target a Windows-side Docker port, they work via WSL2's automatic localhost bridging — unlike `curl` from WSL, Node's `fetch` routes correctly.
 
 ### What's Tested
 
-The integration test suite (`src/routes/api/test/integration.test.ts`) validates:
+`src/routes/api/test/integration.test.ts` — 28 tests covering:
 
-1. **Admin Guard** — Non-admin users get 403 on `/admin` routes
-2. **Admin Pages** — All admin pages (`/admin/users`, `/admin/threads`, `/admin/posts`, `/admin/query`, `/admin/mod-log`)
-3. **Session Validation** — Valid/invalid/missing session cookies are handled correctly
-4. **Test Endpoint Protection** — `/api/test/session` is dev-only (404 in production)
+- **Admin guard** — All 5 admin sub-pages block members (403); admit admins (200)
+- **Admin SQL query** — Admin can run SELECT; non-SELECT rejected; member action POST returns failure body
+- **Ban / unban** — Admin bans member → banned session redirects to `/banned`; unban restores access; self-ban blocked
+- **Thread lock / unlock** — Admin can lock and unlock a real thread via action POST
+- **Post delete / restore** — Admin can soft-delete and restore a real post via action POST
+- **Rate limiting** — 11th thread create in the same hour window returns a rate-limit message in the body
+- **Session validation** — Valid/invalid/missing cookies handled correctly
+- **Test session endpoint** — GET without `did` → 400; POST sets `globalRole` correctly
 
-### Test Architecture
+### Critical SvelteKit Behaviors (read before writing tests)
 
-- **Technology:** Vitest + Node's native `fetch` API
-- **No browser automation** — HTTP-level tests only (faster, simpler)
-- **Automatic setup/teardown** — Each test gets fresh admin and member sessions
-- **Helper functions:**
-  - `createSession(did, handle, role)` — Creates a test user and returns session token
-  - `withSession(session)` — Formats headers with session cookie for requests
+**SvelteKit form actions always return HTTP 200**, even when `fail(4xx, ...)` is called. The error or success is encoded in the JSON response body:
+- `{ "type": "success", ... }` — action returned normally
+- `{ "type": "failure", ... }` — action called `fail()`
 
-### Example Test Run Output
+**Never assert HTTP 4xx on a form action POST.** Assert `body.type === 'failure'` instead.
 
+**Form action URLs require the `?/<actionName>` suffix:**
 ```
-✓ src/routes/api/test/integration.test.ts (17 tests)
-
-Phase 4 — Moderation & Admin Integration Tests
-  Admin Guard
-    ✓ returns 403 for non-admin accessing /admin (45ms)
-    ✓ returns 200 for admin accessing /admin (42ms)
-    ✓ returns 403 for unauthenticated user accessing /admin (38ms)
-  Admin Users Page
-    ✓ admin can access /admin/users (38ms)
-    ✓ member cannot access /admin/users (40ms)
-  Admin SQL Query Interface
-    ✓ admin can access /admin/query (41ms)
-    ...
-  Admin Mod Log Page
-    ✓ admin can access /admin/mod-log (44ms)
-    ✓ member cannot access /admin/mod-log (39ms)
-    ✓ displays log entries (47ms)
-  Test Endpoint Protection
-    ✓ test endpoint returns 404 in production mode (35ms)
-    ✓ test endpoint requires did parameter (38ms)
-  Session Cookie Validation
-    ✓ valid session cookie grants access (39ms)
-    ✓ invalid session cookie denies access (40ms)
-    ✓ missing session cookie denies access (36ms)
-
-Test Files  1 passed (1)
-     Tests  17 passed (17)
-  Start at  12:34:56
-  Duration  5.23s
+POST /admin/users?/ban       ✓
+POST /admin/users            ✗ (404)
+POST /admin/query?/run       ✓
+POST /admin/query             ✗ (404)
 ```
 
-### How the Tests Work
-
-Each test:
-1. Creates a fresh admin and member session via `createSession()` helper
-2. Makes HTTP requests to the running dev server (localhost:5173)
-3. Validates response status codes and HTML content
-4. Checks that admin-only routes return 403 for members
-5. Verifies session cookie behavior
-
-Example test:
+**SvelteKit layout `load()` does NOT run before form action POSTs.** The admin layout guard (`+layout.server.ts`) only protects GET requests. All admin form actions must include their own auth check — and they do:
 ```typescript
-it('returns 403 for non-admin accessing /admin', async () => {
-  const res = await fetch(`${BASE_URL}/admin`, {
-    ...withSession(memberSession)
-  });
-  expect(res.status).toBe(403);
-});
+if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 ```
+
+**`createSession` must use POST to set `globalRole`.** The GET endpoint always creates a `member`-role session regardless of query params. Use POST with JSON body to create admin sessions.
 
 ### Requirements for Running Tests
 
-- **Dev server running:** `npm run dev` in another terminal
-- **Database migrated:** Tables for users, sessions, mod_log must exist
-- **Fresh sessions each test:** Tests clean up automatically (no data persists)
-
-### Adding More Tests
-
-To add a test to the suite:
-
-1. Open `src/routes/api/test/integration.test.ts`
-2. Add a new `it()` block in the appropriate `describe()` section
-3. Use `adminSession` or `memberSession` for authenticated requests
-4. Run `npm run test:watch` to iterate
+- Dev server running (`npm run dev`)
+- DB migrated — `rate_limit_buckets`, `mod_log`, `users`, `sessions` tables must exist
+- Tests use unique timestamped DIDs and do not clean up created threads/posts — run against a dev DB, not production
 
 ---
 
@@ -139,23 +94,20 @@ To add a test to the suite:
 
 The dev-only `/api/test/session` endpoint creates a session token without requiring browser interaction.
 
-**Via GET (simplest):**
-```bash
-TOKEN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:testuser&handle=testuser&displayName=TestUser" | jq -r .token)
-echo "Token: $TOKEN"
+**Via GET (member role only — cannot set globalRole via GET):**
+```powershell
+# Run from VS Code terminal (Windows side), using curl.exe not curl
+$TOKEN = (curl.exe -s "http://localhost:5173/api/test/session?did=did:plc:testuser&handle=testuser" | ConvertFrom-Json).token
 ```
 
-**Via POST (more control, JSON body):**
-```bash
-curl -X POST http://localhost:5173/api/test/session \
-  -H "Content-Type: application/json" \
-  -d '{
-    "did": "did:plc:testuser",
-    "handle": "testuser",
-    "displayName": "Test User",
-    "globalRole": "member"
-  }' | jq .
+**Via POST (required for admin sessions — use a temp file to avoid shell quoting issues):**
+```powershell
+# Write JSON to a temp file first — avoids PowerShell quote mangling
+'{"did":"did:plc:admin1","handle":"admin1","displayName":"Admin","globalRole":"admin"}' | Out-File -Encoding utf8 "$env:TEMP\session.json" -NoNewline
+$ADMIN_TOKEN = (curl.exe -s -X POST http://localhost:5173/api/test/session -H "Content-Type: application/json" -d "@$env:TEMP\session.json" | ConvertFrom-Json).token
 ```
+
+> **Why a file?** PowerShell passes single-quoted JSON strings to `curl.exe` with mangled quotes. Writing to a temp file and using `-d @file` avoids this entirely.
 
 This returns:
 ```json
@@ -173,23 +125,10 @@ This returns:
 
 ### 2. Use the Token in Requests
 
-**Set as a cookie:**
-```bash
-TOKEN="a1b2c3d4..."
-curl -H "Cookie: session=$TOKEN" http://localhost:5173/admin
-```
-
-**Or save to a cookie jar and reuse:**
-```bash
-# Create token and save cookies
-curl -s "http://localhost:5173/api/test/session?did=did:plc:user1" \
-  | jq -r .token > /tmp/token.txt
-
-TOKEN=$(cat /tmp/token.txt)
-
-# Use in requests (curl will send the cookie automatically)
-curl -b "session=$TOKEN" http://localhost:5173/admin
-curl -b "session=$TOKEN" http://localhost:5173/f/general
+**Set as a cookie (PowerShell / VS Code terminal):**
+```powershell
+curl.exe -s -o NUL -w "%{http_code}" -H "Cookie: session=$TOKEN" http://localhost:5173/admin/users
+# Expected: 200 for admin, 403 for member
 ```
 
 ---
@@ -198,137 +137,131 @@ curl -b "session=$TOKEN" http://localhost:5173/f/general
 
 ### Test Rate Limiting
 
-Rate limit 10 thread creates per hour per DID.
+Limit: 10 thread creates per hour per DID.
 
-```bash
-# Create test user
-TOKEN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:ratelimit" | jq -r .token)
+```powershell
+# Get a fresh DID — rate limit buckets are keyed per DID per hour window
+'{"did":"did:plc:rltest","handle":"rltest","displayName":"RL","globalRole":"member"}' | Out-File -Encoding utf8 "$env:TEMP\rl.json" -NoNewline
+$RL = (curl.exe -s -X POST http://localhost:5173/api/test/session -H "Content-Type: application/json" -d "@$env:TEMP\rl.json" | ConvertFrom-Json).token
 
-# Try to create threads (should fail on 11th)
-for i in {1..12}; do
-  echo "Attempt $i:"
-  curl -X POST \
-    -H "Cookie: session=$TOKEN" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "title=Thread%20$i&body=Test%20body" \
-    http://localhost:5173/f/general/new 2>&1 | head -20
-  echo ""
-done
+for ($i = 1; $i -le 12; $i++) {
+    $body = curl.exe -s -X POST -H "Cookie: session=$RL" -H "Content-Type: application/x-www-form-urlencoded" -d "title=Thread$i&body=test" http://localhost:5173/f/general/new
+    if ($body -match "Too many requests|Rate limit") { Write-Host "Attempt $i: RATE LIMITED" }
+    else { Write-Host "Attempt $i: allowed" }
+}
 ```
 
-Expected: Attempts 1-10 succeed, attempt 11 returns HTTP 429 (Too Many Requests).
+> **Important:** SvelteKit form actions always return HTTP 200, even when rate-limited. The rate limit message appears in the HTML body — not as an HTTP 429 status code. Check the body for "Too many requests".
 
 ### Test Admin Guard
 
-```bash
-# Create regular user
-TOKEN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:member&globalRole=member" | jq -r .token)
+```powershell
+# Admin session — must use POST to set globalRole
+'{"did":"did:plc:adm","handle":"adm","displayName":"Admin","globalRole":"admin"}' | Out-File -Encoding utf8 "$env:TEMP\adm.json" -NoNewline
+$ADMIN = (curl.exe -s -X POST http://localhost:5173/api/test/session -H "Content-Type: application/json" -d "@$env:TEMP\adm.json" | ConvertFrom-Json).token
+$MEMBER = (curl.exe -s "http://localhost:5173/api/test/session?did=did:plc:mem&handle=mem" | ConvertFrom-Json).token
 
-# Try to access admin panel (should get 403)
-curl -H "Cookie: session=$TOKEN" http://localhost:5173/admin
-# Expected: 403 error
-
-# Create admin user
-ADMIN_TOKEN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:admin&globalRole=admin" | jq -r .token)
-
-# Access admin panel (should succeed)
-curl -H "Cookie: session=$ADMIN_TOKEN" http://localhost:5173/admin
-# Expected: HTML page content
+# Member gets 403
+curl.exe -s -o NUL -w "Member: HTTP %{http_code}`n" -H "Cookie: session=$MEMBER" http://localhost:5173/admin/users
+# Admin gets 200
+curl.exe -s -o NUL -w "Admin:  HTTP %{http_code}`n" -H "Cookie: session=$ADMIN" http://localhost:5173/admin/users
 ```
 
-### Test SQL Query Interface
+> **Note:** `/admin` itself returns 404 (no root page). Use `/admin/users`, `/admin/threads`, etc.
 
-```bash
-# Get admin token
-ADMIN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:admin&globalRole=admin" | jq -r .token)
+### Test Admin SQL Query Interface
 
-# Run a query via the admin UI (browser)
-# Or test the API endpoint directly:
-curl -X POST \
-  -H "Cookie: session=$ADMIN" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "query=SELECT%20*%20FROM%20users%20LIMIT%205" \
-  http://localhost:5173/admin/query
+Form actions use `?/<actionName>` suffix. The response is always HTTP 200 — check `body.type`.
+
+```powershell
+$ADMIN = "..." # from above
+
+# Run a SELECT query
+curl.exe -s -X POST "http://localhost:5173/admin/query?/run" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    --data-urlencode "query=SELECT did, handle, global_role FROM users LIMIT 5"
+# Returns: {"type":"success","data":"...encoded rows..."}
+
+# Non-SELECT is rejected
+curl.exe -s -X POST "http://localhost:5173/admin/query?/run" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "query=DELETE+FROM+users"
+# Returns: {"type":"failure","data":"...Only SELECT queries..."}
 ```
 
 ### Test User Management
 
-```bash
-ADMIN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:admin&globalRole=admin" | jq -r .token)
+```powershell
+$ADMIN = "..."
+$TARGET_DID = "did:plc:mem"  # must exist in users table
 
-# Ban a user
-curl -X POST \
-  -H "Cookie: session=$ADMIN" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "did=did:plc:testuser&reason=Spam" \
-  http://localhost:5173/admin/users?/ban
+# Ban — response body.type === 'success' if it worked
+curl.exe -s -X POST "http://localhost:5173/admin/users?/ban" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "did=$TARGET_DID&reason=Spam"
+
+# Banned user session now redirects to /banned
+curl.exe -s -D - -H "Cookie: session=$MEMBER_TOKEN" http://localhost:5173/f/general
+# Look for: location: /banned
+
+# Unban
+curl.exe -s -X POST "http://localhost:5173/admin/users?/unban" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "did=$TARGET_DID"
 ```
 
 ### Test Thread/Post Moderation
 
-```bash
-ADMIN=$(curl -s "http://localhost:5173/api/test/session?did=did:plc:admin&globalRole=admin" | jq -r .token)
+```powershell
+$ADMIN = "..."
+$THREAD_ID = "uuid-from-db"  # get from /admin/threads or psql
+$POST_ID   = "uuid-from-db"  # get from /admin/posts or psql
 
-# Lock a thread (need a real thread ID from the forum)
-curl -X POST \
-  -H "Cookie: session=$ADMIN" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "threadId=<uuid>" \
-  http://localhost:5173/admin/threads?/lock
+# Lock thread
+curl.exe -s -X POST "http://localhost:5173/admin/threads?/lock" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "threadId=$THREAD_ID"
 
-# Delete a post
-curl -X POST \
-  -H "Cookie: session=$ADMIN" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "postId=<uuid>&reason=Spam" \
-  http://localhost:5173/admin/posts?/delete
+# Delete post (soft delete — is_deleted = true)
+curl.exe -s -X POST "http://localhost:5173/admin/posts?/delete" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "postId=$POST_ID&reason=Spam"
+
+# Restore
+curl.exe -s -X POST "http://localhost:5173/admin/posts?/restore" `
+    -H "Cookie: session=$ADMIN" `
+    -H "Content-Type: application/x-www-form-urlencoded" `
+    -d "postId=$POST_ID"
 ```
 
 ---
 
-## Advanced: Scripting with curl
+## Advanced: Scripting with curl.exe (PowerShell)
 
 ### Helper Function
 
-Add to your `.bashrc` or `.zshrc`:
-
-```bash
-bsbb_test_session() {
-  local did="${1:-did:plc:testuser}"
-  local handle="${2:-testuser}"
-  local role="${3:-member}"
-  
-  curl -s -X POST http://localhost:5173/api/test/session \
-    -H "Content-Type: application/json" \
-    -d "{\"did\":\"$did\",\"handle\":\"$handle\",\"globalRole\":\"$role\"}" \
-    | jq -r .token
+```powershell
+function Get-TestSession {
+    param(
+        [string]$Did = "did:plc:testuser",
+        [string]$Handle = "testuser",
+        [string]$Role = "member"
+    )
+    $json = "{`"did`":`"$Did`",`"handle`":`"$Handle`",`"displayName`":`"Test`",`"globalRole`":`"$Role`"}"
+    $json | Out-File -Encoding utf8 "$env:TEMP\bsbb_session.json" -NoNewline
+    return (curl.exe -s -X POST http://localhost:5173/api/test/session -H "Content-Type: application/json" -d "@$env:TEMP\bsbb_session.json" | ConvertFrom-Json).token
 }
 
 # Usage:
-TOKEN=$(bsbb_test_session "did:plc:myuser" "myhandle" "admin")
-curl -H "Cookie: session=$TOKEN" http://localhost:5173/admin
-```
-
-### Batch Testing Script
-
-```bash
-#!/bin/bash
-
-# Create multiple test users
-for i in {1..5}; do
-  DID="did:plc:user$i"
-  HANDLE="user$i"
-  TOKEN=$(curl -s "http://localhost:5173/api/test/session?did=$DID&handle=$HANDLE" | jq -r .token)
-  
-  echo "User $i: $DID -> Token: ${TOKEN:0:16}..."
-  
-  # Store token for later use
-  echo "$TOKEN" > "/tmp/token_user$i.txt"
-done
-
-# Later, reuse tokens:
-TOKEN=$(cat /tmp/token_user1.txt)
-curl -H "Cookie: session=$TOKEN" http://localhost:5173/admin
+$ADMIN  = Get-TestSession -Did "did:plc:myadmin" -Handle "myadmin" -Role "admin"
+$MEMBER = Get-TestSession -Did "did:plc:mymember" -Handle "mymember"
+curl.exe -s -o NUL -w "%{http_code}" -H "Cookie: session=$ADMIN" http://localhost:5173/admin/users
 ```
 
 ---
@@ -359,8 +292,18 @@ The dev endpoint is supplementary. Real ATproto OAuth via Bluesky still works (r
 ## Troubleshooting
 
 ### "curl hangs or connection refused on localhost:5173"
-- You are almost certainly running curl from inside WSL2. Switch to the VS Code terminal (Windows side) and retry.
+- Running from WSL2 — switch to the VS Code terminal (Windows side).
 - See the "Dev Environment Split" section at the top of this document.
+
+### "curl returns HTML for Invoke-WebRequest instead of JSON"
+- In PowerShell, `curl` is aliased to `Invoke-WebRequest`. Use `curl.exe` explicitly.
+
+### "JSON body is mangled / SyntaxError in server logs"
+- PowerShell eats quotes in single-quoted strings passed to `curl.exe`. Write JSON to a temp file and use `-d @file` instead of inline `-d '{"key":"val"}'`.
+
+### "Form action POST returns unexpected result"
+- Ensure the URL includes the action name: `/admin/users?/ban`, not `/admin/users`.
+- SvelteKit returns HTTP 200 for all form actions. Check `body.type` for `'success'` or `'failure'`.
 
 ### "Token endpoint returns 404"
 - Ensure you're running in dev mode (not production)

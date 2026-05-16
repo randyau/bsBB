@@ -34,6 +34,7 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	lock: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -55,6 +56,7 @@ export const actions: Actions = {
 	},
 
 	unlock: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -76,6 +78,7 @@ export const actions: Actions = {
 	},
 
 	pin: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -97,6 +100,7 @@ export const actions: Actions = {
 	},
 
 	unpin: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 

@@ -426,6 +426,41 @@ Never run `docker compose` from PowerShell for this project — volume mount pat
 
 ---
 
+### When to Work in WSL vs. Windows — Know When to Switch
+
+This is a hybrid dev environment. The wrong context for a task produces confusing failures.
+
+**Use WSL (Linux terminal) for:**
+- Running `npm`, `node`, `npx`, `tsc`, shell scripts
+- Docker Compose commands
+- Editing `.env` (preserve Unix line endings)
+- Running the test suite (`npm test`)
+- Git operations
+- Anything that touches the filesystem at runtime
+
+**Use Windows / VS Code (outside WSL) for:**
+- Making HTTP requests to the running dev server (`localhost:5173`)
+- Testing API endpoints with `curl` from PowerShell or the VS Code terminal
+- Verifying session cookies and HTTP responses
+- Using the browser to interact with the running app
+
+**Why the split exists:** Docker on Windows runs on the Windows network stack. Even though the container is in WSL2, `localhost:5173` resolves correctly from the Windows side via Docker Desktop's port-forwarding magic. From *inside* WSL2, `localhost` often does not route to the Windows-hosted Docker ports, so `curl http://localhost:5173/...` from a WSL terminal will fail or hang with no clear error.
+
+**Practical rule:** If you're running commands that build or test code → WSL. If you're hitting a URL to check a live response → Windows terminal or VS Code terminal.
+
+**Test session endpoint example (run from Windows/VS Code terminal, not WSL):**
+```powershell
+# Create an admin test session
+curl -X POST http://localhost:5173/api/test/session `
+  -H "Content-Type: application/json" `
+  -d '{"did":"did:plc:testadmin","handle":"testadmin","displayName":"Test Admin","globalRole":"admin"}'
+
+# Use the returned token to hit an authenticated route
+curl -H "Cookie: session=<token>" http://localhost:5173/admin
+```
+
+---
+
 ## Rule 19: Build System — No Secrets in Source
 
 - `ATPROTO_PRIVATE_KEY`, `ATPROTO_SERVICE_APP_PASSWORD`, `SMTP_PASS`, `SESSION_SECRET`, and `DATABASE_URL` are never committed to the repository.

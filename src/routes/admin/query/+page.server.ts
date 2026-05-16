@@ -15,6 +15,10 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	run: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') {
+			return fail(403, { error: 'Admin access required' });
+		}
+
 		const form = await request.formData();
 		const query = String(form.get('query') ?? '').trim();
 

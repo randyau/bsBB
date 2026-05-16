@@ -6,9 +6,8 @@ import { checkAbuse } from '$lib/abuse/index.js';
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
 	const ip = getClientAddress();
 
-	try {
-		await checkAbuse({ type: 'preview_request', did: locals.user?.did ?? null, ip });
-	} catch {
+	const verdict = await checkAbuse({ type: 'preview_request', did: locals.user?.did ?? null, ip });
+	if (!verdict.allowed) {
 		return json({ error: 'Preview request rate limited' }, { status: 429 });
 	}
 
