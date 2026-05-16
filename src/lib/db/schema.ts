@@ -170,7 +170,7 @@ export const modLog = pgTable('mod_log', {
 });
 
 // ---------------------------------------------------------------------------
-// sessions (Lucia-managed)
+// sessions (Custom roll-your-own implementation)
 // ---------------------------------------------------------------------------
 export const sessions = pgTable('sessions', {
 	id: text('id').primaryKey(),

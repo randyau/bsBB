@@ -376,7 +376,7 @@ created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 
 > Append-only. No update or delete routes exist anywhere in the codebase.
 
-### `sessions` (Lucia-managed)
+### `sessions` (Custom roll-your-own)
 
 ```sql
 id         TEXT PRIMARY KEY
@@ -541,7 +541,7 @@ Queries flow:
 
 ### Session Hydration
 
-`hooks.server.ts` validates the Lucia session on every request and populates `locals.user` with:
+`hooks.server.ts` validates the custom session on every request and populates `locals.user` with:
 ```typescript
 {
   did: string,
@@ -654,7 +654,7 @@ All SMTP config from env vars. Application code never references a provider name
 
 ## 9. Session Architecture
 
-Custom session implementation (no external session library). Lucia v3 was deprecated in March 2025; the Lucia maintainers now recommend rolling your own. Session table: `sessions` (see schema above).
+Custom session implementation (no external session library — Lucia v3 was deprecated and the maintainers now recommend rolling your own). Session storage: `sessions` table in PostgreSQL (see schema above).
 
 ### Token Design
 

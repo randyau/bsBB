@@ -120,7 +120,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | ORM | Drizzle | TypeScript-native, thin, generates clean SQL, no magic; migration-file workflow only — no `drizzle-kit push` in any env |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK handles DPoP, PAR, token management |
 | Markdown | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side pipeline, sanitized before storage |
-| Sessions | Custom roll-your-own (Postgres) | Lucia v3 deprecated March 2025; rolling own is now the Lucia maintainers' recommended approach — crypto-secure token + SHA-256 hash, Postgres-backed, no external library |
+| Sessions | Custom roll-your-own (Postgres) | 32-byte random token + SHA-256 hash; Postgres-backed, no external library. Simple, secure, proven at scale |
 | Email transport | Nodemailer over SMTP | Provider-agnostic; swap providers via env vars only |
 | OG/link metadata | `open-graph-scraper` | Server-side at post submit; only for bare URLs on their own line |
 
@@ -525,7 +525,7 @@ Total time from bare server to running: under 30 minutes.
 | `pg_dump` not managed backup service | Keeps infrastructure minimal; R2/B2 are cheap and reliable enough |
 | Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
 | `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
-| Roll-your-own sessions (no Lucia) | Lucia v3 deprecated March 2025; maintainers now recommend implementing sessions directly — crypto token + SHA-256 hash stored in Postgres `sessions` table, ~50 lines, no external library |
+| Custom sessions (no external library) | 32-byte random token + SHA-256 hash in Postgres `sessions` table, ~50 lines. Simple, proven, easier to reason about than external libraries |
 | Plain textarea editor (Phase 3) | MVP approach; CodeMirror 6 can be added as progressive enhancement in Phase 5+ for better UX; preview via server endpoint keeps no client-side markdown renderer either way |
 | Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
 | Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |

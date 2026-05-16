@@ -306,7 +306,7 @@ See `CLAUDE.md` for detailed deployment architecture and security defaults.
 | **Framework** | SvelteKit + `adapter-node` | SSR mandatory for SEO; monolith (no API boundary needed) |
 | **Database** | PostgreSQL 17 | Relational structure; `tsvector` search; `JSONB` for metadata |
 | **ORM** | Drizzle | TypeScript-native, thin, generates clean SQL |
-| **Auth** | ATproto OAuth + custom sessions | Bluesky identity; roll-your-own sessions (Lucia deprecated) |
+| **Auth** | ATproto OAuth + custom sessions | Bluesky identity; 32-byte token + SHA-256 hash, Postgres-backed |
 | **Markdown** | unified + remark + rehype | Server-side rendering, sanitized before storage |
 | **CSS** | Tailwind v4 + shadcn-svelte | Utility-first, accessible components |
 | **Reverse proxy** | Caddy | Automatic HTTPS, easy config |

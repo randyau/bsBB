@@ -480,5 +480,5 @@ const threadSlug = slugify(title);
 5. **Lazy profile sync** — Fire-and-forget, catches errors internally. Don't await in hot paths.
 6. **First admin is idempotent** — Safe to call multiple times; gated by `instance_settings.first_admin_claimed`.
 7. **Banned users get redirected** — In `hooks.server.ts` before route load. Except `/banned` and `/logout`.
-8. **No Lucia** — Don't add it back. Roll your own sessions; see `src/lib/auth/session.ts`.
+8. **Custom sessions (no external library)** — Proven simple and secure (32-byte token + SHA-256 hash). See `src/lib/auth/session.ts`. Don't replace with Lucia or similar.
 
