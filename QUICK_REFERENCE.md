@@ -144,6 +144,29 @@ DEV_AUTH_ENABLED=true
 
 ---
 
+## SvelteKit Dev Gotchas
+
+### `process.env` is not populated in dev mode
+
+Vite intercepts `.env` loading during development. Values from `.env` and `.env.local` are **not** added to `process.env` in SvelteKit's SSR runner — they are only accessible via SvelteKit's env modules.
+
+**Rule:** In any `+page.server.ts` or `+server.ts`, always read env vars with `$env/dynamic/private`, never `process.env`:
+
+```ts
+// Wrong — undefined in dev
+process.env.MY_VAR
+
+// Correct
+import { env } from '$env/dynamic/private';
+env.MY_VAR
+```
+
+`$env/static/private` also works if the value is known at build time. `$env/dynamic/private` is safer as a default since it works at both build and runtime.
+
+This does not affect scripts run directly with `tsx` (e.g. seed scripts), where `process.env` works normally.
+
+---
+
 ## Key Design Decisions (read before questioning)
 
 - **No Lucia** — Lucia v3 deprecated March 2025; maintainers recommend rolling your own
