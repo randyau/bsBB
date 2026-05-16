@@ -1,6 +1,6 @@
 # Phase 4 — Moderation & Admin Interface (In Progress)
 
-## Commits Completed (6/7)
+## Commits Completed (7/7) ✅ PHASE 4 COMPLETE
 
 ### ✅ Commit 1: Real Rate Limiting
 **File:** `src/lib/abuse/index.ts`
@@ -90,9 +90,7 @@ Returns `AbuseVerdict` with allowed/denied status and retry-after seconds.
 
 ---
 
-## Commits Remaining (1/7)
-
-### ⏳ Commit 7: Admin Mod Log Page
+### ✅ Commit 7: Admin Mod Log Page
 **Files:**
 - `src/routes/admin/mod-log/+page.server.ts` — Load mod log entries
 - `src/routes/admin/mod-log/+page.svelte` — Read-only audit trail
