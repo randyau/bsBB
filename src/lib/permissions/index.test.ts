@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/db';
-import { canRead } from './index';
+import { canRead, canPost } from './index';
 import {
 	forums,
 	forumPermissions,
@@ -230,5 +230,130 @@ describe('canRead permission resolution', () => {
 		const bannedUser = { ...testUser, globalRole: 'banned' as const };
 		const result = await canRead(db, testForumId, bannedUser);
 		expect(result).toBe(false);
+	});
+});
+
+describe('canPost permission resolution', () => {
+	beforeEach(async () => {
+		// Clean up test data
+		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testForumId));
+		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testSubForumId));
+		await db.delete(userForumRoles).where(eq(userForumRoles.userDid, testDid));
+		await db.delete(forums).where(eq(forums.id, testForumId));
+		await db.delete(forums).where(eq(forums.id, testSubForumId));
+		await db.delete(users).where(eq(users.did, testDid));
+		await db.delete(users).where(eq(users.did, testAdmin.did));
+
+		// Create test user + admin in DB
+		await db.insert(users).values({
+			did: testDid,
+			handle: testUser.handle,
+			displayName: testUser.displayName,
+			avatarUrl: testUser.avatarUrl,
+			globalRole: 'member',
+			lastProfileSync: new Date(),
+			createdAt: new Date(),
+		});
+
+		await db.insert(users).values({
+			did: testAdmin.did,
+			handle: testAdmin.handle,
+			displayName: testAdmin.displayName,
+			avatarUrl: testAdmin.avatarUrl,
+			globalRole: 'admin',
+			lastProfileSync: new Date(),
+			createdAt: new Date(),
+		});
+
+		// Create test forums
+		await db.insert(forums).values({
+			id: testForumId,
+			parentId: null,
+			name: 'Test Forum',
+			slug: 'test-forum',
+			description: 'Test',
+			sortOrder: 0,
+			createdAt: new Date(),
+		});
+
+		await db.insert(forums).values({
+			id: testSubForumId,
+			parentId: testForumId,
+			name: 'Sub Forum',
+			slug: 'sub-forum',
+			description: 'Subtest',
+			sortOrder: 0,
+			createdAt: new Date(),
+		});
+
+		// Ensure instance_settings for default visibility
+		await db.delete(instanceSettings).where(eq(instanceSettings.key, 'default_forum_visibility'));
+	});
+
+	it('admin can always post', async () => {
+		const result = await canPost(db, testForumId, testAdmin);
+		expect(result).toBe(true);
+	});
+
+	it('banned user cannot post', async () => {
+		const bannedUser = { ...testUser, globalRole: 'banned' as const };
+		const result = await canPost(db, testForumId, bannedUser);
+		expect(result).toBe(false);
+	});
+
+	it('guest cannot post (no authentication)', async () => {
+		const result = await canPost(db, testForumId, null);
+		expect(result).toBe(false);
+	});
+
+	it('member can post if forum allows it', async () => {
+		// Add explicit permission for member to post
+		await db.insert(forumPermissions).values({
+			forumId: testForumId,
+			role: 'member',
+			canRead: true,
+			canPost: true,
+			canModerate: false,
+		});
+
+		const result = await canPost(db, testForumId, testUser);
+		expect(result).toBe(true);
+	});
+
+	it('member cannot post if forum denies it', async () => {
+		// Add explicit deny
+		await db.insert(forumPermissions).values({
+			forumId: testForumId,
+			role: 'member',
+			canRead: true,
+			canPost: false,
+			canModerate: false,
+		});
+
+		const result = await canPost(db, testForumId, testUser);
+		expect(result).toBe(false);
+	});
+
+	it('moderator can post', async () => {
+		// Assign user as moderator
+		await db.insert(userForumRoles).values({
+			userDid: testDid,
+			forumId: testForumId,
+			role: 'moderator',
+			assignedBy: testAdmin.did,
+			assignedAt: new Date(),
+		});
+
+		// Add moderator permission
+		await db.insert(forumPermissions).values({
+			forumId: testForumId,
+			role: 'moderator',
+			canRead: true,
+			canPost: true,
+			canModerate: true,
+		});
+
+		const result = await canPost(db, testForumId, testUser);
+		expect(result).toBe(true);
 	});
 });

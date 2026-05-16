@@ -76,6 +76,66 @@ export async function canRead(
 }
 
 /**
+ * Check if a user can post in a specific forum.
+ * Admin always true, banned always false, others: check explicit roles + instance default (always deny for guests).
+ */
+export async function canPost(
+	db: typeof dbType,
+	forumId: string,
+	user: SessionUser | null
+): Promise<boolean> {
+	// Admins can post everywhere
+	if (user?.globalRole === 'admin') {
+		return true;
+	}
+
+	// Banned users cannot post
+	if (user?.globalRole === 'banned') {
+		return false;
+	}
+
+	// Unauthenticated guests cannot post
+	if (!user) {
+		return false;
+	}
+
+	// Determine the user's effective role for this forum
+	let effectiveRole: string = user.globalRole || 'guest';
+
+	const userRole = await db.query.userForumRoles.findFirst({
+		where: and(eq(userForumRoles.userDid, user.did), eq(userForumRoles.forumId, forumId)),
+	});
+
+	if (userRole) {
+		effectiveRole = userRole.role;
+	}
+
+	// Walk up the parent forum chain looking for an explicit permission row
+	const parentChain = await getParentChain(db, forumId);
+
+	for (const chainForumId of parentChain) {
+		const perm = await db.query.forumPermissions.findFirst({
+			where: and(
+				eq(forumPermissions.forumId, chainForumId),
+				eq(forumPermissions.role, effectiveRole)
+			),
+		});
+
+		if (perm && perm.canPost) {
+			return true;
+		}
+
+		// If a row exists but can_post is false, don't check parents (explicit deny)
+		if (perm) {
+			return false;
+		}
+	}
+
+	// No explicit permission found — members cannot post by default (post requires explicit allow)
+	return false;
+}
+
+/**
  * Get the forum hierarchy chain from forumId up to the root.
  * Returns array of forum IDs: [forumId, parentId, grandparentId, ..., root]
  */
