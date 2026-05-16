@@ -165,8 +165,8 @@
 				<p class="text-sm text-muted">No forum moderators assigned yet.</p>
 			{:else}
 				<!-- Filter bar -->
-				<div class="flex gap-3 mb-4 pb-4 border-b border-[rgb(var(--color-border))]">
-					<select bind:value={modForumFilter} class="form-control text-sm w-48">
+				<div class="flex flex-wrap gap-2 mb-4 pb-4 border-b border-[rgb(var(--color-border))] items-center">
+					<select bind:value={modForumFilter} class="form-control text-sm" style="width: 160px; min-width: 120px; max-width: 200px;">
 						<option value="">All forums</option>
 						{#each data.forums as forum}
 							<option value={forum.id}>{forum.name}</option>
@@ -175,18 +175,19 @@
 					<input
 						type="text"
 						bind:value={modUserFilter}
-						placeholder="Search user..."
-						class="form-control text-sm flex-1 max-w-xs"
+						placeholder="Search user by name or handle..."
+						class="form-control text-sm flex-1"
+						style="min-width: 160px;"
 					/>
 					{#if modForumFilter || modUserFilter}
 						<button
 							onclick={() => { modForumFilter = ''; modUserFilter = ''; }}
-							class="btn btn-sm btn-secondary whitespace-nowrap"
+							class="btn btn-sm btn-secondary"
 						>
 							Clear
 						</button>
 					{/if}
-					<span class="text-xs text-muted whitespace-nowrap pt-2">
+					<span class="text-xs text-muted">
 						{filteredMods.length} of {data.mods.length}
 					</span>
 				</div>

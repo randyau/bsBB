@@ -1,13 +1,13 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { roles, userRoles, modLog } from '$lib/db/schema';
+import { roles, userRoles, users, modLog } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { count } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || locals.user.globalRole !== 'admin') {
-		return { roles: [] };
+		return { roles: [], roleMembers: {} };
 	}
 
 	const roleList = await db
@@ -24,8 +24,30 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.groupBy(roles.id)
 		.orderBy(roles.name);
 
+	// Fetch all role members with user info
+	const allMembers = await db
+		.select({
+			roleId: userRoles.roleId,
+			userDid: users.did,
+			handle: users.handle,
+			displayName: users.displayName
+		})
+		.from(userRoles)
+		.innerJoin(users, eq(userRoles.userDid, users.did))
+		.orderBy(users.handle);
+
+	// Group members by roleId
+	const roleMembers: Record<string, Array<{ roleId: string; userDid: string; handle: string; displayName: string | null }>> = {};
+	for (const member of allMembers) {
+		if (!roleMembers[member.roleId]) {
+			roleMembers[member.roleId] = [];
+		}
+		roleMembers[member.roleId].push(member);
+	}
+
 	return {
-		roles: roleList
+		roles: roleList,
+		roleMembers
 	};
 };
 
@@ -164,6 +186,52 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('deleteRole action error:', err);
 			return fail(500, { error: 'Failed to delete role' });
+		}
+	},
+
+	removeRoleMember: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') {
+			return fail(403, { error: 'Admin access required' });
+		}
+
+		const form = await request.formData();
+		const roleId = String(form.get('roleId') ?? '').trim();
+		const userDid = String(form.get('userDid') ?? '').trim();
+
+		if (!roleId || !userDid) {
+			return fail(422, { error: 'Role ID and user DID are required' });
+		}
+
+		try {
+			await db
+				.delete(userRoles)
+				.where(
+					eq(userRoles.roleId, roleId) &&
+					eq(userRoles.userDid, userDid)
+				);
+
+			// Get role name for logging
+			const role = await db.query.roles.findFirst({
+				where: eq(roles.id, roleId),
+				columns: { name: true }
+			});
+
+			const user = await db.query.users.findFirst({
+				where: eq(users.did, userDid),
+				columns: { handle: true }
+			});
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'remove_custom_role',
+				targetDid: userDid,
+				reason: role?.name || roleId
+			});
+
+			return { success: true, action: 'removeRoleMember', roleId, userDid };
+		} catch (err) {
+			console.error('removeRoleMember action error:', err);
+			return fail(500, { error: 'Failed to remove user from role' });
 		}
 	}
 };

@@ -4,6 +4,7 @@
 	let { data }: { data: PageData } = $props();
 
 	let editingRole: string | null = $state(null);
+	let expandedRoles = $state(new Set<string>());
 	let formData = $state({
 		name: '',
 		description: '',
@@ -22,6 +23,14 @@
 	function cancelEdit() {
 		editingRole = null;
 		formData = { name: '', description: '', color: '#3b82f6' };
+	}
+
+	function toggleExpand(roleId: string) {
+		if (expandedRoles.has(roleId)) {
+			expandedRoles.delete(roleId);
+		} else {
+			expandedRoles.add(roleId);
+		}
 	}
 
 	function confirmDelete(roleName: string) {
@@ -60,8 +69,18 @@
 								<td class="py-3 px-3 text-[rgb(var(--color-text-muted))]">
 									{role.description || '—'}
 								</td>
-								<td class="py-3 px-3 text-right text-[rgb(var(--color-text-muted))]">
-									{role.memberCount}
+								<td class="py-3 px-3 text-right">
+									{#if role.memberCount > 0}
+										<button
+											type="button"
+											onclick={() => toggleExpand(role.id)}
+											class="link text-blue-600 hover:underline font-semibold cursor-pointer"
+										>
+											{role.memberCount} member{role.memberCount === 1 ? '' : 's'}
+										</button>
+									{:else}
+										<span class="text-[rgb(var(--color-text-muted))]">{role.memberCount}</span>
+									{/if}
 								</td>
 								<td class="py-3 px-3 text-right space-x-2">
 									<button
@@ -88,6 +107,34 @@
 									</form>
 								</td>
 							</tr>
+
+							{#if expandedRoles.has(role.id)}
+								<tr class="border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))]">
+									<td colspan="5" class="px-3 py-3">
+										{#if !data.roleMembers[role.id]?.length}
+											<p class="text-sm italic text-[rgb(var(--color-text-muted))]">No members</p>
+										{:else}
+											<div class="space-y-2">
+												{#each data.roleMembers[role.id] as member}
+													<div class="flex items-center justify-between p-2 bg-[rgb(var(--color-bg))] rounded border border-[rgb(var(--color-border))] text-sm">
+														<a href="/user/{member.handle}" class="link hover:underline">
+															{member.displayName || member.handle}
+															<span class="text-[rgb(var(--color-text-muted))] font-mono text-xs">@{member.handle}</span>
+														</a>
+														<form method="POST" action="?/removeRoleMember" class="inline">
+															<input type="hidden" name="roleId" value={role.id} />
+															<input type="hidden" name="userDid" value={member.userDid} />
+															<button type="submit" class="text-xs text-red-600 hover:text-red-700 hover:underline">
+																Remove
+															</button>
+														</form>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</td>
+								</tr>
+							{/if}
 						{/each}
 					</tbody>
 				</table>
