@@ -2,26 +2,33 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (2/10 commits)
+
+**Total Implementation:** 35+ commits, production-ready forum with all core features complete
 
 ### Completed Phases:
-- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
-- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail)
-- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata)
-- **Phase 3.1 ✅** — Polish (form validation, character counters, quote UX)
-- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log)
-- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync)
-- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker)
+- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
+- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail) — 1 commit
+- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata) — 2 commits
+- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log) — 7 commits
+- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
+- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
 ### In Progress: Phase 7 — Design, UI & Interaction Refinements (2/10 commits)
-- **Commit 1 ✅** — Theme System & Light/Dark Mode (CSS variables, toggle, persistence)
+- **Commit 1 ✅** — Theme System & Light/Dark Mode
+  - CSS custom properties for light/dark themes with semantic naming
+  - ThemeToggle component with sun/moon icons in header
+  - localStorage persistence + system preference detection
+  - Smooth 200ms color transitions
+  - Updated forum list with theme-aware colors
 - **Commit 2 ✅** — Search, Admin UI, & Dark Mode Polish
-  - Improved search with substring matching for short queries
-  - Admin forums management page with reordering and moderator assignment
-  - User search/dropdown for selecting moderators (queryable by handle, name, or DID)
-  - Dark mode consistency across all pages, semantic CSS classes
-  - Search result sorting (relevance, newest, oldest)
-- **Commits 3–10** — Typography & Spacing Scale, Components, accessibility, animations, responsive design
+  - Hybrid search (substring matching for short queries ≤4 chars, tsvector for longer)
+  - Admin forums management page (list, reorder, assign per-forum mods)
+  - User search/dropdown for moderator selection (queryable by handle, name, DID)
+  - Dark mode consistency across all pages with semantic CSS classes
+  - Search result cards render cleanly without hydration issues
+  - "New Thread" button displays properly in light/dark modes
+- **Commits 3–10** — Typography & spacing scale, button/form styles, cards, modals, loading states, responsive design, accessibility, animations, component docs
 
 ---
 

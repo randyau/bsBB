@@ -23,17 +23,20 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — Phase 4 ✅ Complete (7/7 commits)
+## Status — Phases 1–6 Complete; Phase 7 In Progress
 
-**All phases complete through Phase 4 (moderation).** Full moderation & admin interface implemented:
-- ✅ Rate limiting system wired up
-- ✅ Admin dashboard with sidebar nav and SQL query interface
-- ✅ User management (ban/unban/promote/demote)
-- ✅ Thread management (lock/unlock/pin/unpin)
-- ✅ Post management (delete/restore)
-- ✅ Audit trail viewer
+> ⚠️ **Note:** This document was written with Phase 4 as the endpoint. Phases 5 and 6 have been completed since. For the most current status (including Phase 5: Notifications, Phase 6: Post Edits & Search, Phase 7: Design/UI), see **STATUS.md** in the project root.
 
-All 36+ unit tests passing. TypeScript strict mode clean.
+**Current Implementation (35+ commits):**
+- ✅ Phase 1: Foundations (auth, sessions, DB, Docker)
+- ✅ Phase 2: Read-only forum views
+- ✅ Phase 3: Post creation with markdown + OG metadata
+- ✅ Phase 4: Moderation & admin (rate limiting, ban/delete/lock/pin, mod log, 17 integration tests)
+- ✅ Phase 5: Notifications & background tasks (email, Bluesky DM, worker, encryption)
+- ✅ Phase 6: Post edits, full-text search, production Docker stack
+- 🚀 Phase 7: Theme system, dark mode, admin UI improvements (2/10 commits)
+
+**See STATUS.md for detailed breakdown of all phases and current implementation status.**
 
 ### Phase 1 ✅ — Foundations
 - SvelteKit + adapter-node + Tailwind v4 + Vitest scaffold
