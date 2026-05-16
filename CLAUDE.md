@@ -36,12 +36,19 @@ This file contains the full specification, architecture decisions, and design ra
   - Fix theme toggle sun/moon icons
 - **Commits 4–10** — Custom roles system, user role management, typography scale, button/form refinement, cards/modals, loading states, accessibility, animations, component docs
   - **Commit 4 (planned)** — Custom roles & role-based forum access
-    - New `roles` table for admin-defined custom roles (name, description, color)
-    - New `user_roles` table to assign users to multiple roles (many-to-many)
-    - Update `forumPermissions` to support role-based access (roles determine which forums a user can see/post)
-    - Admin UI: create/edit/delete roles, manage role members, designate role access to forums
-    - Forum visibility tied to role membership (users must have ≥1 role that grants access)
-    - Mod log entries for all role assignment/removal and role creation
+    - New `roles` table for admin-defined custom roles (name, description, optional color for UI)
+    - Refactor `userForumRoles` → `userRoles` (global role assignments, many-to-many with users)
+    - `forumPermissions` already supports granular access: per-role, per-forum
+      - `canRead`: user can view forum and threads
+      - `canPost`: user can create/reply to threads (independent of canRead — allows read-only or write-only forums)
+      - `canModerate`: user can perform mod actions (delete, lock, ban, etc.)
+    - Use case examples: read-only announcements forum (canRead=true, canPost=false), contributor-only discussion (custom role with canRead+canPost), moderator-only (canModerate=true)
+    - Admin UI for forum management:
+      - Permissions tab: per-role matrix (read/post/moderate toggles for each role)
+      - Visibility selector: choose which roles have access to this forum
+      - Role member management: add/remove users from roles (with audit trail in mod_log)
+    - Forum visibility enforced: users see only forums where their roles grant `canRead`
+    - Mod log entries for: role creation, role edits, user role assignments/removals
 
 ---
 
