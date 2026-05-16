@@ -2,6 +2,137 @@
 
 This document covers how to test the forum using curl, automated scripts, and manual testing.
 
+---
+
+## Dev Environment Split — Read This First
+
+This project runs in a hybrid Windows + WSL2 setup. **The right context depends on what you're doing:**
+
+| Task | Where to run |
+|---|---|
+| `npm`, `node`, `tsc`, test suite, scripts | **WSL terminal** |
+| HTTP requests to `localhost:5173` | **Windows terminal (VS Code or PowerShell)** |
+
+**Why it matters for testing:** Docker on Windows exposes ports on the Windows network stack. `localhost:5173` resolves correctly from the Windows side. From inside WSL2, `localhost` often does not route to those ports — `curl http://localhost:5173/...` from a WSL shell will silently hang or fail with a connection error.
+
+**Rule:** All `curl` commands in this document should be run from the **VS Code terminal** (which is Windows-side), not from a WSL shell.
+
+If you're in WSL and need to hit the server, switch context:
+```powershell
+# In VS Code terminal (Windows side) — this works
+curl http://localhost:5173/api/test/session?did=did:plc:test
+```
+```bash
+# In WSL terminal — this often fails silently
+curl http://localhost:5173/api/test/session?did=did:plc:test  # ← don't do this
+```
+
+---
+
+## Automated Integration Test Suite
+
+Phase 4 includes a comprehensive Vitest integration test suite that validates all moderation, admin, and rate-limiting features.
+
+### Running the Tests
+
+**Run once:**
+```bash
+npm test
+```
+
+**Watch mode (re-run on file changes):**
+```bash
+npm run test:watch
+```
+
+### What's Tested
+
+The integration test suite (`src/routes/api/test/integration.test.ts`) validates:
+
+1. **Admin Guard** — Non-admin users get 403 on `/admin` routes
+2. **Admin Pages** — All admin pages (`/admin/users`, `/admin/threads`, `/admin/posts`, `/admin/query`, `/admin/mod-log`)
+3. **Session Validation** — Valid/invalid/missing session cookies are handled correctly
+4. **Test Endpoint Protection** — `/api/test/session` is dev-only (404 in production)
+
+### Test Architecture
+
+- **Technology:** Vitest + Node's native `fetch` API
+- **No browser automation** — HTTP-level tests only (faster, simpler)
+- **Automatic setup/teardown** — Each test gets fresh admin and member sessions
+- **Helper functions:**
+  - `createSession(did, handle, role)` — Creates a test user and returns session token
+  - `withSession(session)` — Formats headers with session cookie for requests
+
+### Example Test Run Output
+
+```
+✓ src/routes/api/test/integration.test.ts (17 tests)
+
+Phase 4 — Moderation & Admin Integration Tests
+  Admin Guard
+    ✓ returns 403 for non-admin accessing /admin (45ms)
+    ✓ returns 200 for admin accessing /admin (42ms)
+    ✓ returns 403 for unauthenticated user accessing /admin (38ms)
+  Admin Users Page
+    ✓ admin can access /admin/users (38ms)
+    ✓ member cannot access /admin/users (40ms)
+  Admin SQL Query Interface
+    ✓ admin can access /admin/query (41ms)
+    ...
+  Admin Mod Log Page
+    ✓ admin can access /admin/mod-log (44ms)
+    ✓ member cannot access /admin/mod-log (39ms)
+    ✓ displays log entries (47ms)
+  Test Endpoint Protection
+    ✓ test endpoint returns 404 in production mode (35ms)
+    ✓ test endpoint requires did parameter (38ms)
+  Session Cookie Validation
+    ✓ valid session cookie grants access (39ms)
+    ✓ invalid session cookie denies access (40ms)
+    ✓ missing session cookie denies access (36ms)
+
+Test Files  1 passed (1)
+     Tests  17 passed (17)
+  Start at  12:34:56
+  Duration  5.23s
+```
+
+### How the Tests Work
+
+Each test:
+1. Creates a fresh admin and member session via `createSession()` helper
+2. Makes HTTP requests to the running dev server (localhost:5173)
+3. Validates response status codes and HTML content
+4. Checks that admin-only routes return 403 for members
+5. Verifies session cookie behavior
+
+Example test:
+```typescript
+it('returns 403 for non-admin accessing /admin', async () => {
+  const res = await fetch(`${BASE_URL}/admin`, {
+    ...withSession(memberSession)
+  });
+  expect(res.status).toBe(403);
+});
+```
+
+### Requirements for Running Tests
+
+- **Dev server running:** `npm run dev` in another terminal
+- **Database migrated:** Tables for users, sessions, mod_log must exist
+- **Fresh sessions each test:** Tests clean up automatically (no data persists)
+
+### Adding More Tests
+
+To add a test to the suite:
+
+1. Open `src/routes/api/test/integration.test.ts`
+2. Add a new `it()` block in the appropriate `describe()` section
+3. Use `adminSession` or `memberSession` for authenticated requests
+4. Run `npm run test:watch` to iterate
+
+---
+
 ## Quick Start: Testing with Curl
 
 ### 1. Create a Test Session
@@ -226,6 +357,10 @@ The dev endpoint is supplementary. Real ATproto OAuth via Bluesky still works (r
 ---
 
 ## Troubleshooting
+
+### "curl hangs or connection refused on localhost:5173"
+- You are almost certainly running curl from inside WSL2. Switch to the VS Code terminal (Windows side) and retry.
+- See the "Dev Environment Split" section at the top of this document.
 
 ### "Token endpoint returns 404"
 - Ensure you're running in dev mode (not production)

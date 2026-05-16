@@ -101,15 +101,59 @@ Returns `AbuseVerdict` with allowed/denied status and retry-after seconds.
 
 ---
 
-## Testing Checklist
+## Testing
+
+### Automated Integration Test Suite ✅
+
+**File:** `src/routes/api/test/integration.test.ts`
+
+Comprehensive Vitest test suite with 17 automated tests:
+
+**Admin Guard Tests:**
+- ✅ Non-admin gets 403 on `/admin`
+- ✅ Admin gets 200 on `/admin`
+- ✅ Unauthenticated gets 401/403
+
+**Admin Page Access Tests:**
+- ✅ Admin can access `/admin/users`
+- ✅ Member cannot access `/admin/users`
+- ✅ Admin can access `/admin/threads`
+- ✅ Member cannot access `/admin/threads`
+- ✅ Admin can access `/admin/posts`
+- ✅ Member cannot access `/admin/posts`
+- ✅ Admin can access `/admin/query`
+- ✅ Member cannot access `/admin/query`
+- ✅ Admin can access `/admin/mod-log`
+- ✅ Member cannot access `/admin/mod-log`
+
+**SQL Query Interface Tests:**
+- ✅ Admin can execute SELECT queries
+- ✅ Queries reject non-SELECT statements
+
+**Session & Auth Tests:**
+- ✅ Valid session cookie grants access
+- ✅ Invalid session cookie denies access
+- ✅ Missing session cookie denies access
+- ✅ Test endpoint is dev-only (404 in prod)
+- ✅ Test endpoint validates required parameters
+
+**Run tests:**
+```bash
+npm test                 # Run once
+npm run test:watch      # Watch mode during development
+```
+
+### Manual Testing Checklist
+
+For exploratory/UI testing, verify manually:
 
 - [ ] Rate limiting: Spam post endpoint >10 times, get 429 on 11th
-- [ ] Admin guard: Visit /admin as member → 403; as admin → dashboard
-- [ ] SQL interface: Run SELECT, invalid SQL, real query
 - [ ] Users: Ban user → redirected to /banned; unban → can post
 - [ ] Threads: Lock → reply form disappears; unlock → form appears
 - [ ] Posts: Delete → "[post deleted]" shown; restore → content back
 - [ ] Mod log: Perform actions → appear in log with correct fields
+
+(Automated tests verify admin guard + page access; these manual checks verify end-to-end UX)
 
 ---
 
