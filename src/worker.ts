@@ -177,8 +177,36 @@ function buildDmMessage(
 }
 
 async function handleProfileSync(recipientDid: string, payload: any) {
-	// Placeholder: profile sync implemented in Commit 5
-	console.log(`[worker:profile_sync] did=${recipientDid}`);
+	// Re-resolve user's DID and update cached profile data
+	// In production, would call ATproto PLC Directory to resolve DID
+	// and fetch fresh profile from their PDS
+
+	try {
+		const user = await db.query.users.findFirst({
+			where: eq(users.did, recipientDid),
+			columns: { did: true, handle: true }
+		});
+
+		if (!user) {
+			throw new Error(`User ${recipientDid} not found`);
+		}
+
+		// Placeholder: In full implementation, would:
+		// 1. Call PLC Directory: await resolveDid(recipientDid)
+		// 2. Fetch profile from PDS: await fetchProfile(resolvedDid)
+		// 3. Update users table with fresh handle, displayName, avatarUrl
+		// For now, just log and update lastProfileSync timestamp
+
+		await db
+			.update(users)
+			.set({ lastProfileSync: new Date() })
+			.where(eq(users.did, recipientDid));
+
+		console.log(`[worker:profile_sync] updated ${user.handle} (${recipientDid})`);
+	} catch (err) {
+		console.error(`[worker:profile_sync] failed for ${recipientDid}:`, err);
+		throw err;
+	}
 }
 
 async function startNotificationWorker() {
