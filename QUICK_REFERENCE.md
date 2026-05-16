@@ -27,7 +27,7 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 | Fact | Value |
 |---|---|
 | **Primary user ID** | DID (`did:plc:...`), never handle |
-| **Session storage** | Postgres `sessions` table, not Redis or Lucia |
+| **Session storage** | Postgres `sessions` table (custom roll-your-own implementation) |
 | **Session token** | 32-byte random → SHA-256 hash in DB, raw token in cookie |
 | **Cookie flags** | `SameSite=Strict`, `HttpOnly`, `Secure` |
 | **Session TTL** | 30 days rolling |
@@ -36,7 +36,7 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 | **Reply model** | Flat + optional quote links via `reply_to_post_id`, never nested |
 | **Markdown sanitize** | Server-side before storage via `rehype-sanitize` |
 | **OG metadata fetch** | Server-side at post submit, only for bare-line URLs |
-| **Rate limiting** | By DID post-auth, by IP pre-auth (not yet implemented) |
+| **Rate limiting** | Atomic PostgreSQL upserts: thread_create 10/hr/DID, post_submit 30/hr/DID, preview 60/hr/IP, login 10/15min/IP |
 | **Profile sync** | Lazy: re-sync if `last_profile_sync` > 24h and user posts |
 | **Permissions model** | Explicit rows in `forum_permissions`, not bitmask |
 | **Moderator role** | Per-forum only (in `user_forum_roles`), not global |
@@ -170,7 +170,7 @@ This does not affect scripts run directly with `tsx` (e.g. seed scripts), where 
 
 ## Key Design Decisions (read before questioning)
 
-- **No Lucia** — Lucia v3 deprecated March 2025; maintainers recommend rolling your own
+- **Custom sessions (no external library)** — 32-byte token + SHA-256 hash in Postgres; simple and secure
 - **No Redis** — Sessions in Postgres are fine at this scale
 - **No bitmask permissions** — Explicit rows easier to debug
 - **Flat replies, not nested** — Nested replies degrade at scale

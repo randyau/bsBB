@@ -11,20 +11,20 @@
 	<h1 class="text-3xl font-bold">Post Management</h1>
 
 	{#if form?.error}
-		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
+		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))] text-sm">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 text-sm">
+		<div class="rounded-lg border border-[rgb(var(--color-success))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-success))] text-sm">
 			✓ Post action completed: {form.action}
 		</div>
 	{/if}
 
-	<div class="rounded-lg border border-gray-200 overflow-x-auto">
+	<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
 		<table class="w-full text-sm">
-			<thead class="bg-gray-100 border-b border-gray-200">
+			<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 				<tr>
 					<th class="px-4 py-3 text-left font-semibold">Thread</th>
 					<th class="px-4 py-3 text-left font-semibold">Author</th>
@@ -37,34 +37,34 @@
 			<tbody>
 				{#each data.posts as post (post.id)}
 					<tr
-						class={`border-b border-gray-200 ${post.isDeleted ? 'bg-gray-100 opacity-60' : 'hover:bg-gray-50'}`}
+						class={`border-b border-[rgb(var(--color-border))] ${post.isDeleted ? 'bg-[rgb(var(--color-bg-tertiary))] opacity-60' : 'hover:bg-[rgb(var(--color-bg-secondary))]'}`}
 					>
 						<td class="px-4 py-3">
 							<a
 								href="/f/general/t/{post.threadId}/{post.threadSlug}"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="text-blue-600 hover:underline"
+								class="text-[rgb(var(--color-primary))] hover:underline"
 							>
 								{post.threadTitle}
 							</a>
 						</td>
 						<td class="px-4 py-3 font-mono text-xs">{post.authorHandle}</td>
-						<td class="px-4 py-3 text-xs text-gray-500">
+						<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-muted))]">
 							{new Date(post.createdAt).toLocaleDateString()}{' '}
 							{new Date(post.createdAt).toLocaleTimeString()}
 						</td>
-						<td class="px-4 py-3 text-xs font-mono text-gray-700 max-w-xs truncate">
+						<td class="px-4 py-3 text-xs font-mono text-[rgb(var(--color-text))] max-w-xs truncate">
 							{post.bodyMarkdown.substring(0, 50)}
 							{post.bodyMarkdown.length > 50 ? '…' : ''}
 						</td>
 						<td class="px-4 py-3">
 							{#if post.isDeleted}
-								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-800"
+								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-error))]"
 									>🗑️ Deleted</span
 								>
 							{:else}
-								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800"
+								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-success))]"
 									>✓ Active</span
 								>
 							{/if}
@@ -73,7 +73,7 @@
 							{#if post.isDeleted}
 								<form method="POST" action="?/restore" class="inline">
 									<input type="hidden" name="postId" value={post.id} />
-									<button type="submit" class="text-xs text-green-600 hover:underline font-semibold"
+									<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold"
 										>Restore</button
 									>
 								</form>
@@ -85,7 +85,7 @@
 											<input type="hidden" name="reason" value={deleteReason[post.id] || ''} />
 											<button
 												type="submit"
-												class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200"
+												class="text-xs bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-error))] px-2 py-1 rounded hover:bg-[rgb(var(--color-bg-tertiary))]"
 											>
 												Delete
 											</button>
@@ -94,18 +94,18 @@
 											type="text"
 											placeholder="Reason..."
 											bind:value={deleteReason[post.id]}
-											class="text-xs px-2 py-1 border border-gray-300 rounded w-32"
+											class="text-xs px-2 py-1 border border-[rgb(var(--color-border))] rounded w-32"
 										/>
 										<button
 											onclick={() => (showDeleteReason[post.id] = false)}
-											class="text-xs text-gray-600 hover:text-gray-800"
+											class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))]"
 										>
 											✕
 										</button>
 									{:else}
 										<button
 											onclick={() => (showDeleteReason[post.id] = true)}
-											class="text-xs text-red-600 hover:underline"
+											class="text-xs text-[rgb(var(--color-error))] hover:underline"
 										>
 											Delete
 										</button>
@@ -119,5 +119,5 @@
 		</table>
 	</div>
 
-	<p class="text-xs text-gray-500">Showing last 200 posts (including deleted)</p>
+	<p class="text-xs text-[rgb(var(--color-text-muted))]">Showing last 200 posts (including deleted)</p>
 </div>

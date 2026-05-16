@@ -42,13 +42,13 @@ This document tracks tasks that require human action: credentials, external serv
 - [ ] Choose an SMTP provider (Mailgun, Postmark, AWS SES, etc.)
 - [ ] Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` in `.env`
 - [ ] Set `ADMIN_EMAIL` to the address that should receive moderator alerts
-- [ ] Test email delivery: `npx tsx scripts/test-email.js <your-email>`
+- [ ] Email notifications are sent by the background worker (see Part 8)
 
 ### 1.5 Database
 
 - [ ] Start the database: `docker compose up db -d`
-- [ ] Run migrations: `npx drizzle-kit migrate`
-- [ ] Verify schema: `docker exec -it forum-db psql -U postgres forum -c '\dt'`
+- [ ] Run migrations: `bash scripts/migrate.sh`
+- [ ] Verify schema: `docker compose exec db psql -U forum -d forum -c '\dt'`
 
 ---
 
@@ -171,9 +171,9 @@ This document tracks tasks that require human action: credentials, external serv
 
 ### Worker Process
 
-- [ ] Start the worker: `npm run worker` (or `docker compose up worker`)
-- [ ] Verify it logs "notification worker started" and polls every 60 seconds
-- [ ] Insert a row into `notification_queue` manually — verify the worker picks it up and marks it `sent`
+- [ ] Start the worker: `npx tsx src/worker.ts` (or `docker compose up worker` in production)
+- [ ] Verify it logs "Worker started" and polls `notification_queue` every 60 seconds
+- [ ] Insert a test row into `notification_queue` manually — verify the worker picks it up and marks it `sent`
 
 ---
 
@@ -187,11 +187,11 @@ This document tracks tasks that require human action: credentials, external serv
 
 ## Part 10 — Production Deployment
 
-- [ ] Run `docker compose up` on the production server — verify all 3 services start (app, db, caddy)
+- [ ] Run `docker compose -f docker-compose.prod.yml up -d` on the production server — verify all 4 services start (app, worker, db, caddy)
 - [ ] Verify HTTPS works at your domain (Caddy issues cert automatically)
 - [ ] Verify `GET https://yourdomain.com/client-metadata.json` returns valid JSON
-- [ ] Run `npx drizzle-kit migrate` against the prod database (or include in deploy script)
-- [ ] Log in as the first user — verify admin promotion
+- [ ] Run database migrations: `docker compose -f docker-compose.prod.yml exec app bash scripts/migrate.sh`
+- [ ] Log in as the first user — verify admin auto-promotion
 - [ ] Set up backup cron (see DEPLOYMENT.md)
 - [ ] Test backup restore: dump, drop, restore, verify data intact
 

@@ -26,54 +26,54 @@
 			← Back to thread
 		</a>
 		<h1 class="text-3xl font-bold mt-4">{data.thread.title}</h1>
-		<p class="text-gray-600 mt-2">
+		<p class="text-[rgb(var(--color-text-secondary))] mt-2">
 			Edit history for post by <span class="font-semibold">@{data.post.authorHandle}</span>
 		</p>
 	</div>
 
 	{#if data.revisions.length === 0}
-		<div class="rounded-lg bg-gray-50 border border-gray-200 p-8 text-center">
-			<p class="text-gray-600">No edits — post has not been modified.</p>
+		<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-8 text-center">
+			<p class="text-[rgb(var(--color-text-secondary))]">No edits — post has not been modified.</p>
 		</div>
 	{:else}
 		<!-- Revision Timeline -->
 		<div class="space-y-4">
-			<p class="text-sm text-gray-600 font-semibold">
+			<p class="text-sm text-[rgb(var(--color-text-secondary))] font-semibold">
 				{data.revisions.length} edit{data.revisions.length === 1 ? '' : 's'}
 			</p>
 
 			{#each data.revisions as revision (revision.id)}
-				<div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+				<div class="rounded-lg border border-[rgb(var(--color-border))] bg-white overflow-hidden">
 					<!-- Revision Header -->
 					<button
 						type="button"
 						onclick={() => (selectedRevisionId = selectedRevisionId === revision.id ? null : revision.id)}
-						class="w-full p-4 hover:bg-gray-50 flex items-start justify-between cursor-pointer"
+						class="w-full p-4 hover:bg-[rgb(var(--color-bg-secondary))] flex items-start justify-between cursor-pointer"
 					>
 						<div class="text-left">
 							<p class="font-semibold">
 								Edited by <span class="font-mono">@{revision.editorHandle}</span>
 							</p>
-							<p class="text-sm text-gray-600">
+							<p class="text-sm text-[rgb(var(--color-text-secondary))]">
 								{new Date(revision.createdAt).toLocaleString()} ({formatTime(revision.createdAt)})
 							</p>
 						</div>
-						<div class="text-gray-400">
+						<div class="text-[rgb(var(--color-text-muted))]">
 							{selectedRevisionId === revision.id ? '▼' : '▶'}
 						</div>
 					</button>
 
 					<!-- Revision Content (Collapsed by default) -->
 					{#if selectedRevisionId === revision.id}
-						<div class="border-t border-gray-200 p-4 bg-gray-50 space-y-4">
+						<div class="border-t border-[rgb(var(--color-border))] p-4 bg-[rgb(var(--color-bg-secondary))] space-y-4">
 							<!-- Original Content -->
 							<div>
 								<h4 class="font-semibold text-sm mb-2">Original content:</h4>
-								<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-gray-200">
+								<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-[rgb(var(--color-border))]">
 									{@html revision.bodyHtml}
 								</div>
 								<details class="mt-2">
-									<summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+									<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-gray-900">
 										View markdown source
 									</summary>
 									<pre class="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-xs overflow-x-auto"><code>{revision.bodyMarkdown}</code></pre>
@@ -82,13 +82,13 @@
 
 							<!-- Current Content (shown for last revision) -->
 							{#if revision === data.revisions[data.revisions.length - 1]}
-								<div class="pt-4 border-t border-gray-200">
+								<div class="pt-4 border-t border-[rgb(var(--color-border))]">
 									<h4 class="font-semibold text-sm mb-2">Current content (after this edit):</h4>
-									<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-gray-200">
+									<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-[rgb(var(--color-border))]">
 										{@html data.post.bodyHtml}
 									</div>
 									<details class="mt-2">
-										<summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+										<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-gray-900">
 											View markdown source
 										</summary>
 										<pre class="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-xs overflow-x-auto"><code>{data.post.bodyMarkdown}</code></pre>

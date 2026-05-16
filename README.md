@@ -17,8 +17,8 @@ A modern, self-hosted threaded discussion forum built on ATproto and Bluesky ide
 
 ### Prerequisites
 
-- **Docker & Docker Compose** – Latest versions recommended
-- **Node.js 20+** – For local development tooling (optional if using Docker)
+- **Docker & Docker Compose** – Required for the database container
+- **Node.js 20+** – For running the app and tooling locally
 - **Git** – To clone the repo
 
 ### 1. Clone and Install
@@ -31,104 +31,89 @@ npm install
 
 ### 2. Configure Environment
 
-Copy the template and customize:
-
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with:
+Open `.env` and set at minimum:
 
 ```env
-# Database (Docker Compose will provide this)
-DATABASE_URL=postgresql://forum:password@db:5432/forum
-
-# Session security (generate a random 32+ byte string)
+# Generate a random 32+ character string
 SESSION_SECRET=your-random-secret-here
 
-# Public URL (localhost for dev)
-PUBLIC_BASE_URL=http://localhost:5173
-
-# ATproto OAuth (see "ATproto Setup" below)
-ATPROTO_CLIENT_ID=http://localhost:5173/client-metadata.json
-ATPROTO_PRIVATE_KEY=<see setup script>
-
-# Service account for notifications (optional, can skip in dev)
-ATPROTO_SERVICE_HANDLE=
-ATPROTO_SERVICE_APP_PASSWORD=
-
-# SMTP for email notifications (optional, can skip in dev)
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
+# Dev auth bypass — enables http://localhost:5173/dev/login
+DEV_AUTH_ENABLED=true
 ```
 
-### 3. ATproto Setup (Required for Auth)
+Leave `DATABASE_URL` as-is (`postgresql://forum:forum@localhost:5432/forum`) — this matches the dev database container.
 
-The project uses ATproto OAuth for authentication. For local development without a public domain, use the **dev login bypass**:
+> **ATproto OAuth** requires a public HTTPS URL and cannot work on localhost. For local development, `DEV_AUTH_ENABLED=true` gives you a dev login page with pre-seeded test users. Use real OAuth only when deploying to a server.
 
-**Option A: Dev Login Bypass (Easiest for local dev)**
-```bash
-# The app includes a dev login endpoint that doesn't require Bluesky auth
-# Just visit http://localhost:5173/dev-login?did=did:plc:xxx
-# (See src/routes/(auth)/dev-login/+server.ts for details)
-```
+### 3. Start Everything
 
-**Option B: Real Bluesky OAuth (Requires public URL)**
-If you want to test with real Bluesky auth, you need a public HTTPS URL that Bluesky can reach. This means:
-- Deploy to a staging server, or
-- Use `ngrok` or `cloudflare tunnel` to expose localhost, or
-- Set up via the full setup script after deploying
-
-For now, use Option A for local development.
-
-### 4. Start Docker Services
+The dev script starts the database, runs migrations, seeds test users, and launches the dev server:
 
 ```bash
-docker compose up -d
+./scripts/dev.sh
 ```
 
-This starts:
-- **PostgreSQL** – Database on internal network
-- **Caddy** – Reverse proxy on http://localhost:5173
+This will:
+1. Start a PostgreSQL container (`docker/docker-compose.dev.yml`)
+2. Wait for the database to be healthy
+3. Run schema migrations
+4. Seed dev users for the login bypass
+5. Start the SvelteKit dev server at **http://localhost:5173**
 
-Wait for logs to settle (~10 seconds):
+Press `Ctrl+C` to stop the server and shut down the database container.
 
-```bash
-docker compose logs -f app
-```
+> **First run is slow** (~20 seconds) due to Vite compiling. Subsequent starts are faster.
 
-Press `Ctrl+C` when you see "Server running on port 5173".
+### 4. Log In and Explore
 
-### 5. Initialize Database
-
-```bash
-docker compose exec app npm run db:migrate
-```
-
-This runs schema and seed migrations.
-
-### 6. Create a Test User
-
-Visit the dev login page:
+Visit the dev login page and select a test user:
 
 ```
-http://localhost:5173/dev-login?did=did:plc:example123&handle=testuser&displayName=Test%20User
+http://localhost:5173/dev/login
 ```
 
-You'll be logged in as a member. To promote to admin for testing:
+Available test users:
 
-```bash
-docker compose exec app npm run admin-promote -- did:plc:example123
-```
+| Handle | Role |
+|---|---|
+| `dev-admin.test` | admin |
+| `dev-moderator.test` | member (promote to forum mod manually) |
+| `dev-member.test` | member |
+| `dev-banned.test` | banned |
 
-### 7. Access the Forum
+**Log in as `dev-admin.test` first** — the very first login on a fresh database auto-promotes that user to admin via `instance_settings.first_admin_claimed`.
+
+### 5. What's Available
 
 - **Forum**: http://localhost:5173
-- **Admin dashboard**: http://localhost:5173/admin (if admin)
-- **SQL query runner**: http://localhost:5173/admin/query
+- **Admin dashboard**: http://localhost:5173/admin (admin only)
+- **SQL query runner**: http://localhost:5173/admin/query (admin only)
+- **Mod log**: http://localhost:5173/admin/mod-log
+
+### Manual Setup (Without the Script)
+
+If you prefer to run steps individually:
+
+```bash
+# Start just the database
+docker compose -f docker/docker-compose.dev.yml up -d
+
+# Run schema migrations
+bash scripts/migrate.sh
+
+# Seed instance settings + General forum (first time only)
+npx tsx scripts/seed.ts
+
+# Seed dev login test users (first time only)
+npx tsx scripts/seed-dev-users.ts
+
+# Start the dev server
+npm run dev
+```
 
 ---
 
@@ -141,51 +126,54 @@ bsBB/
 ├── src/
 │   ├── routes/                 # SvelteKit routes (pages, API endpoints)
 │   │   ├── f/[forumSlug]/      # Forum and thread views
-│   │   ├── admin/              # Admin dashboard (rate limiting, user management, mod log)
-│   │   └── (auth)/             # Auth routes (dev login, logout)
+│   │   ├── admin/              # Admin dashboard (users, threads, posts, mod log, query)
+│   │   ├── (auth)/             # Auth routes (dev login, logout, OAuth callback)
+│   │   └── api/preview/        # Markdown preview endpoint
 │   ├── lib/
-│   │   ├── db/                 # Drizzle ORM schema and helpers
-│   │   ├── auth/               # Session management
-│   │   ├── abuse/              # Rate limiting logic
-│   │   └── utils/              # Shared utilities
-│   ├── app.d.ts                # Type definitions for app state
-│   ├── hooks.server.ts         # Server-side hooks (auth, HTML formatting)
-│   └── +layout.svelte          # Root layout
-├── docker-compose.yml          # Local development stack
-├── vite.config.ts              # Vite build config
-├── drizzle.config.ts           # Drizzle ORM config
-├── CLAUDE.md                   # Full specification and architecture (read this!)
-├── ARCHITECTURE.md             # Detailed implementation status per phase
-└── HUMAN_TODO.md               # Manual testing checklist and human setup tasks
+│   │   ├── db/                 # Drizzle ORM schema, migrations, and db instance
+│   │   ├── auth/               # Session management, ATproto OAuth, profile sync
+│   │   ├── abuse/              # Rate limiting (atomic PostgreSQL upserts)
+│   │   ├── markdown/           # Markdown render pipeline, OG fetch, slug generation
+│   │   ├── notifications/      # Email and Bluesky DM dispatch
+│   │   ├── crypto/             # AES-256 encryption for chat session tokens
+│   │   └── permissions/        # canRead() and canPost() with forum permission chain
+│   ├── app.d.ts                # Locals type (user, sessionId)
+│   ├── hooks.server.ts         # Session hydration, banned user redirect
+│   └── +layout.svelte          # Root layout with nav and theme toggle
+├── docker/
+│   ├── docker-compose.dev.yml  # Dev: PostgreSQL only (run app with npm run dev)
+│   ├── docker-compose.yml      # Staging: app + db + caddy
+│   └── Dockerfile
+├── docker-compose.prod.yml     # Production: app + worker + db + caddy
+├── scripts/
+│   ├── dev.sh                  # One-command dev startup (DB + migrate + seed + server)
+│   ├── migrate.sh              # Run Drizzle migrations against dev DB
+│   ├── seed.ts                 # Seed instance_settings + General forum
+│   └── seed-dev-users.ts       # Seed fake users for dev login bypass
+├── vite.config.ts
+├── drizzle.config.ts
+├── CLAUDE.md                   # Full specification and architecture
+├── ARCHITECTURE.md             # Technical design decisions
+└── STATUS.md                   # Implementation status for all phases
 ```
 
 ### Running Tests
 
-The project includes unit tests and integration tests covering auth, permissions, moderation, and rate limiting:
-
-**Unit tests:**
 ```bash
-npm run test                    # Run all tests
-npm run test -- src/routes     # Run tests in specific directory
-npm run test:watch             # Watch mode
+npm test           # Run all unit tests (no database required)
+npm run test:watch # Watch mode
 ```
 
-**Integration tests:**
+Tests cover auth, sessions, permissions, rate limiting, and markdown rendering. They run against the real dev database when `DATABASE_URL` is set, so make sure the database container is running (`docker compose -f docker/docker-compose.dev.yml up -d`).
 
-The integration test suite validates moderation, admin features, and rate limiting:
+For the full integration test suite (HTTP-level tests against a running server):
 
 ```bash
-# Requires dev server to be running (npm run dev in another terminal)
-npm test
+# Requires dev server running in another terminal
+bash scripts/test-integration.sh
 ```
 
-Tests include:
-- Admin guard (403 for non-admins on `/admin`)
-- Admin page access control
-- Session validation
-- Test endpoint protection (dev-only)
-
-See **TESTING.md** for more details, including manual testing with curl.
+See **TESTING.md** for more details.
 
 ### Building for Production
 
@@ -197,14 +185,14 @@ npm run preview                 # Test the production build locally
 ### Updating Database Schema
 
 1. Edit `src/lib/db/schema.ts`
-2. Generate migration:
+2. Generate a migration file:
    ```bash
-   npm run db:generate
+   npx drizzle-kit generate
    ```
-3. Review the generated SQL in `drizzle/` directory
+3. Review the generated SQL in `src/lib/db/migrations/`
 4. Apply it:
    ```bash
-   npm run db:migrate
+   bash scripts/migrate.sh
    ```
 
 ---
@@ -266,15 +254,16 @@ The project includes a setup script (`scripts/setup.sh`) that automates first-ru
 git clone https://github.com/yourusername/bsBB.git
 cd bsBB
 ./scripts/setup.sh
-docker compose up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-The script handles:
+The setup script handles:
 1. P-256 keypair generation for ATproto OAuth
 2. Validation of Bluesky service account (notifications)
 3. SMTP configuration (email notifications)
-4. Database migrations
-5. Seed data (General forum, first admin)
+4. Database migrations and seed data (General forum, instance settings)
+
+The first user to log in after deployment is automatically promoted to admin.
 
 ### Recommended Hosting
 
@@ -294,7 +283,7 @@ See `CLAUDE.md` for detailed deployment architecture and security defaults.
 | **Framework** | SvelteKit + `adapter-node` | SSR mandatory for SEO; monolith (no API boundary needed) |
 | **Database** | PostgreSQL 17 | Relational structure; `tsvector` search; `JSONB` for metadata |
 | **ORM** | Drizzle | TypeScript-native, thin, generates clean SQL |
-| **Auth** | ATproto OAuth + custom sessions | Bluesky identity; roll-your-own sessions (Lucia deprecated) |
+| **Auth** | ATproto OAuth + custom sessions | Bluesky identity; 32-byte token + SHA-256 hash, Postgres-backed |
 | **Markdown** | unified + remark + rehype | Server-side rendering, sanitized before storage |
 | **CSS** | Tailwind v4 + shadcn-svelte | Utility-first, accessible components |
 | **Reverse proxy** | Caddy | Automatic HTTPS, easy config |
@@ -304,9 +293,9 @@ See `CLAUDE.md` for detailed deployment architecture and security defaults.
 ## Documentation
 
 - **`CLAUDE.md`** – Full specification, architecture decisions, all requirements. Read this for context on why things are designed the way they are.
-- **`ARCHITECTURE.md`** – Detailed implementation status, SQL schema, per-phase checklist
-- **`PHASE_4_STATUS.md`** – Current phase (moderation & admin) commit checklist
-- **`QUICK_REFERENCE.md`** – (If present) Quick lookup of file locations and responsibilities
+- **`STATUS.md`** – Current implementation status across all 7 phases with commit counts and feature breakdown
+- **`ARCHITECTURE.md`** – Technical architecture, stack decisions, schema, routing structure, and design rationale
+- **`QUICK_REFERENCE.md`** – Quick lookup of file locations, critical facts, and common commands
 
 ---
 
@@ -341,8 +330,8 @@ We welcome contributions! Here's how:
 
 ### "Can't connect to database"
 ```bash
-docker compose logs db
-docker compose ps  # Check if db container is running
+docker compose -f docker/docker-compose.dev.yml logs db
+docker compose -f docker/docker-compose.dev.yml ps
 ```
 
 ### "ATPROTO_PRIVATE_KEY not set"
@@ -352,30 +341,25 @@ If testing without OAuth, use the dev login bypass (see "Quick Start" above).
 Session not created. Check that login completed successfully and cookies are enabled.
 
 ### "INSERT ... ON CONFLICT" errors
-Ensure migrations ran: `docker compose exec app npm run db:migrate`
+Ensure migrations ran: `bash scripts/migrate.sh`
 
 ### Database state got messed up
 Reset and reseed (dev only):
 ```bash
-docker compose down -v  # Remove volume
-docker compose up -d
-docker compose exec app npm run db:migrate
+docker compose -f docker/docker-compose.dev.yml down -v  # Remove volume
+docker compose -f docker/docker-compose.dev.yml up -d
+bash scripts/migrate.sh
+npx tsx scripts/seed.ts
+npx tsx scripts/seed-dev-users.ts
 ```
 
 ---
 
-## Roadmap
+## Status
 
-**Phases 1–6:** ✅ Complete
+**Phases 1–6 Complete.** See `STATUS.md` for detailed breakdown of all phases (35+ commits).
 
-- Auth (ATproto OAuth), sessions, DB, Docker
-- Forum/thread/post views with permissions
-- Post creation, markdown, OG metadata, quote links
-- Moderation: ban/lock/pin/delete, rate limiting, admin UI, mod log
-- Notifications: email alerts, Bluesky DM (opt-in), background worker
-- Post editing with revision history, full-text search, production Docker stack
-
-**Phase 7 (Next):** Design & UI refinements — light/dark mode, visual theme, UX polish
+**Phase 7 In Progress:** Theme system with dark mode toggle, UI refinements, admin dashboard improvements.
 
 ---
 

@@ -57,16 +57,16 @@
 	<!-- Breadcrumb -->
 	<div class="text-sm mb-4">
 		<a href="/" class="text-blue-600 hover:underline">Forums</a>
-		<span class="text-gray-400"> / </span>
+		<span class="text-[rgb(var(--color-text-muted))]"> / </span>
 		<a href="/f/{data.forum.slug}" class="text-blue-600 hover:underline">{data.forum.name}</a>
-		<span class="text-gray-400"> / </span>
+		<span class="text-[rgb(var(--color-text-muted))]"> / </span>
 		<span>New Thread</span>
 	</div>
 
 	<h1 class="text-3xl font-bold">Create New Thread</h1>
 
 	{#if form?.error}
-		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))]">
 			<p>{form.error}</p>
 		</div>
 	{/if}
@@ -83,9 +83,9 @@
 				required
 				placeholder="What's on your mind?"
 				bind:value={titleValue}
-				class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+				class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 			/>
-			<p class="text-xs text-gray-500 mt-1">
+			<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
 				{titleValue.length} / {TITLE_MAX} characters
 				{#if titleValue.length >= TITLE_MAX}
 					<span class="text-red-600 font-semibold">(at limit)</span>
@@ -118,9 +118,9 @@
 					placeholder="Write your message in Markdown..."
 					bind:value={bodyValue}
 					rows="12"
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+					class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
 				></textarea>
-				<p class="text-xs text-gray-500 mt-1">
+				<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
 					{bodyValue.length} / {BODY_MAX} characters
 					{#if bodyValue.length >= BODY_MAX}
 						<span class="text-red-600 font-semibold">(at limit)</span>
@@ -130,7 +130,7 @@
 				</p>
 			{:else}
 				<div
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 prose prose-sm max-w-none min-h-[300px]"
+					class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm max-w-none min-h-[300px]"
 				>
 					{@html previewHtml}
 				</div>

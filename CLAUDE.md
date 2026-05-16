@@ -2,21 +2,33 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (2/10 commits)
+
+**Total Implementation:** 35+ commits, production-ready forum with all core features complete
 
 ### Completed Phases:
-- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
-- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail)
-- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata)
-- **Phase 3.1 ✅** — Polish (form validation, character counters, quote UX)
-- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log)
-- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync)
-- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker)
+- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
+- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail) — 1 commit
+- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata) — 2 commits
+- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log) — 7 commits
+- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
+- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (1/10 commits)
-- **Commit 1 ✅** — Theme System & Light/Dark Mode (CSS variables, toggle, persistence)
-- **Commit 2** — Typography & Spacing Scale (consistent sizing and layout)
-- **Commits 3–10** — Components, accessibility, animations, responsive design
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (2/10 commits)
+- **Commit 1 ✅** — Theme System & Light/Dark Mode
+  - CSS custom properties for light/dark themes with semantic naming
+  - ThemeToggle component with sun/moon icons in header
+  - localStorage persistence + system preference detection
+  - Smooth 200ms color transitions
+  - Updated forum list with theme-aware colors
+- **Commit 2 ✅** — Search, Admin UI, & Dark Mode Polish
+  - Hybrid search (substring matching for short queries ≤4 chars, tsvector for longer)
+  - Admin forums management page (list, reorder, assign per-forum mods)
+  - User search/dropdown for moderator selection (queryable by handle, name, DID)
+  - Dark mode consistency across all pages with semantic CSS classes
+  - Search result cards render cleanly without hydration issues
+  - "New Thread" button displays properly in light/dark modes
+- **Commits 3–10** — Typography & spacing scale, button/form styles, cards, modals, loading states, responsive design, accessibility, animations, component docs
 
 ---
 
@@ -108,7 +120,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | ORM | Drizzle | TypeScript-native, thin, generates clean SQL, no magic; migration-file workflow only — no `drizzle-kit push` in any env |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK handles DPoP, PAR, token management |
 | Markdown | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side pipeline, sanitized before storage |
-| Sessions | Custom roll-your-own (Postgres) | Lucia v3 deprecated March 2025; rolling own is now the Lucia maintainers' recommended approach — crypto-secure token + SHA-256 hash, Postgres-backed, no external library |
+| Sessions | Custom roll-your-own (Postgres) | 32-byte random token + SHA-256 hash; Postgres-backed, no external library. Simple, secure, proven at scale |
 | Email transport | Nodemailer over SMTP | Provider-agnostic; swap providers via env vars only |
 | OG/link metadata | `open-graph-scraper` | Server-side at post submit; only for bare URLs on their own line |
 
@@ -447,7 +459,7 @@ These must be in place from day one, not added later:
 8. All output also written to `logs/setup.log`
 9. On first login after setup, the first user to authenticate is auto-promoted to admin (one-time only, gated on `instance_settings.first_admin_claimed`)
 
-**Breakglass admin promotion:** `scripts/admin-promote.sh` runs via `docker exec` on the server. Requires SSH access — that is the safeguard. No web UI, no endpoint. Writes a `mod_log` entry with `action = 'promote_admin'` and `reason = 'breakglass'`.
+**Admin promotion:** The first user to log in is automatically promoted to admin (one-time, gated by `instance_settings.first_admin_claimed` flag). After that, use the `/admin/users` page to manually promote other users. All promotions are logged in `mod_log` with `action = 'promote_admin'`.
 
 ### Deployment Workflow
 
@@ -513,7 +525,7 @@ Total time from bare server to running: under 30 minutes.
 | `pg_dump` not managed backup service | Keeps infrastructure minimal; R2/B2 are cheap and reliable enough |
 | Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
 | `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
-| Roll-your-own sessions (no Lucia) | Lucia v3 deprecated March 2025; maintainers now recommend implementing sessions directly — crypto token + SHA-256 hash stored in Postgres `sessions` table, ~50 lines, no external library |
+| Custom sessions (no external library) | 32-byte random token + SHA-256 hash in Postgres `sessions` table, ~50 lines. Simple, proven, easier to reason about than external libraries |
 | Plain textarea editor (Phase 3) | MVP approach; CodeMirror 6 can be added as progressive enhancement in Phase 5+ for better UX; preview via server endpoint keeps no client-side markdown renderer either way |
 | Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
 | Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |

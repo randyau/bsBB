@@ -23,7 +23,7 @@
 					id="actionFilter"
 					bind:value={selectedAction}
 					onchange={handleFilterChange}
-					class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+					class="px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 				>
 					<option value="">All actions</option>
 					{#each data.actionTypes as action}
@@ -35,9 +35,9 @@
 	</div>
 
 	{#if data.entries.length > 0}
-		<div class="rounded-lg border border-gray-200 overflow-x-auto">
+		<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
 			<table class="w-full text-sm">
-				<thead class="bg-gray-100 border-b border-gray-200">
+				<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 					<tr>
 						<th class="px-4 py-3 text-left font-semibold">Timestamp</th>
 						<th class="px-4 py-3 text-left font-semibold">Moderator</th>
@@ -48,14 +48,14 @@
 				</thead>
 				<tbody>
 					{#each data.entries as entry (entry.id)}
-						<tr class="border-b border-gray-200 hover:bg-gray-50">
-							<td class="px-4 py-3 text-xs text-gray-600">
+						<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
+							<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-secondary))]">
 								{new Date(entry.createdAt).toLocaleDateString()}{' '}
 								{new Date(entry.createdAt).toLocaleTimeString()}
 							</td>
 							<td class="px-4 py-3 font-mono text-xs">{entry.moderatorHandle}</td>
 							<td class="px-4 py-3">
-								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-primary))]">
 									{entry.action}
 								</span>
 							</td>
@@ -63,14 +63,14 @@
 								{#if entry.targetUserHandle}
 									<span class="font-mono">@{entry.targetUserHandle}</span>
 								{:else if entry.targetThreadTitle}
-									<span class="text-gray-700">{entry.targetThreadTitle}</span>
+									<span class="text-[rgb(var(--color-text))]">{entry.targetThreadTitle}</span>
 								{:else if entry.targetPostId}
 									<span class="font-mono text-xs">post:{entry.targetPostId}</span>
 								{:else}
-									<span class="text-gray-400">—</span>
+									<span class="text-[rgb(var(--color-text-muted))]">—</span>
 								{/if}
 							</td>
-							<td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+							<td class="px-4 py-3 text-sm text-[rgb(var(--color-text-secondary))] max-w-xs truncate">
 								{entry.reason || '—'}
 							</td>
 						</tr>
@@ -79,12 +79,12 @@
 			</table>
 		</div>
 
-		<p class="text-xs text-gray-500">
+		<p class="text-xs text-[rgb(var(--color-text-muted))]">
 			Showing {data.entries.length} of last 200 entries{data.currentFilter ? ` (filtered by: ${data.currentFilter})` : ''}
 		</p>
 	{:else}
-		<div class="rounded-lg bg-gray-50 border border-gray-200 p-8 text-center">
-			<p class="text-sm text-gray-600">No moderation actions found{data.currentFilter ? ` for action: ${data.currentFilter}` : ''}.</p>
+		<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-8 text-center">
+			<p class="text-sm text-[rgb(var(--color-text-secondary))]">No moderation actions found{data.currentFilter ? ` for action: ${data.currentFilter}` : ''}.</p>
 		</div>
 	{/if}
 </div>

@@ -5,7 +5,7 @@
 <main class="flex min-h-screen items-center justify-center">
 	<div class="max-w-md space-y-4 p-8 text-center">
 		<h1 class="text-2xl font-bold">Account Suspended</h1>
-		<p class="text-gray-600">
+		<p class="text-[rgb(var(--color-text-secondary))]">
 			Your account has been suspended from this forum. If you believe this is an error,
 			please contact the forum administrators.
 		</p>

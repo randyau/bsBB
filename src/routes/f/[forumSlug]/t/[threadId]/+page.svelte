@@ -146,43 +146,43 @@
 	<!-- Breadcrumb & Header -->
 	<div>
 		<div class="text-sm mb-4">
-			<a href="/" class="text-blue-600 hover:underline">Forums</a>
-			<span class="text-gray-400"> / </span>
-			<a href="/f/{data.forum.slug}" class="text-blue-600 hover:underline">{data.forum.name}</a>
+			<a href="/" class="text-[rgb(var(--color-primary))] hover:underline">Forums</a>
+			<span class="text-[rgb(var(--color-text-muted))]"> / </span>
+			<a href="/f/{data.forum.slug}" class="text-[rgb(var(--color-primary))] hover:underline">{data.forum.name}</a>
 		</div>
 
 		<div class="flex items-center gap-2 flex-wrap">
 			<h1 class="text-3xl font-bold">{data.thread.title}</h1>
 			{#if data.thread.isPinned}
-				<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">pinned</span>
+				<span class="text-xs bg-[rgb(var(--color-warning))] text-[rgb(var(--color-bg))] px-2 py-1 rounded">pinned</span>
 			{/if}
 			{#if data.thread.isLocked}
-				<span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">locked</span>
+				<span class="text-xs bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] px-2 py-1 rounded">locked</span>
 			{/if}
 
 			{#if data.canModerate}
 				<details class="relative ml-auto">
-					<summary class="cursor-pointer text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded list-none select-none">
+					<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-3 py-1 rounded list-none select-none">
 						Thread actions ▾
 					</summary>
-					<div class="absolute right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-10 min-w-[160px]">
+					<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
 						{#if data.thread.isLocked}
 							<form method="POST" action="?/unlockThread">
-								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Unlock thread</button>
+								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unlock thread</button>
 							</form>
 						{:else}
 							<form method="POST" action="?/lockThread">
-								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Lock thread</button>
+								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Lock thread</button>
 							</form>
 						{/if}
 						{#if data.user?.globalRole === 'admin'}
 							{#if data.thread.isPinned}
 								<form method="POST" action="?/unpinThread">
-									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Unpin thread</button>
+									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unpin thread</button>
 								</form>
 							{:else}
 								<form method="POST" action="?/pinThread">
-									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Pin thread</button>
+									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Pin thread</button>
 								</form>
 							{/if}
 						{/if}
@@ -191,25 +191,25 @@
 			{/if}
 		</div>
 
-		<p class="mt-2 text-sm text-gray-600">
+		<p class="mt-2 text-sm text-[rgb(var(--color-text-secondary))]">
 			Started by <strong>{data.threadAuthor?.displayName || data.threadAuthor?.handle || 'Unknown'}</strong>
 			{#if data.threadAuthor?.handle}
-				(<code class="text-xs bg-gray-100 px-1 rounded">{data.threadAuthor.handle}</code>)
+				(<code class="text-xs bg-[rgb(var(--color-bg-tertiary))] px-1 rounded">{data.threadAuthor.handle}</code>)
 			{/if}
 		</p>
 	</div>
 
 	<!-- Posts -->
 	{#if data.posts.length === 0}
-		<div class="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-600">
+		<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))] p-6 text-center text-[rgb(var(--color-text-muted))]">
 			<p>No posts yet.</p>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			{#each data.posts as post (post.id)}
-				<div class="rounded-lg border border-gray-200 bg-white p-6">
+				<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] p-6">
 					<!-- Post Header -->
-					<div class="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-gray-200">
+					<div class="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-[rgb(var(--color-border))]">
 						<div class="flex items-center gap-3">
 							{#if post.authorAvatarUrl}
 								<img
@@ -218,19 +218,19 @@
 									class="w-10 h-10 rounded-full"
 								/>
 							{:else}
-								<div class="w-10 h-10 rounded-full bg-gray-300"></div>
+								<div class="w-10 h-10 rounded-full bg-[rgb(var(--color-bg-tertiary))]"></div>
 							{/if}
 
 							<div>
 								<p class="font-semibold">
 									{post.authorDisplayName || post.authorHandle}
 								</p>
-								<p class="text-xs text-gray-500">{post.authorHandle}</p>
+								<p class="text-xs text-[rgb(var(--color-text-muted))]">{post.authorHandle}</p>
 							</div>
 						</div>
 
 						<div class="flex flex-col items-end gap-2">
-							<div class="text-sm text-gray-500 text-right">
+							<div class="text-sm text-[rgb(var(--color-text-muted))] text-right">
 								<p>{formatTime(post.createdAt)}</p>
 								{#if post.editedAt}
 									<a
@@ -258,7 +258,7 @@
 								<button
 									type="button"
 									onclick={() => startEdit(post.id)}
-									class="text-xs text-gray-600 hover:text-gray-900 hover:underline"
+									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
 								>
 									Edit
 								</button>
@@ -266,20 +266,20 @@
 
 							{#if data.canModerate}
 								<details class="relative">
-									<summary class="cursor-pointer text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded list-none select-none">
+									<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-2 py-1 rounded list-none select-none">
 										⋯
 									</summary>
-									<div class="absolute right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-10 min-w-[140px]">
+									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[140px]">
 										{#if post.isDeleted}
 											<form method="POST" action="?/restorePost">
 												<input type="hidden" name="postId" value={post.id} />
-												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Restore post</button>
+												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Restore post</button>
 											</form>
 										{:else}
 											<form method="POST" action="?/deletePost" onsubmit={(e) => { const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
 												<input type="hidden" name="postId" value={post.id} />
 												<input type="hidden" name="reason" value="" />
-												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete post</button>
+												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-bg-secondary))]">Delete post</button>
 											</form>
 										{/if}
 									</div>
@@ -290,9 +290,9 @@
 
 					<!-- Quoted Post (if reply) -->
 					{#if post.quotedPost}
-						<div class="mb-4 pl-4 border-l-4 border-gray-300 bg-gray-50 p-3 text-sm">
-							<p class="font-semibold text-gray-700">{post.quotedPost.authorHandle}</p>
-							<div class="mt-1 text-gray-600 line-clamp-3">
+						<div class="mb-4 pl-4 border-l-4 border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))] p-3 text-sm">
+							<p class="font-semibold text-[rgb(var(--color-text-secondary))]">{post.quotedPost.authorHandle}</p>
+							<div class="mt-1 text-[rgb(var(--color-text-muted))] line-clamp-3">
 								{@html post.quotedPost.bodyPreview}
 							</div>
 						</div>
@@ -303,7 +303,7 @@
 						<div class="space-y-2">
 							<textarea
 								bind:value={editBody}
-								class="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+								class="w-full h-32 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 								placeholder="Edit your post..."
 							></textarea>
 							<div class="flex gap-2">
@@ -311,7 +311,7 @@
 									type="button"
 									onclick={() => saveEdit(post.id)}
 									disabled={isEditSaving}
-									class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+									class="px-4 py-2 bg-[rgb(var(--color-primary))] text-white rounded hover:bg-[rgb(var(--color-primary-dark))] disabled:opacity-50"
 								>
 									{isEditSaving ? 'Saving...' : 'Save'}
 								</button>
@@ -319,14 +319,14 @@
 									type="button"
 									onclick={cancelEdit}
 									disabled={isEditSaving}
-									class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+									class="px-4 py-2 bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] rounded hover:bg-[rgb(var(--color-border))] disabled:opacity-50"
 								>
 									Cancel
 								</button>
 							</div>
 						</div>
 					{:else if post.isDeleted}
-						<p class="italic text-gray-500">[post deleted]</p>
+						<p class="italic text-[rgb(var(--color-text-muted))]">[post deleted]</p>
 					{:else}
 						<div class="prose prose-sm max-w-none">
 							{@html post.bodyHtml}
@@ -339,18 +339,18 @@
 
 	<!-- Reply Form -->
 	{#if !data.thread.isLocked}
-		<div class="rounded-lg border border-gray-200 bg-white p-6">
+		<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] p-6">
 			{#if !data.user}
-				<p class="text-gray-600 text-center">
-					<a href="/login" class="text-blue-600 hover:underline">Sign in</a> to reply
+				<p class="text-[rgb(var(--color-text-secondary))] text-center">
+					<a href="/login" class="text-[rgb(var(--color-primary))] hover:underline">Sign in</a> to reply
 				</p>
 			{:else if !data.canPost}
-				<p class="text-gray-600 text-center">You do not have permission to post in this forum.</p>
+				<p class="text-[rgb(var(--color-text-secondary))] text-center">You do not have permission to post in this forum.</p>
 			{:else}
 				<h3 class="text-lg font-semibold mb-4">Reply to this thread</h3>
 
 				{#if form?.error}
-					<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 mb-4 text-sm">
+					<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-3 text-[rgb(var(--color-error))] mb-4 text-sm">
 						<p>{form.error}</p>
 					</div>
 				{/if}
@@ -359,7 +359,7 @@
 					<button
 						type="button"
 						onclick={() => setQuoteTarget(quotedPostId!)}
-						class="text-xs text-blue-600 mb-3 italic hover:bg-blue-50 px-2 py-1 rounded cursor-pointer block w-full text-left transition"
+						class="text-xs text-[rgb(var(--color-primary))] mb-3 italic hover:bg-[rgb(var(--color-bg-secondary))] px-2 py-1 rounded cursor-pointer block w-full text-left transition"
 					>
 						💬 Quoted @{data.posts.find(p => p.id === quotedPostId)?.authorHandle} — click to remove, or edit the blockquote below
 					</button>
@@ -377,7 +377,7 @@
 								type="button"
 								onclick={handlePreview}
 								disabled={isLoadingPreview}
-								class="text-sm text-blue-600 hover:underline disabled:opacity-50"
+								class="text-sm text-[rgb(var(--color-primary))] hover:underline disabled:opacity-50"
 							>
 								{isLoadingPreview ? 'Loading...' : previewMode === 'write' ? 'Preview' : 'Edit'}
 							</button>
@@ -392,17 +392,17 @@
 								placeholder="Write your reply..."
 								bind:value={replyBody}
 								rows="6"
-								class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+								class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
 							></textarea>
-							<p class="text-xs text-gray-500 mt-1">
+							<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
 								{replyBody.length} / 50,000 characters
 								{#if replyBody.length > 45000}
-									<span class="text-amber-600 font-semibold">(approaching limit)</span>
+									<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
 								{/if}
 							</p>
 						{:else}
 							<div
-								class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 prose prose-sm max-w-none min-h-[150px]"
+								class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm max-w-none min-h-[150px]"
 							>
 								{@html previewHtml}
 							</div>
@@ -410,7 +410,7 @@
 					</div>
 
 					<!-- Submit -->
-					<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+					<button type="submit" class="bg-[rgb(var(--color-primary))] text-white px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-primary-dark))]">
 						Post Reply
 					</button>
 				</form>
