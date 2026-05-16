@@ -14,7 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (2/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (3/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -28,7 +28,20 @@ This file contains the full specification, architecture decisions, and design ra
   - Dark mode consistency across all pages with semantic CSS classes
   - Search result cards render cleanly without hydration issues
   - "New Thread" button displays properly in light/dark modes
-- **Commits 3–10** — Typography & spacing scale, button/form styles, cards, modals, loading states, responsive design, accessibility, animations, component docs
+- **Commit 3 ✅** — Markdown preview, responsive layout, global CSS, dark mode defaults
+  - Fix markdown preview rendering with .prose-content CSS class
+  - Responsive container layout with max-widths per breakpoint
+  - Abstract CSS into global semantic classes (.box, .alert, .btn-*, .form-*, .post, .thread-item, etc.)
+  - Set dark mode as system default
+  - Fix theme toggle sun/moon icons
+- **Commits 4–10** — Custom roles system, user role management, typography scale, button/form refinement, cards/modals, loading states, accessibility, animations, component docs
+  - **Commit 4 (planned)** — Custom roles & role-based forum access
+    - New `roles` table for admin-defined custom roles (name, description, color)
+    - New `user_roles` table to assign users to multiple roles (many-to-many)
+    - Update `forumPermissions` to support role-based access (roles determine which forums a user can see/post)
+    - Admin UI: create/edit/delete roles, manage role members, designate role access to forums
+    - Forum visibility tied to role membership (users must have ≥1 role that grants access)
+    - Mod log entries for all role assignment/removal and role creation
 
 ---
 
