@@ -1,18 +1,32 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let editingRole: string | null = $state(null);
+	let showCreateForm = $state(false);
 	let expandedRoles = $state(new Set<string>());
 	let formData = $state({
 		name: '',
 		description: '',
 		color: '#3b82f6'
 	});
+	let roleSearch = $state('');
+
+	const filteredRoles = $derived(
+		roleSearch.trim()
+			? data.roles.filter(
+					(r) =>
+						r.name.toLowerCase().includes(roleSearch.toLowerCase()) ||
+						(r.description?.toLowerCase().includes(roleSearch.toLowerCase()) ?? false)
+				)
+			: data.roles
+	);
 
 	function startEdit(role: any) {
 		editingRole = role.id;
+		showCreateForm = true;
 		formData = {
 			name: role.name,
 			description: role.description || '',
@@ -22,6 +36,7 @@
 
 	function cancelEdit() {
 		editingRole = null;
+		showCreateForm = false;
 		formData = { name: '', description: '', color: '#3b82f6' };
 	}
 
@@ -39,11 +54,91 @@
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-2xl">
-	<h1 class="text-3xl font-bold mb-8">Manage Custom Roles</h1>
+	<div class="flex items-center justify-between mb-8">
+		<h1 class="text-3xl font-bold">Manage Custom Roles</h1>
+		{#if !editingRole}
+			<button
+				type="button"
+				onclick={() => (showCreateForm = !showCreateForm)}
+				class="btn btn-primary btn-sm"
+			>
+				{showCreateForm ? 'Cancel' : '+ New Role'}
+			</button>
+		{/if}
+	</div>
+
+	<!-- Create / Edit form (expandable) -->
+	{#if showCreateForm || editingRole}
+		<div class="card mb-8">
+			<h2 class="text-lg font-semibold mb-4">
+				{editingRole ? 'Edit Role' : 'Create New Role'}
+			</h2>
+
+			<form method="POST" action={editingRole ? '?/editRole' : '?/createRole'} class="space-y-4">
+				{#if editingRole}
+					<input type="hidden" name="id" value={editingRole} />
+				{/if}
+
+				<div class="form-group">
+					<label for="name" class="form-label">Role Name *</label>
+					<input
+						id="name"
+						type="text"
+						name="name"
+						bind:value={formData.name}
+						placeholder="e.g. VIP, Trusted, Moderator"
+						maxlength="50"
+						required
+						class="form-control"
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="color" class="form-label">Color</label>
+					<input
+						id="color"
+						type="color"
+						name="color"
+						bind:value={formData.color}
+						class="w-12 h-10 cursor-pointer rounded border border-[rgb(var(--color-border))]"
+					/>
+					<p class="form-hint mt-1">Shown in user role badges</p>
+				</div>
+
+				<div class="form-group">
+					<label for="description" class="form-label">Description</label>
+					<textarea
+						id="description"
+						name="description"
+						bind:value={formData.description}
+						placeholder="What is this role for?"
+						rows="3"
+						class="form-control"
+					></textarea>
+				</div>
+
+				<div class="flex gap-2">
+					<button type="submit" class="btn btn-primary">
+						{editingRole ? 'Save Changes' : 'Create Role'}
+					</button>
+					<button type="button" onclick={cancelEdit} class="btn btn-secondary">
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
 
 	{#if data.roles.length > 0}
-		<div class="card mb-8">
-			<h2 class="text-lg font-semibold mb-4">Roles</h2>
+		<div class="card">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-semibold">Roles</h2>
+				<TableSearch
+					bind:value={roleSearch}
+					placeholder="Search roles..."
+					onFilter={() => {}}
+				/>
+			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
 					<thead class="border-b border-[rgb(var(--color-border))]">
@@ -56,12 +151,12 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each data.roles as role (role.id)}
+						{#each filteredRoles as role (role.id)}
 							<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
 								<td class="py-3 px-3">
 									<span
 										class="inline-block w-4 h-4 rounded-full border border-[rgb(var(--color-border))]"
-										style="background-color: {role.color ?? '#888'}"
+										style:background-color={role.color ?? '#888'}
 										title={role.color || 'No color'}
 									></span>
 								</td>
@@ -140,66 +235,9 @@
 				</table>
 			</div>
 		</div>
+	{:else}
+		<div class="card text-center text-[rgb(var(--color-text-muted))] py-8">
+			<p>No roles yet. Create one above.</p>
+		</div>
 	{/if}
-
-	<div class="card">
-		<h2 class="text-lg font-semibold mb-4">
-			{editingRole ? 'Edit Role' : 'Create New Role'}
-		</h2>
-
-		<form method="POST" action={editingRole ? '?/editRole' : '?/createRole'} class="space-y-4">
-			{#if editingRole}
-				<input type="hidden" name="id" value={editingRole} />
-			{/if}
-
-			<div class="form-group">
-				<label for="name" class="form-label">Role Name *</label>
-				<input
-					id="name"
-					type="text"
-					name="name"
-					bind:value={formData.name}
-					placeholder="e.g. VIP, Trusted, Moderator"
-					maxlength="50"
-					required
-					class="form-control"
-				/>
-			</div>
-
-			<div class="form-group">
-				<label for="color" class="form-label">Color</label>
-				<input
-					id="color"
-					type="color"
-					name="color"
-					bind:value={formData.color}
-					class="w-12 h-10 cursor-pointer rounded border border-[rgb(var(--color-border))]"
-				/>
-				<p class="form-hint mt-1">Shown in user role badges</p>
-			</div>
-
-			<div class="form-group">
-				<label for="description" class="form-label">Description</label>
-				<textarea
-					id="description"
-					name="description"
-					bind:value={formData.description}
-					placeholder="What is this role for?"
-					rows="3"
-					class="form-control"
-				></textarea>
-			</div>
-
-			<div class="flex gap-2">
-				<button type="submit" class="btn btn-primary">
-					{editingRole ? 'Save Changes' : 'Create Role'}
-				</button>
-				{#if editingRole}
-					<button type="button" onclick={cancelEdit} class="btn btn-secondary">
-						Cancel
-					</button>
-				{/if}
-			</div>
-		</form>
-	</div>
 </div>

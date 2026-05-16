@@ -1,12 +1,14 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { users, modLog, sessions } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, or, ilike } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
 
-export const load: PageServerLoad = async () => {
-	const userList = await db
+export const load: PageServerLoad = async ({ url }) => {
+	const q = url.searchParams.get('q') ?? '';
+
+	const baseQuery = db
 		.select({
 			did: users.did,
 			handle: users.handle,
@@ -14,11 +16,16 @@ export const load: PageServerLoad = async () => {
 			globalRole: users.globalRole,
 			createdAt: users.createdAt
 		})
-		.from(users)
-		.orderBy(users.createdAt);
+		.from(users);
+
+	const userList = await (q.trim()
+		? baseQuery.where(or(ilike(users.handle, `%${q}%`), ilike(users.displayName, `%${q}%`)))
+		: baseQuery
+	).orderBy(users.createdAt);
 
 	return {
-		users: userList
+		users: userList,
+		q
 	};
 };
 

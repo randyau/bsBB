@@ -1,10 +1,23 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, users, modLog } from '$lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, ilike, and, or } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
+	const q = url.searchParams.get('q') ?? '';
+
+	const conditions = [];
+	if (q.trim()) {
+		conditions.push(
+			or(
+				ilike(users.handle, `%${q}%`),
+				ilike(threads.title, `%${q}%`)
+			)
+		);
+	}
+	const where = conditions.length > 0 ? and(...conditions) : undefined;
+
 	const postList = await db
 		.select({
 			id: posts.id,
@@ -21,11 +34,13 @@ export const load: PageServerLoad = async () => {
 		.from(posts)
 		.innerJoin(threads, eq(posts.threadId, threads.id))
 		.innerJoin(users, eq(posts.authorDid, users.did))
+		.where(where)
 		.orderBy(desc(posts.createdAt))
 		.limit(200);
 
 	return {
-		posts: postList
+		posts: postList,
+		q
 	};
 };
 

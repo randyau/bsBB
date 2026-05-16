@@ -1,36 +1,49 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data }: { data: PageData } = $props();
-	let selectedAction: string = $state(data.currentFilter || '');
+	let selectedAction = $state(data.currentFilter || '');
 
-	function handleFilterChange() {
-		if (selectedAction) {
-			window.location.href = `?action=${encodeURIComponent(selectedAction)}`;
-		} else {
-			window.location.href = '.';
-		}
+	function handleActionChange() {
+		const params = new URLSearchParams();
+		if (selectedAction) params.set('action', selectedAction);
+		if (data.q) params.set('q', data.q);
+		window.location.href = '?' + params.toString();
 	}
 </script>
 
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Moderation Log</h1>
+	<h1 class="text-3xl font-bold">Moderation Log</h1>
+
+	<div class="flex flex-wrap items-center gap-3">
+		<TableSearch
+			value={data.q}
+			placeholder="Search by moderator handle..."
+			clearHref={data.currentFilter ? `?action=${data.currentFilter}` : '/admin/mod-log'}
+			extraParams={data.currentFilter ? { action: data.currentFilter } : {}}
+		/>
+
 		{#if data.actionTypes.length > 0}
-			<div class="flex items-center gap-2">
-				<label for="actionFilter" class="text-sm font-semibold">Filter by action:</label>
-				<select
-					id="actionFilter"
-					bind:value={selectedAction}
-					onchange={handleFilterChange}
-					class="px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
-				>
-					<option value="">All actions</option>
-					{#each data.actionTypes as action}
-						<option value={action}>{action}</option>
-					{/each}
-				</select>
-			</div>
+			<select
+				bind:value={selectedAction}
+				onchange={handleActionChange}
+				class="form-control text-sm select-w-md"
+			>
+				<option value="">All actions</option>
+				{#each data.actionTypes as action}
+					<option value={action}>{action}</option>
+				{/each}
+			</select>
+		{/if}
+
+		{#if data.currentFilter || data.q}
+			<a
+				href="/admin/mod-log"
+				class="btn btn-sm btn-secondary"
+			>
+				Clear filters
+			</a>
 		{/if}
 	</div>
 
@@ -53,7 +66,9 @@
 								{new Date(entry.createdAt).toLocaleDateString()}{' '}
 								{new Date(entry.createdAt).toLocaleTimeString()}
 							</td>
-							<td class="px-4 py-3 font-mono text-xs">{entry.moderatorHandle}</td>
+							<td class="px-4 py-3 font-mono text-xs">
+								<a href="/user/{entry.moderatorHandle}" class="link hover:underline">{entry.moderatorHandle}</a>
+							</td>
 							<td class="px-4 py-3">
 								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-primary))]">
 									{entry.action}
@@ -61,7 +76,7 @@
 							</td>
 							<td class="px-4 py-3 text-sm">
 								{#if entry.targetUserHandle}
-									<span class="font-mono">@{entry.targetUserHandle}</span>
+									<a href="/user/{entry.targetUserHandle}" class="link font-mono hover:underline">@{entry.targetUserHandle}</a>
 								{:else if entry.targetThreadTitle}
 									<span class="text-[rgb(var(--color-text))]">{entry.targetThreadTitle}</span>
 								{:else if entry.targetPostId}
@@ -80,11 +95,19 @@
 		</div>
 
 		<p class="text-xs text-[rgb(var(--color-text-muted))]">
-			Showing {data.entries.length} of last 200 entries{data.currentFilter ? ` (filtered by: ${data.currentFilter})` : ''}
+			Showing {data.entries.length} of last 200 entries
+			{#if data.currentFilter || data.q}
+				(filtered{data.currentFilter ? ` by action: ${data.currentFilter}` : ''}{data.q ? ` by moderator: ${data.q}` : ''})
+			{/if}
 		</p>
 	{:else}
 		<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-8 text-center">
-			<p class="text-sm text-[rgb(var(--color-text-secondary))]">No moderation actions found{data.currentFilter ? ` for action: ${data.currentFilter}` : ''}.</p>
+			<p class="text-sm text-[rgb(var(--color-text-secondary))]">
+				No moderation actions found
+				{#if data.currentFilter || data.q}
+					matching current filters
+				{/if}.
+			</p>
 		</div>
 	{/if}
 </div>

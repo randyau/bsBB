@@ -50,7 +50,8 @@
 			{#if user.globalRole === 'admin'}
 				<a href="/admin" class="font-semibold hover:underline">Admin</a>
 			{/if}
-			<span class="text-secondary">@{user.handle}</span>
+			<a href="/user/{user.handle}" class="text-secondary hover:underline">@{user.handle}</a>
+			<a href="/settings" class="hover:underline">Settings</a>
 			<form method="POST" action="/logout">
 				<button type="submit" class="hover:underline">Sign out</button>
 			</form>

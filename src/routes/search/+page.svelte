@@ -92,7 +92,7 @@
 				<a href="/f/{result.forumSlug}/t/{result.threadSlug}" class="block card">
 					<div class="flex items-start justify-between gap-4 mb-2">
 						<div>
-							<h3 class="font-semibold hover:underline" style="color: rgb(var(--color-primary))">
+							<h3 class="font-semibold hover:underline text-primary">
 								{result.threadTitle}
 							</h3>
 							<p class="text-sm text-secondary">

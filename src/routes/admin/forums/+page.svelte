@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let form: ActionData = $state(undefined);
@@ -57,7 +58,7 @@
 		<h2 class="text-xl font-semibold mb-4">Forums</h2>
 		<div class="card-secondary">
 			<table class="w-full text-sm">
-				<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+				<thead class="border-b">
 					<tr>
 						<th class="px-4 py-3 text-left font-semibold">Name</th>
 						<th class="px-4 py-3 text-left font-semibold">Parent</th>
@@ -67,7 +68,7 @@
 				</thead>
 				<tbody>
 					{#each data.forums as forum (forum.id)}
-						<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
+						<tr class="border-b">
 							<td class="px-4 py-3 font-semibold">{forum.name}</td>
 							<td class="px-4 py-3 text-sm">{forum.parentName || '—'}</td>
 							<td class="px-4 py-3 text-sm text-muted">{forum.sortOrder}</td>
@@ -166,18 +167,16 @@
 			{:else}
 				<!-- Filter bar -->
 				<div class="flex flex-wrap gap-2 mb-4 pb-4 border-b border-[rgb(var(--color-border))] items-center">
-					<select bind:value={modForumFilter} class="form-control text-sm" style="width: 160px; min-width: 120px; max-width: 200px;">
+					<select bind:value={modForumFilter} class="form-control text-sm select-w-sm">
 						<option value="">All forums</option>
 						{#each data.forums as forum}
 							<option value={forum.id}>{forum.name}</option>
 						{/each}
 					</select>
-					<input
-						type="text"
+					<TableSearch
 						bind:value={modUserFilter}
 						placeholder="Search user by name or handle..."
-						class="form-control text-sm flex-1"
-						style="min-width: 160px;"
+						onFilter={() => {}}
 					/>
 					{#if modForumFilter || modUserFilter}
 						<button
@@ -196,7 +195,7 @@
 					<p class="text-sm text-muted italic">No results matching filter.</p>
 				{:else}
 					<table class="w-full text-sm">
-						<thead class="border-b" style="border-bottom-color: rgb(var(--color-border))">
+						<thead class="border-b">
 							<tr>
 								<th class="px-4 py-3 text-left font-semibold">Forum</th>
 								<th class="px-4 py-3 text-left font-semibold">User</th>
@@ -205,7 +204,7 @@
 						</thead>
 						<tbody>
 							{#each filteredMods as mod (mod.userDid + mod.forumId)}
-							<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
+							<tr class="border-b">
 								<td class="px-4 py-3 font-semibold">{mod.forumName}</td>
 								<td class="px-4 py-3 text-sm">
 									<a href="/user/{mod.userHandle}" class="link font-semibold hover:underline">{mod.userDisplayName || mod.userHandle}</a>
