@@ -9,6 +9,9 @@
 	let isLoadingPreview: boolean = $state(false);
 	let replyBody: string = $state('');
 	let quotedPostId: string | null = $state(null);
+	let editingPostId: string | null = $state(null);
+	let editBody: string = $state('');
+	let isEditSaving: boolean = $state(false);
 
 	async function handlePreview() {
 		if (previewMode === 'preview') {
@@ -72,6 +75,56 @@
 		}
 
 		document.querySelector('textarea[name="body"]')?.focus();
+	}
+
+	function startEdit(postId: string) {
+		const post = data.posts.find(p => p.id === postId);
+		if (!post) return;
+		editingPostId = postId;
+		editBody = post.bodyMarkdown;
+	}
+
+	async function saveEdit(postId: string) {
+		if (!editBody.trim()) {
+			alert('Body cannot be empty');
+			return;
+		}
+
+		isEditSaving = true;
+		try {
+			const response = await fetch(`/f/${data.forum.slug}/t/${data.thread.slug}/post/${postId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ body: editBody })
+			});
+
+			if (!response.ok) {
+				const err = await response.json();
+				alert(err.error || 'Failed to save edit');
+				return;
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				const post = data.posts.find(p => p.id === postId);
+				if (post) {
+					post.bodyMarkdown = editBody;
+					post.bodyHtml = result.post.bodyHtml;
+					post.editedAt = new Date(result.post.editedAt);
+				}
+				editingPostId = null;
+			}
+		} catch (err) {
+			console.error('Edit error:', err);
+			alert('Failed to save edit');
+		} finally {
+			isEditSaving = false;
+		}
+	}
+
+	function cancelEdit() {
+		editingPostId = null;
+		editBody = '';
 	}
 
 	function formatTime(date: Date) {
@@ -196,6 +249,16 @@
 								</button>
 							{/if}
 
+							{#if data.user && (post.authorDid === data.user.did || data.user.globalRole === 'admin') && !post.isDeleted}
+								<button
+									type="button"
+									onclick={() => startEdit(post.id)}
+									class="text-xs text-gray-600 hover:text-gray-900 hover:underline"
+								>
+									Edit
+								</button>
+							{/if}
+
 							{#if data.canModerate}
 								<details class="relative">
 									<summary class="cursor-pointer text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded list-none select-none">
@@ -231,7 +294,33 @@
 					{/if}
 
 					<!-- Post Body -->
-					{#if post.isDeleted}
+					{#if editingPostId === post.id}
+						<div class="space-y-2">
+							<textarea
+								bind:value={editBody}
+								class="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+								placeholder="Edit your post..."
+							></textarea>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									onclick={() => saveEdit(post.id)}
+									disabled={isEditSaving}
+									class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+								>
+									{isEditSaving ? 'Saving...' : 'Save'}
+								</button>
+								<button
+									type="button"
+									onclick={cancelEdit}
+									disabled={isEditSaving}
+									class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					{:else if post.isDeleted}
 						<p class="italic text-gray-500">[post deleted]</p>
 					{:else}
 						<div class="prose prose-sm max-w-none">
