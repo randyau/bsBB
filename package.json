@@ -33,7 +33,13 @@
 		"@atproto/oauth-client-node": "^0.3.17",
 		"@sveltejs/adapter-node": "^5.5.4",
 		"drizzle-orm": "^0.45.2",
+		"open-graph-scraper": "^6.11.0",
 		"postgres": "^3.4.9",
-		"rolldown": "^1.0.1"
+		"rehype-sanitize": "^6.0.0",
+		"rehype-stringify": "^10.0.1",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.2",
+		"rolldown": "^1.0.1",
+		"unified": "^11.0.5"
 	}
 }

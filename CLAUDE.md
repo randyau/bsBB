@@ -2,9 +2,16 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phase 1 ✅ Complete
+## Status — Phase 3 ✅ Complete
 
-**Phase 1 (Foundations):** All 35 tests passing. `tsc --noEmit` clean. Database schema, auth system, sessions, OAuth, and setup scripts done. See ARCHITECTURE.md for implementation status details and QUICK_REFERENCE.md for navigation.
+**Phase 3 (Post Creation):** All 35+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. See ARCHITECTURE.md for detailed implementation status and QUICK_REFERENCE.md for navigation.
+
+### Completed Phases:
+- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
+- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail)
+- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata)
+
+**Next:** Phase 4 (moderation & rate limiting)
 
 ---
 
@@ -104,7 +111,8 @@ The forum is intended to be open sourced so that others can self-host it. All se
 
 - SvelteKit (same codebase as backend via server actions)
 - CSS: Tailwind CSS v4 + shadcn-svelte component primitives
-- Markdown editor: CodeMirror 6 with markdown mode; preview is button-toggled via `POST /api/preview/` (server-rendered — no client-side markdown library)
+- Markdown editor: Plain `<textarea>` (Phase 3 MVP); can upgrade to CodeMirror 6 with markdown mode in Phase 5+
+  - Preview is button-toggled via `POST /api/preview/` (server-rendered — no client-side markdown library)
 
 ### Infrastructure
 
@@ -500,7 +508,7 @@ Total time from bare server to running: under 30 minutes.
 | Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
 | `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
 | Roll-your-own sessions (no Lucia) | Lucia v3 deprecated March 2025; maintainers now recommend implementing sessions directly — crypto token + SHA-256 hash stored in Postgres `sessions` table, ~50 lines, no external library |
-| CodeMirror 6 editor | Better UX than plain textarea; preview via server endpoint keeps no client-side markdown renderer |
+| Plain textarea editor (Phase 3) | MVP approach; CodeMirror 6 can be added as progressive enhancement in Phase 5+ for better UX; preview via server endpoint keeps no client-side markdown renderer either way |
 | Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
 | Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |
 | Post revisions: full snapshots | Simple to query and render; storage cost negligible at forum scale |

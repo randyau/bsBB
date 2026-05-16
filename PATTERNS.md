@@ -70,6 +70,37 @@ maybeSyncProfile(did, lastProfileSync).catch(err => {
 
 ---
 
+## Permissions
+
+### Check if user can read a forum
+```typescript
+import { db } from '$lib/db';
+import { canRead } from '$lib/permissions';
+
+// Returns true/false
+const allowed = await canRead(db, forumId, locals.user);
+
+// In a route handler:
+if (!allowed) {
+  throw error(403, 'Access denied');
+}
+```
+
+### Check if user can post in a forum
+```typescript
+import { db } from '$lib/db';
+import { canPost } from '$lib/permissions';
+
+// Returns true/false; false for banned users or guests
+const allowed = await canPost(db, forumId, locals.user);
+
+if (!allowed) {
+  return fail(403, { error: 'You cannot post in this forum' });
+}
+```
+
+---
+
 ## Database Queries
 
 ### Insert with Drizzle (parameterized)
@@ -167,16 +198,25 @@ async function markdownToHtml(markdown: string): Promise<string> {
 }
 ```
 
-### Extract OG metadata from URL (example stub)
+Use the imported `renderMarkdown` from `src/lib/markdown/index.ts` instead:
 ```typescript
-async function fetchOgMetadata(url: string) {
-  // In real implementation: use open-graph-scraper
-  // Only for bare-line URLs on their own line
-  return {
-    title: '',
-    description: '',
-    image_url: null,
-  };
+import { renderMarkdown } from '$lib/markdown';
+
+const bodyHtml = await renderMarkdown(markdown);
+```
+
+### Extract OG metadata from bare-line URL
+```typescript
+import { fetchLinkMetadata } from '$lib/markdown/og';
+
+// Extracts first bare-line URL from markdown
+// Returns { url, title, description, imageUrl } or null on error/timeout
+const metadata = await fetchLinkMetadata(markdown);
+
+// Errors are graceful: 5s timeout, network failures, etc. silently return null
+// Never blocks post submission
+if (metadata) {
+  // Store in post: { url, title, description, imageUrl }
 }
 ```
 

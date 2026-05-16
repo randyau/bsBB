@@ -1,9 +1,15 @@
-# bsBB — Implementation Plan
+# bsBB — Implementation Plan (Archive)
 
-Derived from ARCHITECTURE.md. Each task is small enough to complete in one session, ends with a
-testable gate, and can be paused safely. Phases map to ARCHITECTURE.md §13.
+**Status:** Phases 1-3 complete. This document is maintained for historical reference.
 
-**How to use this doc:**
+For current implementation status, see:
+- **ARCHITECTURE.md** — detailed status of all phases
+- **QUICK_REFERENCE.md** — current phase status and file map
+- **CLAUDE.md** — specification and completed features
+
+Original purpose: Derived from ARCHITECTURE.md. Each task is small enough to complete in one session, ends with a testable gate, and can be paused safely. Phases map to ARCHITECTURE.md §14.
+
+**How to use this doc (if working from the plan):**
 - Work top to bottom within a phase. Do not start a task until its gate is cleared.
 - Mark tasks `[x]` as completed. Mark the active task `[~]`.
 - A phase gate must pass before moving to the next phase.

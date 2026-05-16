@@ -77,38 +77,25 @@ These tasks must be completed before Phase 1 is fully shipped. Blocked on having
 
 ## Phase 2 — Forum CRUD (✅ Complete — Read-only views)
 
-These tasks are next. Some may be blocked on Phase 1 completion or have their own blockers.
+- [x] Forum listing & display
+- [x] Thread listing & pagination
+- [x] Thread detail page with flat posts
+- [x] Permission enforcement (read)
 
-- [ ] **Forum listing & display**
-  - [ ] Create forum hierarchy in DB (via SQL or admin UI once built)
-  - [ ] List top-level forums on homepage
-  - [ ] List sub-forums within a parent
-  - [ ] Display forum description and thread count
+---
 
-- [ ] **Thread listing & pagination**
-  - [ ] List threads in a forum with pagination
-  - [ ] Show thread title, author, post count, last post time
-  - [ ] Sort by last_post_at (default), or by created_at
-  - [ ] Implement "pinned" thread priority
+## Phase 3 — Post Creation (✅ Complete)
 
-- [ ] **Thread detail page**
-  - [ ] Display thread title and metadata (author, created_at)
-  - [ ] List all posts in thread (flat, chronological)
-  - [ ] Show post author info (handle, avatar, DID)
-  - [ ] Show post body (rendered HTML)
-  - [ ] Show reply-to references (if post.reply_to_post_id is set)
-  - [ ] Soft-deleted posts: show placeholder or hide entirely
-
-- [ ] **Search (basic)**
-  - [ ] Full-text search via PostgreSQL `tsvector`
-  - [ ] Search form on homepage
-  - [ ] Display search results with pagination
-
-- [ ] **Permission enforcement**
-  - [ ] Check `forum_permissions` on forum listing
-  - [ ] Hide forums user cannot read
-  - [ ] Show "access denied" if user tries to access forum directly but lacks permission
-  - [ ] Recursive permission check: guest/member/moderator/admin
+- [x] New thread creation form
+- [x] Reply form (inline on thread detail)
+- [x] Markdown preview endpoint (`POST /api/preview`)
+- [x] Markdown rendering pipeline (unified + remark + rehype)
+- [x] OG metadata fetching (bare-line URLs, 5s timeout)
+- [x] Thread slug generation with uniqueness retry
+- [x] `canPost` permission check
+- [x] Atomic thread+post insertion with lastPostAt update
+- [x] Quote button on posts (sets reply target)
+- [x] Permission enforcement (post)
 
 ---
 
@@ -249,6 +236,19 @@ Items to gather before moving to production:
 
 ---
 
+## Test Verification Before Commits
+
+Before committing code changes:
+
+- [ ] Run fast unit tests: `npm test`
+- [ ] Verify all checks: `bash scripts/verify-tests.sh`
+- [ ] (If database available) Run integration tests: `bash scripts/test-integration.sh`
+- [ ] Type checking passes: `npx tsc --noEmit`
+
+For detailed testing instructions, see TESTING.md.
+
+---
+
 ## Notes
 
 - All `.env` variables must be set before `docker compose up`
@@ -256,4 +256,5 @@ Items to gather before moving to production:
 - `SETUP_COMPLETE=true` is set by `scripts/setup.sh` — do not set manually unless you know what you're doing
 - See QUICK_REFERENCE.md for environment variable details
 - See CLAUDE.md for full design decisions
+- See TESTING.md for testing strategy and troubleshooting
 
