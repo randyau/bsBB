@@ -12,6 +12,8 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 | **Database schema** | `src/lib/db/schema.ts` |
 | **DB migrations** | `src/lib/db/migrations/` |
 | **Auth system** | `src/lib/auth/` (session.ts, atproto.ts, user.ts, profile-sync.ts) |
+| **Markdown pipeline** | `src/lib/markdown/` (index.ts, og.ts, slug.ts) |
+| **Permissions** | `src/lib/permissions/index.ts` (canRead, canPost) |
 | **Routes** | `src/routes/` |
 | **Tests** | `src/**/*.test.ts` |
 | **Abuse checks** | `src/lib/abuse/index.ts` |
@@ -148,8 +150,9 @@ SETUP_COMPLETE=true
 - `src/lib/auth/banned-redirect.test.ts` — Banned user redirect logic
 - `src/lib/abuse/index.test.ts` — Abuse verdict stub (always allow)
 - `src/lib/db/schema.test.ts` — Schema validation
+- `src/lib/permissions/index.test.ts` — canRead + canPost permission resolution (requires DATABASE_URL)
 
-**Run all:** `npm test` (35 tests, ~3s)
+**Run all:** `npm test` (35+ tests, ~1s without DB tests)
 
 ---
 
@@ -164,7 +167,10 @@ SETUP_COMPLETE=true
 | Change password/auth | Not applicable — ATproto OAuth only |
 | Add a global permission | `users.global_role` column + `src/hooks.server.ts` |
 | Add a per-forum permission | `forum_permissions` table + app logic |
-| Change markdown rules | `src/lib/**/*.ts` — look for `unified`, `remark`, `rehype` |
+| Change markdown rules | `src/lib/markdown/index.ts` — edit unified pipeline stages |
+| Render markdown | Call `renderMarkdown(text)` from `src/lib/markdown/index.ts` |
+| Fetch OG metadata | Call `fetchLinkMetadata(markdown)` from `src/lib/markdown/og.ts` (returns null on error) |
+| Generate thread slugs | Call `generateSlug(title)` from `src/lib/markdown/slug.ts` |
 | Add a moderator action | `mod_log` table + action enum |
 | Change email provider | `.env` SMTP_* vars only — no code changes |
 | Setup a new instance | `bash scripts/setup.sh` (generates keypair, validates OAuth, seeds DB) |
@@ -176,8 +182,8 @@ SETUP_COMPLETE=true
 
 - **Phase 1 ✅** — Auth, sessions, DB, Docker, abuse stub, setup scripts. Ready for manual E2E testing.
 - **Phase 2 ✅** — Forum index, thread listing (with pagination), thread detail (flat posts). Permission enforcement. Slug redirects.
-- **Phase 3** — Post creation (editor, markdown, OG metadata, revisions), soft-delete posts, lock/pin threads
-- **Phase 4** — Moderation & rate limiting (ban/unban, delete/restore, content flagging, abuse checks)
+- **Phase 3 ✅** — Post creation (new threads, replies), markdown preview, OG metadata, slug uniqueness. canPost permission.
+- **Phase 4** — Moderation & rate limiting (ban/unban, delete/restore, content flagging, real rate limit checks)
 - **Phase 5** — Notifications & admin UI (DM worker, email, admin tools, audit log)
-- **Phase 6** — Full-text search, Docker prod, README, ship
+- **Phase 6** — Post edits/revisions, full-text search, Docker prod, README, ship
 
