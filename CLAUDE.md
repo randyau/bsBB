@@ -8,14 +8,14 @@ This file contains the full specification, architecture decisions, and design ra
 
 **Phase 3.1 (Polish):** Character counters, form validation, improved quote UX — all complete.
 
-**Phase 4 (Moderation & Admin):** Implementing in 7 commits:
-- ✅ Rate limiting (atomic upserts on rate_limit_buckets)
-- ✅ Admin guard + nav link
-- ✅ Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
-- 🚀 Admin users page (ban/unban/promote/demote)
-- Admin threads page (lock/unlock/pin/unpin)
-- Admin posts page (delete/restore soft-delete)
-- Admin mod log viewer
+**Phase 4 (Moderation & Admin):** 4 of 7 commits complete:
+- ✅ Commit 1: Rate limiting (atomic upserts on rate_limit_buckets)
+- ✅ Commit 2: Admin guard + nav link
+- ✅ Commit 3: Admin SQL query interface (SELECT-only, 1000-row limit, 5s timeout)
+- ✅ Commit 4: Admin users page (ban/unban/promote/demote)
+- 📋 Commit 5: Admin threads page (lock/unlock/pin/unpin)
+- 📋 Commit 6: Admin posts page (delete/restore soft-delete)
+- 📋 Commit 7: Admin mod log viewer (read-only audit trail)
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker)
