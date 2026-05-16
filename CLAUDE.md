@@ -459,7 +459,7 @@ These must be in place from day one, not added later:
 8. All output also written to `logs/setup.log`
 9. On first login after setup, the first user to authenticate is auto-promoted to admin (one-time only, gated on `instance_settings.first_admin_claimed`)
 
-**Breakglass admin promotion:** `scripts/admin-promote.sh` runs via `docker exec` on the server. Requires SSH access — that is the safeguard. No web UI, no endpoint. Writes a `mod_log` entry with `action = 'promote_admin'` and `reason = 'breakglass'`.
+**Admin promotion:** The first user to log in is automatically promoted to admin (one-time, gated by `instance_settings.first_admin_claimed` flag). After that, use the `/admin/users` page to manually promote other users. All promotions are logged in `mod_log` with `action = 'promote_admin'`.
 
 ### Deployment Workflow
 

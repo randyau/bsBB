@@ -70,11 +70,23 @@ SMTP_FROM=
 The project uses ATproto OAuth for authentication. For local development without a public domain, use the **dev login bypass**:
 
 **Option A: Dev Login Bypass (Easiest for local dev)**
-```bash
-# The app includes a dev login endpoint that doesn't require Bluesky auth
-# Just visit http://localhost:5173/dev-login?did=did:plc:xxx
-# (See src/routes/(auth)/dev-login/+server.ts for details)
+
+First, enable dev auth in `.env`:
+```env
+DEV_AUTH_ENABLED=true
 ```
+
+Then seed dev users:
+```bash
+npx tsx scripts/seed-dev-users.ts
+```
+
+Visit the dev login page:
+```
+http://localhost:5173/dev/login
+```
+
+Select a test user from the dropdown. No query parameters needed — the form handles login directly.
 
 **Option B: Real Bluesky OAuth (Requires public URL)**
 If you want to test with real Bluesky auth, you need a public HTTPS URL that Bluesky can reach. This means:
@@ -115,14 +127,14 @@ This runs schema and seed migrations.
 Visit the dev login page:
 
 ```
-http://localhost:5173/dev-login?did=did:plc:example123&handle=testuser&displayName=Test%20User
+http://localhost:5173/dev/login
 ```
 
-You'll be logged in as a member. To promote to admin for testing:
+Select a test user from the dropdown. You'll be logged in as that user.
 
-```bash
-docker compose exec app npm run admin-promote -- did:plc:example123
-```
+**To test admin features:**
+- The **first user to log in** is automatically promoted to admin (one-time, gated by `instance_settings.first_admin_claimed`)
+- After that, use `/admin/users` to promote other test users to admin role
 
 ### 7. Access the Forum
 

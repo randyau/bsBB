@@ -36,7 +36,7 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 | **Reply model** | Flat + optional quote links via `reply_to_post_id`, never nested |
 | **Markdown sanitize** | Server-side before storage via `rehype-sanitize` |
 | **OG metadata fetch** | Server-side at post submit, only for bare-line URLs |
-| **Rate limiting** | By DID post-auth, by IP pre-auth (not yet implemented) |
+| **Rate limiting** | Atomic PostgreSQL upserts: thread_create 10/hr/DID, post_submit 30/hr/DID, preview 60/hr/IP, login 10/15min/IP |
 | **Profile sync** | Lazy: re-sync if `last_profile_sync` > 24h and user posts |
 | **Permissions model** | Explicit rows in `forum_permissions`, not bitmask |
 | **Moderator role** | Per-forum only (in `user_forum_roles`), not global |

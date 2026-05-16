@@ -46,7 +46,7 @@ The integration tests make real HTTP requests to `localhost:5173`, so the dev se
 
 ### What's Tested
 
-`src/routes/api/test/integration.test.ts` — 28 tests covering:
+`src/routes/api/test/integration.test.ts` — 33 tests covering:
 
 - **Admin guard** — All 5 admin sub-pages block members (403); admit admins (200)
 - **Admin SQL query** — Admin can run SELECT; non-SELECT rejected; member action POST returns failure body
