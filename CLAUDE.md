@@ -2,7 +2,7 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phase 4 ✅ Complete (7/7)
+## Status — Phase 5 🚀 In Progress (Notifications & Background Tasks)
 
 **Phase 3 (Post Creation):** All 36+ tests passing. `tsc --noEmit` clean. Forum read/write fully functional with markdown, OG metadata, and permission enforcement. 
 
