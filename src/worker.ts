@@ -20,23 +20,107 @@
  */
 
 import { db } from '$lib/db';
+import { notificationQueue } from '$lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { sendEmail } from '$lib/email';
+
+async function processNotifications() {
+	try {
+		// Fetch up to 10 pending notifications atomically.
+		// FOR UPDATE SKIP LOCKED ensures multiple worker instances don't process the same row.
+		const pending = await db.execute(
+			db.raw(
+				`
+				SELECT id, recipient_did, type, payload, created_at
+				FROM notification_queue
+				WHERE status = 'pending'
+				ORDER BY created_at ASC
+				LIMIT 10
+				FOR UPDATE SKIP LOCKED
+				`
+			)
+		);
+
+		if (!pending || pending.length === 0) {
+			if (process.env.NODE_ENV === 'development') {
+				console.debug('[worker] no pending notifications');
+			}
+			return;
+		}
+
+		console.log(`[worker] processing ${pending.length} notifications`);
+
+		// Process each notification
+		for (const row of pending as any[]) {
+			const notifId = row.id;
+			const recipientDid = row.recipient_did;
+			const type = row.type;
+			const payload = row.payload;
+
+			try {
+				// Route by notification type
+				if (type === 'moderator_alert') {
+					await handleModeratorAlert(recipientDid, payload);
+				} else if (type === 'dm_notification') {
+					await handleDmNotification(recipientDid, payload);
+				} else if (type === 'profile_sync') {
+					await handleProfileSync(recipientDid, payload);
+				} else {
+					console.warn(`[worker] unknown notification type: ${type}`);
+				}
+
+				// Mark as sent
+				await db
+					.update(notificationQueue)
+					.set({
+						status: 'sent',
+						sentAt: new Date()
+					})
+					.where(eq(notificationQueue.id, notifId));
+
+				console.log(`[worker] ✓ notification ${notifId} sent`);
+			} catch (err) {
+				console.error(`[worker] failed to process notification ${notifId}:`, err);
+
+				// Mark as failed (don't retry — admin should investigate)
+				await db
+					.update(notificationQueue)
+					.set({
+						status: 'failed'
+					})
+					.where(eq(notificationQueue.id, notifId));
+			}
+		}
+	} catch (err) {
+		console.error('[worker] error in processNotifications:', err);
+	}
+}
+
+async function handleModeratorAlert(recipientDid: string, payload: any) {
+	// Placeholder: actual email sending implemented in Commit 3
+	console.log(`[worker:moderator_alert] to=${recipientDid} action=${payload.action}`);
+}
+
+async function handleDmNotification(recipientDid: string, payload: any) {
+	// Placeholder: DM sending implemented in Commit 4
+	console.log(`[worker:dm_notification] to=${recipientDid} type=${payload.notificationType}`);
+}
+
+async function handleProfileSync(recipientDid: string, payload: any) {
+	// Placeholder: profile sync implemented in Commit 5
+	console.log(`[worker:profile_sync] did=${recipientDid}`);
+}
 
 async function startNotificationWorker() {
 	console.log('[worker] notification worker started');
 
 	const pollInterval = 60 * 1000; // 60 seconds
 
-	setInterval(async () => {
-		try {
-			// Phase 5: Fill in actual DM/email sending logic
-			// For now, just log that we checked
-			if (process.env.NODE_ENV === 'development') {
-				console.debug('[worker] notification queue poll (stub)');
-			}
-		} catch (err) {
-			console.error('[worker] error processing notifications:', err);
-		}
-	}, pollInterval);
+	// Initial poll
+	await processNotifications();
+
+	// Then poll every 60 seconds
+	setInterval(processNotifications, pollInterval);
 }
 
 async function main() {
