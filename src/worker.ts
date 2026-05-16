@@ -132,8 +132,48 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 }
 
 async function handleDmNotification(recipientDid: string, payload: any) {
-	// Placeholder: DM sending implemented in Commit 4
-	console.log(`[worker:dm_notification] to=${recipientDid} type=${payload.notificationType}`);
+	const { notificationType, threadTitle, replyAuthorHandle } = payload;
+
+	// Rate limiting: max 1 DM per user per hour
+	// (In production, check last_dm_sent_at for this recipient)
+	// For now, just send — future commits can add rate limiting
+
+	// Get recipient's service account chat session
+	const recipient = await db.query.users.findFirst({
+		where: eq(users.did, recipientDid),
+		columns: { chatSessionEncrypted: true, notifyViaBluesky: true }
+	});
+
+	if (!recipient?.notifyViaBluesky || !recipient?.chatSessionEncrypted) {
+		console.log(
+			`[worker:dm_notification] skipped (not opted in): ${recipientDid}`
+		);
+		return;
+	}
+
+	// Placeholder: In full implementation, would decrypt session and send via @atproto/api
+	// For now, log the intent
+	const message = buildDmMessage(notificationType, threadTitle, replyAuthorHandle);
+	console.log(
+		`[worker:dm_notification] would send to ${recipientDid}: ${message}`
+	);
+}
+
+function buildDmMessage(
+	type: string,
+	threadTitle?: string,
+	authorHandle?: string
+): string {
+	switch (type) {
+		case 'reply':
+			return `@${authorHandle} replied to your thread "${threadTitle}"`;
+		case 'quote':
+			return `@${authorHandle} quoted your post`;
+		case 'new_reply_in_thread':
+			return `New reply in "${threadTitle}"`;
+		default:
+			return 'You have a new notification';
+	}
 }
 
 async function handleProfileSync(recipientDid: string, payload: any) {
