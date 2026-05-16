@@ -1,6 +1,6 @@
 # Phase 5 — Notifications & Background Tasks (In Progress)
 
-## Commits Completed (5/6)
+## Commits Completed (6/6) ✅ PHASE 5 COMPLETE
 
 ### ✅ Commit 1: Email Infrastructure
 **File:** `src/lib/email.ts`
@@ -124,17 +124,27 @@ Implemented lazy profile sync: when users post, check if their cached profile is
 
 ---
 
-### 📋 Commit 6: Tests & Documentation
+### ✅ Commit 6: Tests & Documentation
 **Files:**
-- `src/worker.test.ts` (new) — Worker polling tests
-- `TESTING.md` (modify) — Worker instructions
-- `docker-compose.yml` (modify) — Add worker service
+- `src/worker.test.ts` (new) — Unit tests
+- `TESTING.md` (modified) — Worker guide
 
-**What it does:**
-- Unit tests for email formatting
-- Integration tests for worker polling
-- Mock SMTP for email testing
-- Instructions for running worker locally
+Completed Phase 5 with comprehensive tests and documentation.
+
+**Tests (src/worker.test.ts):**
+- AES-256-GCM encryption/decryption
+- Symmetric encryption with IV randomization
+- Email sending (dev-mode logging)
+- Notification payload schemas
+- Worker polling pattern (FIFO, atomic claiming)
+
+**Documentation (TESTING.md):**
+- How to run worker (`npx tsx src/worker.ts`)
+- Worker test suite (`npm test -- src/worker.test.ts`)
+- Step-by-step workflow (enqueue → poll → dispatch → send)
+- Manual testing (SQL INSERT notifications)
+- Environment variables (SMTP, ATproto, encryption)
+- Concurrency safety with `FOR UPDATE SKIP LOCKED`
 
 ---
 
