@@ -23,9 +23,9 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — Phase 3.1 ✅
+## Status — Phase 4 🚀 In Progress
 
-**Phases 1, 2, 3, and 3.1 are complete.** All 36+ unit tests passing. TypeScript strict mode clean.
+**Phases 1, 2, 3, and 3.1 are complete.** Phase 4 (moderation) in progress. All 36+ unit tests passing. TypeScript strict mode clean.
 
 ### Phase 1 ✅ — Foundations
 - SvelteKit + adapter-node + Tailwind v4 + Vitest scaffold
