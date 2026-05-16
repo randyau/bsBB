@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts, users } from '$lib/db/schema';
+import { forums, threads, posts, users, userForumRoles, modLog } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -82,14 +82,57 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Check if user can post
 	const userCanPost = await canPost(db, forum.id, locals.user);
 
+	// Check if user can moderate (admin or forum-level moderator)
+	let canModerate = false;
+	if (locals.user) {
+		if (locals.user.globalRole === 'admin') {
+			canModerate = true;
+		} else {
+			const [forumRole] = await db
+				.select()
+				.from(userForumRoles)
+				.where(and(eq(userForumRoles.userDid, locals.user.did), eq(userForumRoles.forumId, forum.id)))
+				.limit(1);
+			canModerate = forumRole?.role === 'moderator';
+		}
+	}
+
 	return {
 		forum,
 		thread,
 		threadAuthor,
 		posts: enrichedPosts,
 		canPost: userCanPost,
+		canModerate,
+		user: locals.user ?? null,
 	};
 };
+
+async function loadForMod(locals: App.Locals, params: { forumSlug: string; threadId: string }) {
+	if (!locals.user) throw error(403, 'Not authenticated');
+
+	const [forum] = await db.select().from(forums).where(eq(forums.slug, params.forumSlug)).limit(1);
+	if (!forum) throw error(404, 'Forum not found');
+
+	const [thread] = await db
+		.select()
+		.from(threads)
+		.where(and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)))
+		.limit(1);
+	if (!thread) throw error(404, 'Thread not found');
+
+	const isAdmin = locals.user.globalRole === 'admin';
+	if (!isAdmin) {
+		const [forumRole] = await db
+			.select()
+			.from(userForumRoles)
+			.where(and(eq(userForumRoles.userDid, locals.user.did), eq(userForumRoles.forumId, forum.id)))
+			.limit(1);
+		if (forumRole?.role !== 'moderator') throw error(403, 'Moderator access required');
+	}
+
+	return { user: locals.user, forum, thread };
+}
 
 export const actions: Actions = {
 	reply: async ({ locals, params, request, getClientAddress }) => {
@@ -170,5 +213,56 @@ export const actions: Actions = {
 		}
 
 		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
+	},
+
+	lockThread: async ({ locals, params }) => {
+		const { user, thread: t, forum: f } = await loadForMod(locals, params);
+		await db.update(threads).set({ isLocked: true }).where(eq(threads.id, t.id));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'lock_thread', targetThreadId: t.id });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	unlockThread: async ({ locals, params }) => {
+		const { user, thread: t, forum: f } = await loadForMod(locals, params);
+		await db.update(threads).set({ isLocked: false }).where(eq(threads.id, t.id));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'unlock_thread', targetThreadId: t.id });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	pinThread: async ({ locals, params }) => {
+		const { user, thread: t, forum: f } = await loadForMod(locals, params);
+		if (locals.user?.globalRole !== 'admin') return fail(403, { error: 'Only admins can pin threads' });
+		await db.update(threads).set({ isPinned: true }).where(eq(threads.id, t.id));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'pin_thread', targetThreadId: t.id });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	unpinThread: async ({ locals, params }) => {
+		const { user, thread: t, forum: f } = await loadForMod(locals, params);
+		if (locals.user?.globalRole !== 'admin') return fail(403, { error: 'Only admins can unpin threads' });
+		await db.update(threads).set({ isPinned: false }).where(eq(threads.id, t.id));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'unpin_thread', targetThreadId: t.id });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	deletePost: async ({ locals, params, request }) => {
+		const { user, forum: f, thread: t } = await loadForMod(locals, params);
+		const form = await request.formData();
+		const postId = String(form.get('postId') ?? '').trim();
+		const reason = String(form.get('reason') ?? '').trim();
+		if (!postId) return fail(422, { error: 'Post ID required' });
+		await db.update(posts).set({ isDeleted: true }).where(eq(posts.id, postId));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'delete_post', targetPostId: postId, reason: reason || undefined });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	restorePost: async ({ locals, params, request }) => {
+		const { user, forum: f, thread: t } = await loadForMod(locals, params);
+		const form = await request.formData();
+		const postId = String(form.get('postId') ?? '').trim();
+		if (!postId) return fail(422, { error: 'Post ID required' });
+		await db.update(posts).set({ isDeleted: false }).where(eq(posts.id, postId));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'restore_post', targetPostId: postId });
+		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
 	},
 };

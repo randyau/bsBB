@@ -106,6 +106,36 @@
 			{#if data.thread.isLocked}
 				<span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">locked</span>
 			{/if}
+
+			{#if data.canModerate}
+				<details class="relative ml-auto">
+					<summary class="cursor-pointer text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded list-none select-none">
+						Thread actions ▾
+					</summary>
+					<div class="absolute right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-10 min-w-[160px]">
+						{#if data.thread.isLocked}
+							<form method="POST" action="?/unlockThread">
+								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Unlock thread</button>
+							</form>
+						{:else}
+							<form method="POST" action="?/lockThread">
+								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Lock thread</button>
+							</form>
+						{/if}
+						{#if data.user?.globalRole === 'admin'}
+							{#if data.thread.isPinned}
+								<form method="POST" action="?/unpinThread">
+									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Unpin thread</button>
+								</form>
+							{:else}
+								<form method="POST" action="?/pinThread">
+									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Pin thread</button>
+								</form>
+							{/if}
+						{/if}
+					</div>
+				</details>
+			{/if}
 		</div>
 
 		<p class="mt-2 text-sm text-gray-600">
@@ -164,6 +194,28 @@
 								>
 									{quotedPostId === post.id ? '✓ Quoted' : 'Quote'}
 								</button>
+							{/if}
+
+							{#if data.canModerate}
+								<details class="relative">
+									<summary class="cursor-pointer text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded list-none select-none">
+										⋯
+									</summary>
+									<div class="absolute right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-10 min-w-[140px]">
+										{#if post.isDeleted}
+											<form method="POST" action="?/restorePost">
+												<input type="hidden" name="postId" value={post.id} />
+												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Restore post</button>
+											</form>
+										{:else}
+											<form method="POST" action="?/deletePost" onsubmit={(e) => { const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
+												<input type="hidden" name="postId" value={post.id} />
+												<input type="hidden" name="reason" value="" />
+												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete post</button>
+											</form>
+										{/if}
+									</div>
+								</details>
 							{/if}
 						</div>
 					</div>
