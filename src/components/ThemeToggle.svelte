@@ -26,12 +26,23 @@
 	{:else}
 		<svg
 			class="w-5 h-5"
-			fill="currentColor"
 			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
 			aria-hidden="true"
 		>
 			<circle cx="12" cy="12" r="5" />
-			<path d="M12 1v6m0 6v6M23 12h-6m-6 0H1M20.485 3.515l-4.243 4.243m0 5.486l4.243 4.243M3.515 3.515l4.243 4.243m0 5.486l-4.243 4.243" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+			<line x1="12" y1="1" x2="12" y2="3" />
+			<line x1="12" y1="21" x2="12" y2="23" />
+			<line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+			<line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+			<line x1="1" y1="12" x2="3" y2="12" />
+			<line x1="21" y1="12" x2="23" y2="12" />
+			<line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+			<line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
 		</svg>
 	{/if}
 </button>
