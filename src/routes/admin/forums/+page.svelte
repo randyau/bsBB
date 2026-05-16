@@ -164,8 +164,10 @@
 							<tr style="border-bottom-color: rgb(var(--color-border))" class="border-b">
 								<td class="px-4 py-3 font-semibold">{mod.forumName}</td>
 								<td class="px-4 py-3 text-sm">
-									<div>{mod.userDisplayName || mod.userHandle}</div>
-									<div class="text-xs text-muted font-mono">{mod.userDid}</div>
+									<a href="/user/{mod.userHandle}" class="link font-semibold hover:underline">{mod.userDisplayName || mod.userHandle}</a>
+									<div class="text-xs text-muted font-mono">
+										<a href="/user/{mod.userHandle}" class="link hover:underline">@{mod.userHandle}</a>
+									</div>
 								</td>
 								<td class="px-4 py-3">
 									<form method="POST" action="?/removeMod" class="inline">

@@ -1,5 +1,5 @@
 import { eq, and, isNull } from 'drizzle-orm';
-import { forums, forumPermissions, userForumRoles, instanceSettings } from '$lib/db/schema';
+import { forums, forumPermissions, userForumRoles, userRoles, roles, instanceSettings } from '$lib/db/schema';
 import type { SessionUser } from '$lib/auth/session';
 import type { db as dbType } from '$lib/db';
 
@@ -60,7 +60,15 @@ export async function canRead(
 		}
 	}
 
-	// No explicit permission found — fall back to instance default
+	// No explicit permission found — check if user has custom roles that grant access
+	if (user) {
+		const hasCustom = await hasCustomRolePermission(db, forumId, user.did, 'canRead');
+		if (hasCustom) {
+			return true;
+		}
+	}
+
+	// Fall back to instance default
 	const defaultVisibility = await db.query.instanceSettings.findFirst({
 		where: eq(instanceSettings.key, 'default_forum_visibility'),
 	});
@@ -131,7 +139,13 @@ export async function canPost(
 		}
 	}
 
-	// No explicit permission found — members can post by default, only guests cannot
+	// No explicit permission found — check if user has custom roles that grant post access
+	const hasCustom = await hasCustomRolePermission(db, forumId, user.did, 'canPost');
+	if (hasCustom) {
+		return true;
+	}
+
+	// Members can post by default, only guests cannot
 	return true;
 }
 
@@ -164,4 +178,47 @@ async function getParentChain(db: typeof dbType, forumId: string): Promise<strin
 	}
 
 	return chain;
+}
+
+/**
+ * Check if a user has any custom roles that grant a specific permission for a forum.
+ * Custom roles can only grant permissions (never deny). Returns true on first match.
+ */
+async function hasCustomRolePermission(
+	db: typeof dbType,
+	forumId: string,
+	userDid: string,
+	field: 'canRead' | 'canPost'
+): Promise<boolean> {
+	// Get all custom role names assigned to this user
+	const assigned = await db
+		.select({ roleName: roles.name })
+		.from(userRoles)
+		.innerJoin(roles, eq(userRoles.roleId, roles.id))
+		.where(eq(userRoles.userDid, userDid));
+
+	if (assigned.length === 0) {
+		return false;
+	}
+
+	// Walk the forum parent chain looking for permission rows
+	const parentChain = await getParentChain(db, forumId);
+
+	for (const chainForumId of parentChain) {
+		for (const { roleName } of assigned) {
+			const perm = await db.query.forumPermissions.findFirst({
+				where: and(
+					eq(forumPermissions.forumId, chainForumId),
+					eq(forumPermissions.role, roleName)
+				),
+			});
+
+			// If permission exists and field is true, grant access
+			if (perm && perm[field]) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

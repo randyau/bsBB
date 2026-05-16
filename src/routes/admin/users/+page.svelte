@@ -36,7 +36,9 @@
 			<tbody>
 				{#each data.users as user (user.did)}
 					<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
-						<td class="px-4 py-3 font-mono text-xs">{user.handle}</td>
+						<td class="px-4 py-3 font-mono text-xs">
+							<a href="/user/{user.handle}" class="link hover:underline">{user.handle}</a>
+						</td>
 						<td class="px-4 py-3">{user.displayName || '—'}</td>
 						<td class="px-4 py-3">
 							<span
