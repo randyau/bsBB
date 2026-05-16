@@ -14,7 +14,7 @@
 	class="p-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] transition-colors"
 	aria-label="Toggle theme"
 >
-	{#if currentTheme === 'light'}
+	{#if currentTheme === 'dark'}
 		<svg
 			class="w-5 h-5"
 			fill="currentColor"

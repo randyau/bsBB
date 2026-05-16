@@ -11,7 +11,7 @@ function createThemeStore() {
 		? window.matchMedia('(prefers-color-scheme: dark)').matches
 		: false;
 
-	const initialTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+	const initialTheme = storedTheme || 'dark';
 	const { subscribe, set } = writable<Theme>(initialTheme);
 
 	return {

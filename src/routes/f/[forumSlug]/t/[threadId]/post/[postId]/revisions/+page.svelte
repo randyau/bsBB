@@ -69,7 +69,7 @@
 							<!-- Original Content -->
 							<div>
 								<h4 class="font-semibold text-sm mb-2">Original content:</h4>
-								<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-[rgb(var(--color-border))]">
+								<div class="prose-content bg-white p-3 rounded border border-[rgb(var(--color-border))]">
 									{@html revision.bodyHtml}
 								</div>
 								<details class="mt-2">
@@ -84,7 +84,7 @@
 							{#if revision === data.revisions[data.revisions.length - 1]}
 								<div class="pt-4 border-t border-[rgb(var(--color-border))]">
 									<h4 class="font-semibold text-sm mb-2">Current content (after this edit):</h4>
-									<div class="prose prose-sm max-w-none bg-white p-3 rounded border border-[rgb(var(--color-border))]">
+									<div class="prose-content bg-white p-3 rounded border border-[rgb(var(--color-border))]">
 										{@html data.post.bodyHtml}
 									</div>
 									<details class="mt-2">

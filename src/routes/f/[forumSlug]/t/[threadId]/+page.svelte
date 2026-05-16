@@ -181,24 +181,24 @@
 
 	<!-- Posts -->
 	{#if data.posts.length === 0}
-		<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))] p-6 text-center text-[rgb(var(--color-text-muted))]">
+		<div class="box-secondary text-center">
 			<p>No posts yet.</p>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			{#each data.posts as post (post.id)}
-				<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] p-6">
+				<div class="post">
 					<!-- Post Header -->
-					<div class="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-[rgb(var(--color-border))]">
-						<div class="flex items-center gap-3">
+					<div class="post-header">
+						<div class="post-author">
 							{#if post.authorAvatarUrl}
 								<img
 									src={post.authorAvatarUrl}
 									alt={post.authorHandle}
-									class="w-10 h-10 rounded-full"
+									class="post-avatar"
 								/>
 							{:else}
-								<div class="w-10 h-10 rounded-full bg-[rgb(var(--color-bg-tertiary))]"></div>
+								<div class="post-avatar"></div>
 							{/if}
 
 							<div>
@@ -270,9 +270,9 @@
 
 					<!-- Quoted Post (if reply) -->
 					{#if post.quotedPost}
-						<div class="mb-4 pl-4 border-l-4 border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))] p-3 text-sm">
-							<p class="font-semibold text-[rgb(var(--color-text-secondary))]">{post.quotedPost.authorHandle}</p>
-							<div class="mt-1 text-[rgb(var(--color-text-muted))] line-clamp-3">
+						<div class="quoted-post">
+							<p class="font-semibold">{post.quotedPost.authorHandle}</p>
+							<div class="mt-1 line-clamp-3">
 								{@html post.quotedPost.bodyPreview}
 							</div>
 						</div>
@@ -308,7 +308,7 @@
 					{:else if post.isDeleted}
 						<p class="italic text-[rgb(var(--color-text-muted))]">[post deleted]</p>
 					{:else}
-						<div class="prose prose-sm max-w-none">
+						<div class="prose-content">
 							{@html post.bodyHtml}
 						</div>
 					{/if}
@@ -319,13 +319,13 @@
 
 	<!-- Reply Form -->
 	{#if !data.thread.isLocked}
-		<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] p-6">
+		<div class="box">
 			{#if !data.user}
-				<p class="text-[rgb(var(--color-text-secondary))] text-center">
+				<p class="text-center text-secondary">
 					<a href="/login" class="text-[rgb(var(--color-primary))] hover:underline">Sign in</a> to reply
 				</p>
 			{:else if !data.canPost}
-				<p class="text-[rgb(var(--color-text-secondary))] text-center">You do not have permission to post in this forum.</p>
+				<p class="text-center text-secondary">You do not have permission to post in this forum.</p>
 			{:else}
 				<h3 class="text-lg font-semibold mb-4">Reply to this thread</h3>
 
@@ -379,7 +379,7 @@
 							<div>
 								<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
 								<div
-									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm prose-invert max-w-none min-h-[150px] overflow-auto"
+									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[150px] overflow-auto prose-content"
 								>
 									{#if replyBody.trim()}
 										{@html previewHtml}

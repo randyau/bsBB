@@ -96,7 +96,7 @@
 				<div>
 					<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
 					<div
-						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] prose prose-sm prose-invert max-w-none min-h-[300px] overflow-auto"
+						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[300px] overflow-auto prose-content"
 					>
 						{#if bodyValue.trim()}
 							{@html previewHtml}

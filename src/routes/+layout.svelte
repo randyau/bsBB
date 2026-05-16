@@ -20,7 +20,7 @@
 	// Initialize theme on mount
 	$effect(() => {
 		if (typeof window !== 'undefined') {
-			const storedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+			const storedTheme = localStorage.getItem('theme') || 'dark';
 			document.documentElement.setAttribute('data-theme', storedTheme);
 		}
 	});
@@ -60,4 +60,6 @@
 	</div>
 </nav>
 
-{@render children()}
+<div class="container">
+	{@render children()}
+</div>
