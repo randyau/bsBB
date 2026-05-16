@@ -23,11 +23,11 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — Phase 1 ✅
+## Status — Phase 3 ✅
 
-**Phase 1 (Foundations) is complete.** All 35 unit tests passing. TypeScript strict mode clean. 
+**Phases 1, 2, and 3 are complete.** All 35+ unit tests passing. TypeScript strict mode clean.
 
-Implemented:
+### Phase 1 ✅ — Foundations
 - SvelteKit + adapter-node + Tailwind v4 + Vitest scaffold
 - PostgreSQL 17 schema (12 tables) + Drizzle ORM
 - Custom roll-your-own sessions (32-byte token, SHA-256 hash, Postgres-backed)
@@ -37,7 +37,24 @@ Implemented:
 - Docker Compose (dev + prod configs)
 - Setup scripts (keypair generation, DB migration, seeding)
 
-**Ready for Phase 2:** Forum/thread/post CRUD and read operations.
+### Phase 2 ✅ — Read-Only Forum
+- Forum index with pagination and permission filtering
+- Thread listing per forum with pinned/locked badges
+- Thread detail view with flat post list and quote previews
+- Permission enforcement: `canRead` checks on forum/thread access
+- URL routing with slug-based redirects
+
+### Phase 3 ✅ — Post Creation & Content
+- New thread creation form (`/f/[forumSlug]/new`)
+- Inline reply form on thread detail with quote button
+- Markdown preview endpoint (`POST /api/preview`)
+- Markdown rendering pipeline (unified + remark + rehype + sanitize)
+- OG metadata fetching for bare-line URLs (5s timeout, graceful errors)
+- Thread slug generation with uniqueness retry
+- `canPost` permission checks
+- Atomic thread+post insertion with `lastPostAt` updates
+
+**Ready for Phase 4:** Moderation tools (delete/restore posts, ban/unban) and real rate limiting.
 
 ---
 
@@ -87,27 +104,27 @@ bsBB/
 │   │   │   └── profile-sync.ts           # Lazy DID profile re-sync logic
 │   │   │
 │   │   ├── permissions/
-│   │   │   └── index.ts                  # Pure permission resolution — no I/O
+│   │   │   ├── index.ts                  # canRead() + canPost() — permission resolution with parent chain walk
+│   │   │   └── index.test.ts             # Permission tests (requires DATABASE_URL)
 │   │   │
 │   │   ├── markdown/
-│   │   │   └── index.ts                  # unified pipeline: parse → sanitize → stringify
+│   │   │   ├── index.ts                  # renderMarkdown() — unified pipeline: parse → rehype → sanitize → stringify
+│   │   │   ├── og.ts                     # fetchLinkMetadata() — OG metadata fetch (bare-URL-on-own-line only)
+│   │   │   └── slug.ts                   # generateSlug() — Title → URL slug with uniqueness retry
 │   │   │
 │   │   ├── notifications/
-│   │   │   ├── worker.ts                 # setInterval polling loop
-│   │   │   ├── send-dm.ts                # @atproto/api chat send, rate-limit check
-│   │   │   └── send-email.ts             # Nodemailer wrapper (sendEmail fn only)
-│   │   │
-│   │   ├── og/
-│   │   │   └── index.ts                  # OG metadata fetch (bare-URL-on-own-line only)
+│   │   │   ├── worker.ts                 # (Phase 5) setInterval polling loop
+│   │   │   ├── send-dm.ts                # (Phase 5) @atproto/api chat send, rate-limit check
+│   │   │   └── send-email.ts             # (Phase 5) Nodemailer wrapper (sendEmail fn only)
 │   │   │
 │   │   ├── crypto/
-│   │   │   └── index.ts                  # AES-256 encrypt/decrypt for chat_session_encrypted
+│   │   │   └── index.ts                  # (Phase 5) AES-256 encrypt/decrypt for chat_session_encrypted
 │   │   │
 │   │   ├── abuse/
 │   │   │   └── index.ts                  # checkAbuse() — single entry point for all rate-limit/spam checks
-│   │   │                                 # Phase 1: stub (always allows). Phase 4: real logic.
+│   │   │                                 # Phase 1-3: stub (always allows). Phase 4: real logic.
 │   │   └── utils/
-│   │       └── slug.ts                   # Title → URL slug generation
+│   │       └── (phase 6 migrations)
 │   │
 │   └── routes/
 │       ├── +layout.server.ts             # Global session/user hydration
@@ -120,21 +137,21 @@ bsBB/
 │       │   └── logout/+server.ts
 │       │
 │       ├── (forum)/
-│       │   ├── +page.svelte              # Forum index — list of top-level forums
+│       │   ├── +page.svelte              # Forum index — list of top-level forums (read-only, Phase 2)
 │       │   ├── +page.server.ts
 │       │   │
 │       │   └── f/
 │       │       └── [forumSlug]/
-│       │           ├── +page.svelte          # Thread list for forum
+│       │           ├── +page.svelte          # Thread list for forum (Phase 2)
 │       │           ├── +page.server.ts
-│       │           ├── new/                  # New thread form
-│       │           │   ├── +page.svelte
-│       │           │   └── +page.server.ts
+│       │           ├── new/                  # New thread form (Phase 3)
+│       │           │   ├── +page.svelte       # Form with markdown editor + preview toggle
+│       │           │   └── +page.server.ts    # Thread creation, slug generation, OG fetch
 │       │           └── t/
 │       │               └── [threadId]/
-│       │                   ├── +page.svelte       # Thread view — flat post list
-│       │                   ├── +page.server.ts
-│       │                   └── [titleSlug]/       # Cosmetic slug — router ignores, redirects to canonical
+│       │                   ├── +page.svelte       # Thread view — flat post list + inline reply form (Phase 2/3)
+│       │                   ├── +page.server.ts    # Thread load + reply action (Phase 3)
+│       │                   └── [titleSlug]/       # Cosmetic slug — redirects to canonical (Phase 2)
 │       │                       └── +server.ts
 │       │
 │       ├── (user)/
@@ -162,11 +179,13 @@ bsBB/
 │       │
 │       └── api/
 │           └── preview/
-│               └── +server.ts            # POST: render markdown server-side for editor preview
+│               └── +server.ts            # POST: render markdown server-side for editor preview (Phase 3)
 │
 ├── scripts/
 │   ├── setup.sh                          # First-run setup (keypair, client-metadata.json, .env)
 │   ├── migrate.sh                        # Wrapper: runs drizzle-kit migrate inside WSL/container
+│   ├── test-integration.sh                # Run tests requiring DATABASE_URL (interactive, sudo-friendly)
+│   ├── verify-tests.sh                    # Verification checklist (type, build, tests, routes)
 │   └── admin-promote.sh                  # Breakglass: docker exec → promote DID to admin
 │
 ├── docker/
@@ -453,19 +472,29 @@ This allows patterns like:
 
 ### Implementation Location
 
-All permission resolution lives exclusively in `src/lib/permissions/index.ts`.
-Functions are pure — they take a user object + resolved forum_permissions rows and return a permissions result. No DB calls inside permission functions. Callers load the data, then call the function.
+All permission resolution lives in `src/lib/permissions/index.ts`. Both `canRead` and `canPost` functions:
+- Async (DB queries needed for parent chain walk)
+- Take: `db`, `forumId`, `user` (SessionUser | null)
+- Return: `boolean`
+- Walk parent forum chain looking for explicit `forum_permissions` rows
+- Fall back to instance default (`default_forum_visibility`)
+- Admin always allowed, banned always denied, guest cannot post (ever)
 
 ```typescript
 // src/lib/permissions/index.ts
-export function resolvePermissions(
-  user: SessionUser | null,
-  forumChain: Forum[],           // [leaf forum, ..., root forum]
-  permissionRows: ForumPermission[],
-  userForumRole: UserForumRole | null,
-  instanceDefault: 'public' | 'members-only'
-): ResolvedPermissions
+export async function canRead(db, forumId: string, user: SessionUser | null): Promise<boolean>
+export async function canPost(db, forumId: string, user: SessionUser | null): Promise<boolean>
+
+// Both internally use:
+async function getParentChain(db, forumId: string): Promise<string[]>
 ```
+
+Queries flow:
+- Load user's per-forum role from `user_forum_roles` (if authenticated)
+- Walk `forums.parent_id` chain up to root
+- For each forum, check `forum_permissions` row for effective role
+- If no explicit row: check parent (inherit)
+- If no matches anywhere: use instance default from `instance_settings`
 
 ---
 
@@ -478,9 +507,13 @@ export function resolvePermissions(
 3. `@atproto/oauth-client-node` initiates PAR + DPoP flow, redirects user to their PDS
 4. User authorizes; PDS redirects to `/callback/`
 5. SDK completes token exchange; DID extracted from `sub` field (cryptographically verified)
-6. Lucia session created, session cookie set (`SameSite=Strict`, `HttpOnly`, `Secure`)
+6. Custom session created: 32-byte random token → SHA-256 hash stored in DB, raw token in cookie (`SameSite=Strict`, `HttpOnly`, `Secure`)
+   - Implementation: `src/lib/auth/session.ts` — `createSession()`
+   - Cookie TTL: 30 days rolling; refreshed if < 15 days remain
+   - Probabilistic cleanup: 1% of requests fire async DELETE of expired sessions (no separate cron job)
 7. `users` row upserted: create on first login, update `handle`/`display_name`/`avatar_url`/`last_profile_sync` on every login
 8. If `instance_settings.first_admin_claimed = 'false'`: promote this user to `global_role = 'admin'`, set `first_admin_claimed = 'true'`, write `mod_log` entry. Show one-time notice.
+   - Implementation: `src/lib/auth/user.ts` — `claimFirstAdmin()`
 
 ### Tier 2 (DM notifications opt-in)
 
@@ -513,10 +546,12 @@ If `globalRole === 'banned'`: redirect to `/banned/` immediately (except `/banne
 
 ## 7. Content Pipeline
 
-### Post Submission Flow
+### Post/Thread Submission Flow (Phase 3)
 
 1. Server action receives `body_markdown` from form
-2. Run markdown pipeline → `body_html`:
+2. Validate: title (1-300 chars) + body (1-50,000 chars)
+3. Run abuse check: `checkAbuse({ type: 'thread_create' | 'post_submit', ... })`
+4. Render markdown pipeline → `body_html`:
    ```
    body_markdown
      → remark-parse (parse to mdast)
@@ -524,27 +559,54 @@ If `globalRole === 'banned'`: redirect to `/banned/` immediately (except `/banne
      → rehype-sanitize (strip disallowed tags/attrs)
      → rehype-stringify (serialize to HTML string)
    ```
-3. Scan `body_markdown` for bare URLs (regex: line that is only a URL, optional whitespace):
-   - If found: fetch OG metadata via `open-graph-scraper` (timeout: 3s, single attempt)
-   - Store result in `link_metadata` JSONB, or `null` on failure/timeout
-4. If post is an edit: save current `body_markdown` + `body_html` to `post_revisions` first, increment `revision_number`, then update `posts`
-5. Insert/update `posts` row (DB commit)
-6. Update `threads.last_post_at`
-7. Enqueue notification records to `notification_queue` (same transaction as step 5)
-8. Trigger lazy profile sync if needed (async, non-blocking)
+   Implementation: `src/lib/markdown/index.ts` — `renderMarkdown()`
+5. Scan `body_markdown` for bare URLs (first line matching `/^https?:\/\/\S+$/`):
+   - If found: fetch OG metadata via `open-graph-scraper` (timeout: 5s)
+   - Store in `link_metadata` JSONB, or `null` on any error/timeout (never blocks submission)
+   - Implementation: `src/lib/markdown/og.ts` — `fetchLinkMetadata()`
+6. **For new threads only:**
+   - Generate slug from title: `src/lib/markdown/slug.ts` — `generateSlug()`
+   - Retry with numeric suffix on uniqueness conflict (max 5 retries)
+7. DB transaction (atomic):
+   - For threads: `INSERT threads`, then `INSERT posts` (first post), then `UPDATE threads.last_post_at`
+   - For replies: `INSERT posts`, then `UPDATE threads.last_post_at`
+8. (Phase 5) Enqueue notification records to `notification_queue`
+9. (Phase 5) Trigger lazy profile sync if needed (async, non-blocking)
 
-### Editor Preview
+### New Thread Form (Phase 3)
 
-CodeMirror 6 editor in the browser. Preview mode (button toggle) POSTs `body_markdown` to `POST /api/preview/` which runs the same server-side pipeline and returns `body_html`. No client-side markdown rendering library needed.
+Route: `POST /f/[forumSlug]/new`
+- Displays form with title input + markdown body textarea
+- Preview toggle: POSTs to `POST /api/preview/`, renders server-side HTML in read-only div
+- On submit: validates, generates slug, creates thread + first post atomically
+- On error: returns form data + error message for repopulation
+- Post-creation: 303 redirect to `/f/[forumSlug]/t/[threadId]`
+
+### Reply Form (Phase 3)
+
+Route: `POST /f/[forumSlug]/t/[threadId]?/reply`
+- Inline form on thread detail page
+- Quote button per post: sets hidden `replyToPostId` field
+- On submit: validates body, creates post, updates `threads.last_post_at`
+- Disabled if thread is locked or user lacks permission
+- Same validation + markdown + OG pipeline as new threads
+
+### Editor Preview Endpoint
+
+Route: `POST /api/preview/` (Phase 3)
+- Input: FormData with `body` (markdown text)
+- Output: JSON with `{ html: "..." }`
+- Runs same markdown pipeline as post submission
+- No authentication required (safe to preview)
+- No client-side markdown library — pure server-side rendering
 
 ### OG Link Detection Rule
 
 ```
-Bare URL = a line in the markdown source that matches:
-  /^\s*(https?:\/\/[^\s]+)\s*$/m
+Bare URL = first line in markdown matching: /^https?:\/\/\S+$/
 ```
 
-Only the first match per post is fetched. If the URL is inside a code block or inline in a sentence, it does not trigger. Admins can disable OG fetching instance-wide via `instance_settings` if spam/abuse is an issue.
+Only one URL per post. If inside code block or inline in a sentence, not detected (by design — prevents noise from example URLs in prose). Errors are silent (5s timeout, network failure, malformed response) — never blocks post submission.
 
 ---
 
@@ -867,13 +929,50 @@ src/lib/abuse/
 
 ## 14. Implementation Phases
 
-Moved to **IMPLEMENTATION_PLAN.md**. That document contains the full task breakdown,
-per-task test gates, and phase completion checklists.
+Detailed plans are in phase-specific documents and the plan file. Current status:
 
-Summary of phases:
-1. Foundations — scaffold, DB, auth, sessions, setup script
-2. Read-Only Forum — pages, permission enforcement, URL routing
-3. Posting & Content — editor, markdown pipeline, OG, revisions
-4. Moderation & Permissions — mod tools, ban, rate limiting (wire up `checkAbuse`)
-5. Notifications & Admin — worker, DMs, email, admin UI, breakglass
-6. Search & Shipping — full-text search, Docker, README
+### Phase 1 ✅ — Foundations
+- Scaffold, DB, auth, sessions, setup script
+- 35+ unit tests passing
+- All 12 DB tables with migrations
+- Roll-your-own sessions with self-pruning cleanup
+- ATproto OAuth with DPoP/PAR
+- Docker Compose (dev + prod)
+
+### Phase 2 ✅ — Read-Only Forum
+- Forum index, thread listing, thread detail pages
+- Permission enforcement with `canRead` checks
+- Flat post list with quote previews
+- Slug-based URL routing with 301 redirects
+- Pagination (20 items per page)
+
+### Phase 3 ✅ — Posting & Content
+- New thread creation with slug generation + uniqueness retry
+- Inline reply form with quote button
+- Markdown preview endpoint (`POST /api/preview`)
+- Markdown rendering (unified + remark + rehype + sanitize)
+- OG metadata fetching (bare URLs, 5s timeout, graceful errors)
+- `canPost` permission checks
+- Atomic transactions for thread+post insertion
+
+### Phase 4 — Moderation & Rate Limiting (Next)
+- Real `checkAbuse()` implementation with atomic INSERT...ON CONFLICT
+- Ban/unban users (soft flag in `users.global_role`)
+- Post soft-delete + restore
+- Thread lock/pin
+- Rate limit checks by DID post-auth, by IP pre-auth
+
+### Phase 5 — Notifications & Admin
+- Notification worker (separate `src/worker.ts` process with FOR UPDATE SKIP LOCKED)
+- Bluesky DM notifications (opt-in, encrypted tokens)
+- Email notifications (Nodemailer + SMTP)
+- Admin UI (forum management, user roles, instance settings)
+- Audit log viewer
+- Breakglass admin promotion
+
+### Phase 6 — Post Edits, Search & Shipping
+- Post revision tracking (`post_revisions` table)
+- Full-text search (`tsvector` + GIN index)
+- Production Docker build optimization
+- README + deployment guide
+- Setup script validation
