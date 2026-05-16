@@ -1,6 +1,6 @@
 # Phase 4 — Moderation & Admin Interface (In Progress)
 
-## Commits Completed (4/7)
+## Commits Completed (5/7)
 
 ### ✅ Commit 1: Real Rate Limiting
 **File:** `src/lib/abuse/index.ts`
@@ -60,9 +60,7 @@ Returns `AbuseVerdict` with allowed/denied status and retry-after seconds.
 
 ---
 
-## Commits Remaining (3/7)
-
-### ⏳ Commit 5: Admin Threads Page
+### ✅ Commit 5: Admin Threads Page
 **Files:**
 - `src/routes/admin/threads/+page.server.ts` — Thread actions (lock/unlock/pin/unpin)
 - `src/routes/admin/threads/+page.svelte` — Thread table with action buttons
@@ -77,7 +75,11 @@ Returns `AbuseVerdict` with allowed/denied status and retry-after seconds.
 
 ---
 
-### ⏳ Commit 6: Admin Posts Page
+## Commits Remaining (2/7)
+
+---
+
+### ⏳ Commit 6: Admin Posts Page (Next)
 **Files:**
 - `src/routes/admin/posts/+page.server.ts` — Post actions (delete/restore)
 - `src/routes/admin/posts/+page.svelte` — Post table with action buttons
