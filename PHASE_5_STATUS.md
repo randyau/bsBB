@@ -1,6 +1,6 @@
 # Phase 5 — Notifications & Background Tasks (In Progress)
 
-## Commits Completed (1/6)
+## Commits Completed (2/6)
 
 ### ✅ Commit 1: Email Infrastructure
 **File:** `src/lib/email.ts`
@@ -27,19 +27,29 @@ In development without these vars, emails are logged to console.
 
 ---
 
-## Remaining Commits (5/6)
+### ✅ Commit 2: Notification Worker — Core Loop
+**File:** `src/worker.ts`
 
-### 📋 Commit 2: Notification Worker — Core Loop
-**Files:**
-- `src/worker.ts` — Main polling loop with `FOR UPDATE SKIP LOCKED`
+Implemented main polling loop that fetches pending notifications from the queue and processes them safely under concurrent access using PostgreSQL's `FOR UPDATE SKIP LOCKED`.
 
-**What it does:**
-- Polls `notification_queue` every 60 seconds
-- Atomically claims pending notifications
-- Processes each and marks as `sent` or `failed`
-- Handles errors without crashing
+**Features:**
+- Polls every 60 seconds (configurable)
+- Atomically claims up to 10 pending notifications per poll
+- Routes by notification type (`moderator_alert`, `dm_notification`, `profile_sync`)
+- Marks as `sent` on success or `failed` on error
+- Graceful error handling — logs and marks as failed (no retry loop)
+- Safe for multiple concurrent worker instances
+
+**How it works:**
+1. Query pending notifications with `FOR UPDATE SKIP LOCKED` (prevents race conditions)
+2. For each notification, route to handler by type
+3. Handler processes (placeholder for now, filled in later commits)
+4. Mark as sent or failed based on outcome
+5. Next poll after 60 seconds
 
 ---
+
+## Remaining Commits (4/6)
 
 ### 📋 Commit 3: Moderator Email Alerts
 **Files:**
