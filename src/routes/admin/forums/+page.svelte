@@ -226,4 +226,71 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Permissions Matrix -->
+	{#if data.roles.length > 0}
+		<div class="space-y-4">
+			<h2 class="text-xl font-semibold">Role Permissions</h2>
+			<div class="card-secondary space-y-4">
+				<p class="text-sm text-[rgb(var(--color-text-muted))]">
+					Set per-role permissions for each forum. Roles inherit permissions from parent forums unless explicitly overridden.
+				</p>
+
+				{#each data.forums as forum (forum.id)}
+					<details class="border border-[rgb(var(--color-border))] rounded">
+						<summary class="p-4 font-semibold cursor-pointer hover:bg-[rgb(var(--color-bg-secondary))]">
+							{forum.name}
+						</summary>
+						<div class="p-4 border-t border-[rgb(var(--color-border))] overflow-x-auto">
+							<table class="w-full text-xs">
+								<thead class="border-b border-[rgb(var(--color-border))]">
+									<tr>
+										<th class="text-left py-2 px-2">Role</th>
+										<th class="text-center py-2 px-2">Read</th>
+										<th class="text-center py-2 px-2">Post</th>
+										<th class="text-center py-2 px-2">Moderate</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each ['guest', 'member', 'moderator', 'admin', ...data.roles.map(r => r.name)] as roleName}
+										{@const perm = data.permissions[forum.id]?.find(p => p.role === roleName)}
+										<tr class="border-b border-[rgb(var(--color-border))]">
+											<td class="py-2 px-2 font-semibold">{roleName}</td>
+											<td class="text-center py-2 px-2">
+												<form method="POST" action="?/updatePermission" class="inline">
+													<input type="hidden" name="forumId" value={forum.id} />
+													<input type="hidden" name="role" value={roleName} />
+													<input type="hidden" name="permType" value="canRead" />
+													<input type="hidden" name="value" value={!(perm?.canRead ?? false)} />
+													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canRead ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canRead ? 'Remove read access' : 'Grant read access'}></button>
+												</form>
+											</td>
+											<td class="text-center py-2 px-2">
+												<form method="POST" action="?/updatePermission" class="inline">
+													<input type="hidden" name="forumId" value={forum.id} />
+													<input type="hidden" name="role" value={roleName} />
+													<input type="hidden" name="permType" value="canPost" />
+													<input type="hidden" name="value" value={!(perm?.canPost ?? false)} />
+													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canPost ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canPost ? 'Remove post access' : 'Grant post access'}></button>
+												</form>
+											</td>
+											<td class="text-center py-2 px-2">
+												<form method="POST" action="?/updatePermission" class="inline">
+													<input type="hidden" name="forumId" value={forum.id} />
+													<input type="hidden" name="role" value={roleName} />
+													<input type="hidden" name="permType" value="canModerate" />
+													<input type="hidden" name="value" value={!(perm?.canModerate ?? false)} />
+													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canModerate ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canModerate ? 'Remove moderate access' : 'Grant moderate access'}></button>
+												</form>
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</details>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>

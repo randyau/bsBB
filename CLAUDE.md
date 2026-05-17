@@ -500,7 +500,7 @@ SETUP_COMPLETE=true
 These must be in place from day one, not added later:
 
 - `SameSite=Strict` on all session cookies
-- Content Security Policy headers (configured in Caddy or SvelteKit hooks)
+- Content Security Policy headers — see details below
 - All markdown sanitized server-side via `rehype-sanitize` **before storage**
 - Drizzle parameterized queries throughout — no raw string concatenation
 - Rate limiting at HTTP layer: by DID post-auth, by IP pre-auth
@@ -508,6 +508,14 @@ These must be in place from day one, not added later:
 - `chat_session_encrypted` tokens encrypted at rest (AES-256)
 - Postgres and app containers not exposed outside Docker network
 - Mod action log is append-only — no delete route
+
+### Content Security Policy
+
+CSP is declared in `svelte.config.js` under `kit.csp.directives` — **not** in `hooks.server.ts`. This lets SvelteKit generate a fresh per-request nonce and stamp it on every inline `<script>` it injects (hydration bootstrap, `<svelte:head>` scripts), so `'unsafe-inline'` is not needed in `script-src`.
+
+**Critical:** the `kit.csp` block is wrapped in `process.env.NODE_ENV === 'production'` and is intentionally absent in dev. Vite's HMR dev server injects its own inline scripts that SvelteKit cannot nonce — applying CSP in dev breaks hydration entirely (the toggle/any interactivity stops working with no obvious error). Do not add CSP to dev mode.
+
+`hooks.server.ts` sets the other security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) but must not set `Content-Security-Policy` manually — that would conflict with and override the nonce SvelteKit generates.
 
 ---
 

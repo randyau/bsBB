@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, userForumRoles, modLog, users } from '$lib/db/schema';
+import { forums, userForumRoles, modLog, users, roles, forumPermissions } from '$lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
@@ -49,13 +49,45 @@ export const load: PageServerLoad = async () => {
 		}
 	}
 
+	// Fetch all custom roles
+	const roleList = await db
+		.select({
+			id: roles.id,
+			name: roles.name
+		})
+		.from(roles)
+		.orderBy(roles.name);
+
+	// Fetch all forum permissions
+	const permissionsList = await db
+		.select({
+			id: forumPermissions.id,
+			forumId: forumPermissions.forumId,
+			role: forumPermissions.role,
+			canRead: forumPermissions.canRead,
+			canPost: forumPermissions.canPost,
+			canModerate: forumPermissions.canModerate
+		})
+		.from(forumPermissions);
+
+	// Group permissions by forum
+	const permissionsByForum: Record<string, typeof permissionsList> = {};
+	for (const perm of permissionsList) {
+		if (!permissionsByForum[perm.forumId]) {
+			permissionsByForum[perm.forumId] = [];
+		}
+		permissionsByForum[perm.forumId].push(perm);
+	}
+
 	return {
 		forums: forumList.map(f => ({
 			...f,
 			parentName: parentNames[f.id] || null
 		})),
 		users: userList,
-		mods: modsData
+		mods: modsData,
+		roles: roleList,
+		permissions: permissionsByForum
 	};
 };
 
@@ -169,6 +201,69 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('removeMod action error:', err);
 			return fail(500, { error: 'Failed to remove moderator' });
+		}
+	},
+
+	updatePermission: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const forumId = String(form.get('forumId') ?? '').trim();
+		const role = String(form.get('role') ?? '').trim();
+		const permType = String(form.get('permType') ?? '').trim(); // canRead, canPost, canModerate
+		const value = form.get('value') === 'true';
+
+		if (!forumId || !role || !['canRead', 'canPost', 'canModerate'].includes(permType)) {
+			return fail(422, { error: 'Invalid request' });
+		}
+
+		try {
+			// Check if permission row exists
+			const existing = await db.query.forumPermissions.findFirst({
+				where: and(eq(forumPermissions.forumId, forumId), eq(forumPermissions.role, role))
+			});
+
+			if (existing) {
+				// Update existing permission
+				if (permType === 'canRead') {
+					await db
+						.update(forumPermissions)
+						.set({ canRead: value })
+						.where(and(eq(forumPermissions.forumId, forumId), eq(forumPermissions.role, role)));
+				} else if (permType === 'canPost') {
+					await db
+						.update(forumPermissions)
+						.set({ canPost: value })
+						.where(and(eq(forumPermissions.forumId, forumId), eq(forumPermissions.role, role)));
+				} else if (permType === 'canModerate') {
+					await db
+						.update(forumPermissions)
+						.set({ canModerate: value })
+						.where(and(eq(forumPermissions.forumId, forumId), eq(forumPermissions.role, role)));
+				}
+			} else {
+				// Create new permission row
+				const newPerm = {
+					forumId,
+					role,
+					canRead: permType === 'canRead' ? value : false,
+					canPost: permType === 'canPost' ? value : false,
+					canModerate: permType === 'canModerate' ? value : false
+				};
+
+				await db.insert(forumPermissions).values(newPerm);
+			}
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user!.did,
+				action: 'update_forum_permission',
+				targetForumId: forumId,
+				reason: `${role}: ${permType}=${value}`
+			});
+
+			return { success: true, action: 'updatePermission' };
+		} catch (err) {
+			console.error('updatePermission action error:', err);
+			return fail(500, { error: 'Failed to update permission' });
 		}
 	}
 };
