@@ -55,7 +55,10 @@
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
-								<h3 class="font-semibold">
+								{#if thread.hasUnread}
+										<div class="unread-dot"></div>
+									{/if}
+									<h3 class={thread.hasUnread ? 'font-bold' : 'font-semibold'}>
 									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="thread-title break-words">
 										{thread.title}
 									</a>

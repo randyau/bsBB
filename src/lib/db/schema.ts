@@ -171,6 +171,23 @@ export const userRoles = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// thread_views (track which threads each user has visited)
+// ---------------------------------------------------------------------------
+export const threadViews = pgTable(
+	'thread_views',
+	{
+		userDid: text('user_did')
+			.notNull()
+			.references(() => users.did),
+		threadId: uuid('thread_id')
+			.notNull()
+			.references(() => threads.id),
+		lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }).notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userDid, t.threadId] })],
+);
+
+// ---------------------------------------------------------------------------
 // notification_queue
 // ---------------------------------------------------------------------------
 export const notificationQueue = pgTable('notification_queue', {

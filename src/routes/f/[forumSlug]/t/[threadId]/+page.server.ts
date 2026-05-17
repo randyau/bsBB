@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts, users, userForumRoles, modLog } from '$lib/db/schema';
+import { forums, threads, posts, users, userForumRoles, modLog, threadViews } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -110,6 +110,21 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				.limit(1);
 			canModerate = forumRole?.role === 'moderator';
 		}
+	}
+
+	// Track thread view for logged-in users
+	if (locals.user) {
+		await db
+			.insert(threadViews)
+			.values({
+				userDid: locals.user.did,
+				threadId: thread.id,
+				lastViewedAt: new Date(),
+			})
+			.onConflictDoUpdate({
+				target: [threadViews.userDid, threadViews.threadId],
+				set: { lastViewedAt: new Date() },
+			});
 	}
 
 	return {
