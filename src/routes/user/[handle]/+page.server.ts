@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.from(posts)
 		.innerJoin(threads, eq(posts.threadId, threads.id))
 		.innerJoin(forums, eq(threads.forumId, forums.id))
-		.where(and(eq(posts.authorDid, profileUser.did), eq(posts.isDeleted, false)))
+		.where(and(eq(posts.authorDid, profileUser.did), eq(posts.status, 'active')))
 		.orderBy(posts.createdAt)
 		.limit(20);
 

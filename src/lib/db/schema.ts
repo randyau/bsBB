@@ -76,7 +76,8 @@ export const posts = pgTable('posts', {
 	bodyHtml: text('body_html').notNull(),
 	replyToPostId: uuid('reply_to_post_id'), // FK to posts(id) added in migration SQL
 	linkMetadata: jsonb('link_metadata'),
-	isDeleted: boolean('is_deleted').notNull().default(false),
+	status: text('status').notNull().default('active'), // 'active', 'hidden', 'archived', 'deleted'
+	isDeleted: boolean('is_deleted').notNull().default(false), // deprecated, use status instead
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	editedAt: timestamp('edited_at', { withTimezone: true }),
 	// body_tsv TSVECTOR GENERATED ALWAYS AS ... is added as raw SQL in migration

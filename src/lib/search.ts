@@ -63,7 +63,7 @@ export async function searchPosts(
 			JOIN forums f ON t.forum_id = f.id
 			JOIN users u ON p.author_did = u.did
 			WHERE LOWER(p.body_html) LIKE ${likePattern}
-				AND p.is_deleted = false
+				AND p.status = 'active'
 			ORDER BY relevance DESC, p.created_at DESC
 			LIMIT ${limit} OFFSET ${offset}
 			`
@@ -101,7 +101,7 @@ export async function searchPosts(
 			JOIN forums f ON t.forum_id = f.id
 			JOIN users u ON p.author_did = u.did
 			WHERE p.body_tsv @@ plainto_tsquery('english', ${cleanQuery})
-				AND p.is_deleted = false
+				AND p.status = 'active'
 			ORDER BY relevance DESC, p.created_at DESC
 			LIMIT ${limit} OFFSET ${offset}
 			`
@@ -145,7 +145,7 @@ export async function searchPostsCount(query: string): Promise<number> {
 			SELECT COUNT(*) as count
 			FROM posts p
 			WHERE LOWER(p.body_html) LIKE ${likePattern}
-				AND p.is_deleted = false
+				AND p.status = 'active'
 			`
 		);
 
@@ -156,7 +156,7 @@ export async function searchPostsCount(query: string): Promise<number> {
 			SELECT COUNT(*) as count
 			FROM posts p
 			WHERE p.body_tsv @@ plainto_tsquery('english', ${cleanQuery})
-				AND p.is_deleted = false
+				AND p.status = 'active'
 			`
 		);
 

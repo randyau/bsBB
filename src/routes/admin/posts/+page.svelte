@@ -41,7 +41,7 @@
 			<tbody>
 				{#each data.posts as post (post.id)}
 					<tr
-						class={`border-b border-[rgb(var(--color-border))] ${post.isDeleted ? 'bg-[rgb(var(--color-bg-tertiary))] opacity-60' : 'hover:bg-[rgb(var(--color-bg-secondary))]'}`}
+						class={`border-b border-[rgb(var(--color-border))] ${post.status !== 'active' ? 'bg-[rgb(var(--color-bg-tertiary))] opacity-60' : 'hover:bg-[rgb(var(--color-bg-secondary))]'}`}
 					>
 						<td class="px-4 py-3">
 							<a
@@ -64,30 +64,55 @@
 							{post.bodyMarkdown.substring(0, 50)}{post.bodyMarkdown.length > 50 ? '…' : ''}
 						</td>
 						<td class="px-4 py-3">
-							{#if post.isDeleted}
-								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-error))]">Deleted</span>
-							{:else}
-								<span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-success))]">Active</span>
+							{#if post.status === 'active'}
+								<span class="badge bg-green-50 text-green-700 border border-green-200">Active</span>
+							{:else if post.status === 'hidden'}
+								<span class="badge bg-gray-100 text-gray-700 border border-gray-300">Hidden</span>
+							{:else if post.status === 'archived'}
+								<span class="badge bg-blue-50 text-blue-700 border border-blue-200">Archived</span>
+							{:else if post.status === 'deleted'}
+								<span class="badge bg-red-50 text-red-700 border border-red-200">Permanently Deleted</span>
 							{/if}
 						</td>
 						<td class="px-4 py-3">
-							{#if post.isDeleted}
-								<form method="POST" action="?/restore" class="inline">
+							{#if post.status === 'active'}
+								<form method="POST" action="?/hide" class="flex flex-col gap-1">
 									<input type="hidden" name="postId" value={post.id} />
-									<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Restore</button>
-								</form>
-							{:else}
-								<form method="POST" action="?/delete" class="flex flex-col gap-1">
-									<input type="hidden" name="postId" value={post.id} />
-									<label for="delete-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Delete reason (optional)</label>
+									<label for="hide-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Reason (optional)</label>
 									<input
 										type="text"
-										id="delete-reason-{post.id}"
+										id="hide-reason-{post.id}"
 										name="reason"
 										placeholder="Reason..."
 										class="form-control text-xs"
 									/>
-									<button type="submit" class="text-xs text-[rgb(var(--color-error))] hover:underline text-left font-semibold">Delete post</button>
+									<button type="submit" class="text-xs text-[rgb(var(--color-error))] hover:underline text-left font-semibold">Hide post</button>
+								</form>
+							{:else if post.status === 'hidden'}
+								<div class="space-y-2">
+									<form method="POST" action="?/restore" class="inline">
+										<input type="hidden" name="postId" value={post.id} />
+										<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Restore</button>
+									</form>
+									<form method="POST" action="?/permanentlyDelete" class="flex flex-col gap-1">
+										<input type="hidden" name="postId" value={post.id} />
+										<label for="delete-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Delete reason</label>
+										<input
+											type="text"
+											id="delete-reason-{post.id}"
+											name="reason"
+											placeholder="Reason..."
+											class="form-control text-xs"
+										/>
+										<button type="submit" class="text-xs text-[rgb(var(--color-error))] hover:underline text-left font-semibold">Permanently delete</button>
+									</form>
+								</div>
+							{:else if post.status === 'deleted'}
+								<span class="text-xs text-[rgb(var(--color-text-muted))] italic">No actions available</span>
+							{:else if post.status === 'archived'}
+								<form method="POST" action="?/restore" class="inline">
+									<input type="hidden" name="postId" value={post.id} />
+									<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Reactivate</button>
 								</form>
 							{/if}
 						</td>
