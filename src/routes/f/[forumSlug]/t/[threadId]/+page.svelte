@@ -6,7 +6,6 @@
 
 	let previewHtml: string = $state('');
 	let replyBody: string = $state('');
-	let quotedPostId: string | null = $state(null);
 	let editingPostId: string | null = $state(null);
 	let editBody: string = $state('');
 	let editPreviewHtml: string = $state('');
@@ -32,32 +31,53 @@
 		return confirm('Hide this post? It will be removed from view but content is preserved and can be restored.');
 	}
 
-	function setQuoteTarget(postId: string) {
+	function addQuoteReference(postId: string) {
 		const post = data.posts.find(p => p.id === postId);
 		if (!post) return;
 
-		if (quotedPostId === postId) {
-			// Already quoted, clicking again clears it
-			quotedPostId = null;
-			// Remove the quoted text from the body
-			const lines = replyBody.split('\n');
-			const quoteLines = post.bodyMarkdown.split('\n').map((line: string) => `> ${line}`);
-			let newBody = replyBody;
-			for (const quoteLine of quoteLines) {
-				newBody = newBody.replace(quoteLine + '\n', '').replace(quoteLine, '');
-			}
-			replyBody = newBody.trim();
-		} else {
-			quotedPostId = postId;
-			// Insert the quoted text as a blockquote at the start
-			const quotedText = post.bodyMarkdown
-				.split('\n')
-				.map((line: string) => `> ${line}`)
-				.join('\n');
-			replyBody = quotedText + (replyBody ? '\n\n' + replyBody : '');
+		// Build the quote: marker + blockquoted content
+		const quoteMarker = `>!quote ${postId}`;
+		const quotedContent = post.bodyMarkdown
+			.split('\n')
+			.map((line: string) => `> ${line}`)
+			.join('\n');
+
+		// Append to the end of existing text
+		const toAppend = `${quoteMarker}\n${quotedContent}`;
+		const newBody = replyBody ? replyBody + '\n\n' + toAppend : toAppend;
+
+		// Check if adding the quote would exceed the limit
+		if (newBody.length > 50000) {
+			alert('Adding this quote would exceed the 50,000 character limit. Remove some text and try again.');
+			return;
 		}
 
+		replyBody = newBody;
 		(document.querySelector('textarea[name="body"]') as HTMLTextAreaElement)?.focus();
+	}
+
+	function removeQuoteReference(postId: string) {
+		const quoteMarker = `>!quote ${postId}\n\n`;
+		replyBody = replyBody.replace(quoteMarker, '');
+	}
+
+	async function copyPostLink(postId: string) {
+		const url = `${window.location.origin}/f/${data.forum.slug}/t/${data.thread.slug}#post-${postId}`;
+		try {
+			await navigator.clipboard.writeText(url);
+			// Brief visual feedback
+			alert('Post link copied to clipboard');
+		} catch (err) {
+			console.error('Failed to copy:', err);
+			// Fallback: select text for manual copy
+			const input = document.createElement('textarea');
+			input.value = url;
+			document.body.appendChild(input);
+			input.select();
+			document.execCommand('copy');
+			document.body.removeChild(input);
+			alert('Post link copied to clipboard');
+		}
 	}
 
 	function startEdit(postId: string) {
@@ -190,7 +210,7 @@
 	{:else}
 		<div class="space-y-4">
 			{#each data.posts as post (post.id)}
-				<div class="post">
+				<div class="post" id="post-{post.id}">
 					<!-- Post Header -->
 					<div class="post-header">
 						<div class="post-author">
@@ -227,15 +247,24 @@
 								{/if}
 							</div>
 
+							{#if post.status === 'active'}
+								<button
+									type="button"
+									onclick={() => copyPostLink(post.id)}
+									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
+									title="Copy link to this post"
+								>
+									Copy link
+								</button>
+							{/if}
+
 							{#if data.user && data.canPost && !data.thread.isLocked && post.status === 'active'}
 								<button
 									type="button"
-									onclick={() => setQuoteTarget(post.id)}
-									class="text-xs {quotedPostId === post.id
-										? 'text-[rgb(var(--color-primary))] font-semibold underline'
-										: 'text-[rgb(var(--color-primary))] hover:underline'}"
+									onclick={() => addQuoteReference(post.id)}
+									class="text-xs text-[rgb(var(--color-primary))] hover:underline"
 								>
-									{quotedPostId === post.id ? '✓ Quoted' : 'Quote'}
+									Quote
 								</button>
 							{/if}
 
@@ -344,19 +373,8 @@
 					</div>
 				{/if}
 
-				{#if quotedPostId}
-					<button
-						type="button"
-						onclick={() => setQuoteTarget(quotedPostId!)}
-						class="text-xs text-[rgb(var(--color-primary))] mb-3 italic hover:bg-[rgb(var(--color-bg-secondary))] px-2 py-1 rounded cursor-pointer block w-full text-left transition"
-					>
-						💬 Quoted @{data.posts.find(p => p.id === quotedPostId)?.authorHandle} — click to remove, or edit the blockquote below
-					</button>
-				{/if}
 
 				<form method="POST" action="?/reply" class="space-y-4">
-					<!-- Hidden reply target -->
-					<input type="hidden" name="replyToPostId" value={quotedPostId || ''} />
 
 					<!-- Body textarea/preview -->
 					<div>

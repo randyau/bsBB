@@ -55,7 +55,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 		}
 
 		// Render markdown and fetch link metadata
-		const newBodyHtml = await renderMarkdown(newBodyMarkdown);
+		const newBodyHtml = await renderMarkdown(newBodyMarkdown, db);
 		const newLinkMetadata = await fetchLinkMetadata(newBodyMarkdown, getClientAddress());
 
 		// Transaction: create revision, update post

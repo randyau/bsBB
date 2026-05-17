@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { checkAbuse } from '$lib/abuse/index.js';
+import { db } from '$lib/db';
 
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
 	const contentType = request.headers.get('content-type') ?? '';
@@ -24,7 +25,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 	}
 
 	try {
-		const html = await renderMarkdown(body);
+		const html = await renderMarkdown(body, db);
 		return json({ html });
 	} catch (err) {
 		console.error('[preview error]', err);
