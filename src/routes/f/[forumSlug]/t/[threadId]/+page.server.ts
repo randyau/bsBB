@@ -114,12 +114,38 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Track thread view for logged-in users
 	if (locals.user) {
-		await db.execute(
-			sql`INSERT INTO ${sql.identifier('thread_views')} (${sql.identifier('user_did')}, ${sql.identifier('thread_id')}, ${sql.identifier('last_viewed_at')})
-				VALUES (${locals.user.did}, ${thread.id}, NOW())
-				ON CONFLICT (${sql.identifier('user_did')}, ${sql.identifier('thread_id')})
-				DO UPDATE SET ${sql.identifier('last_viewed_at')} = NOW()`
-		);
+		const now = new Date();
+		// Check if view exists
+		const existing = await db
+			.select()
+			.from(threadViews)
+			.where(
+				and(
+					eq(threadViews.userDid, locals.user.did),
+					eq(threadViews.threadId, thread.id)
+				)
+			)
+			.limit(1);
+
+		if (existing.length > 0) {
+			// Update existing view
+			await db
+				.update(threadViews)
+				.set({ lastViewedAt: now })
+				.where(
+					and(
+						eq(threadViews.userDid, locals.user.did),
+						eq(threadViews.threadId, thread.id)
+					)
+				);
+		} else {
+			// Insert new view
+			await db.insert(threadViews).values({
+				userDid: locals.user.did,
+				threadId: thread.id,
+				lastViewedAt: now,
+			});
+		}
 	}
 
 	return {
