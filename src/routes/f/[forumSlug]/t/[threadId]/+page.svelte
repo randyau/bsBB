@@ -239,29 +239,42 @@
 			{/if}
 
 			{#if data.user}
-				<div class="flex items-center gap-2">
-					{#if data.userSubscription === 'follow'}
-						<form method="POST" action="?/unwatchThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Watching</button>
-						</form>
-						<form method="POST" action="?/muteThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Mute</button>
-						</form>
-					{:else if data.userSubscription === 'mute'}
-						<form method="POST" action="?/unwatchThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Muted</button>
-						</form>
-						<form method="POST" action="?/watchThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Watch</button>
-						</form>
-					{:else}
-						<form method="POST" action="?/watchThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Watch</button>
-						</form>
-						<form method="POST" action="?/muteThread" style="display: inline;">
-							<button type="submit" class="btn btn-secondary text-sm">Mute</button>
-						</form>
-					{/if}
+				<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden">
+					<!-- Mute button -->
+					<form method="POST" action="?/muteThread" style="display: contents;">
+						<button
+							type="submit"
+							class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'mute'
+								? 'bg-[rgb(var(--color-primary))] text-white'
+								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+						>
+							Mute
+						</button>
+					</form>
+
+					<!-- Default button -->
+					<form method="POST" action="?/unwatchThread" style="display: contents;">
+						<button
+							type="submit"
+							class="px-3 py-2 text-sm font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
+								? 'bg-[rgb(var(--color-primary))] text-white'
+								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+						>
+							Default
+						</button>
+					</form>
+
+					<!-- Watch button -->
+					<form method="POST" action="?/watchThread" style="display: contents;">
+						<button
+							type="submit"
+							class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'follow'
+								? 'bg-[rgb(var(--color-primary))] text-white'
+								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+						>
+							Watch
+						</button>
+					</form>
 				</div>
 			{/if}
 
