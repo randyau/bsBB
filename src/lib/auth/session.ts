@@ -9,6 +9,7 @@ export type SessionUser = {
 	displayName: string | null;
 	avatarUrl: string | null;
 	globalRole: 'admin' | 'member' | 'banned';
+	notifyViaBluesky: boolean;
 };
 
 const SESSION_COOKIE = 'session';
@@ -63,6 +64,7 @@ export async function validateSession(
 			displayName: users.displayName,
 			avatarUrl: users.avatarUrl,
 			globalRole: users.globalRole,
+			notifyViaBluesky: users.notifyViaBluesky,
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userDid, users.did))
@@ -101,6 +103,7 @@ export async function validateSession(
 			displayName: row.displayName,
 			avatarUrl: row.avatarUrl,
 			globalRole: row.globalRole as 'admin' | 'member' | 'banned',
+			notifyViaBluesky: row.notifyViaBluesky,
 		},
 	};
 }

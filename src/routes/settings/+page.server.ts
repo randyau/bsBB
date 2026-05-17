@@ -8,7 +8,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
 	}
-	return { user: locals.user };
+	return {
+		user: locals.user,
+	};
 };
 
 export const actions: Actions = {
@@ -34,6 +36,27 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('updateDisplayName error:', err);
 			return fail(500, { error: 'Failed to update display name' });
+		}
+	},
+
+	toggleNotifications: async ({ locals, request }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Not logged in' });
+		}
+
+		const form = await request.formData();
+		const enabled = form.get('enabled') === 'true';
+
+		try {
+			await db
+				.update(users)
+				.set({ notifyViaBluesky: enabled })
+				.where(eq(users.did, locals.user.did));
+
+			return { success: true, notifyViaBluesky: enabled };
+		} catch (err) {
+			console.error('toggleNotifications error:', err);
+			return fail(500, { error: 'Failed to update notification settings' });
 		}
 	}
 };
