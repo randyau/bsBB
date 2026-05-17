@@ -9,7 +9,7 @@
 </script>
 
 <button
-	onclick={toggleTheme}
+	on:click={toggleTheme}
 	title={`Switch to ${currentTheme === 'light' ? 'dark' : 'light'} mode`}
 	class="p-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] transition-colors"
 	aria-label="Toggle theme"

@@ -17,11 +17,13 @@
 		}
 	}
 
-	// Initialize theme on mount
+	// Initialize theme on mount and sync with store
 	$effect(() => {
 		if (typeof window !== 'undefined') {
-			const storedTheme = localStorage.getItem('theme') || 'dark';
-			document.documentElement.setAttribute('data-theme', storedTheme);
+			const storedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+			const themeToUse = storedTheme || 'dark';
+			document.documentElement.setAttribute('data-theme', themeToUse);
+			theme.set(themeToUse);
 		}
 	});
 </script>
