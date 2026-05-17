@@ -100,8 +100,20 @@
 			<a href="/settings" class="btn btn-primary text-sm">
 				Edit Profile
 			</a>
+			<a href="/user/{data.profileUser.handle}/manage-posts" class="btn btn-secondary text-sm">
+				Manage Posts
+			</a>
 			<a href="/settings#notifications" class="btn btn-secondary text-sm">
 				Notification Settings
+			</a>
+		</div>
+	{/if}
+
+	<!-- Admin manage posts button -->
+	{#if data.isAdmin && !data.isSelf}
+		<div class="mb-8">
+			<a href="/user/{data.profileUser.handle}/manage-posts" class="btn btn-secondary text-sm">
+				Manage User's Posts
 			</a>
 		</div>
 	{/if}

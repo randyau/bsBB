@@ -340,7 +340,13 @@
 							</div>
 						</div>
 					{:else if post.status === 'hidden'}
-						<p class="italic text-[rgb(var(--color-text-muted))]">[post hidden by moderator]</p>
+						<p class="italic text-[rgb(var(--color-text-muted))]">
+							{#if post.hiddenByUser}
+								[post hidden by author]
+							{:else}
+								[post hidden by moderator]
+							{/if}
+						</p>
 					{:else if post.status === 'deleted'}
 						<p class="italic text-[rgb(var(--color-text-muted))]">[post permanently deleted]</p>
 					{:else if post.status === 'archived'}

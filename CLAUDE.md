@@ -2,9 +2,9 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (8/10 commits)
+## Status — All Phases Complete (1–7) — 55+ Commits ✅
 
-**Total Implementation:** 42+ commits, production-ready forum with all core features complete
+**Total Implementation:** 55+ commits, production-ready forum with all core features and design polish complete
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
@@ -13,8 +13,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log) — 7 commits
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
-
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (8/10 commits)
+- **Phase 7 ✅** — Design, UI & Interaction Refinements (11 commits + enhancements)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -72,7 +71,35 @@ This file contains the full specification, architecture decisions, and design ra
   - Fix theme safety bugs in revisions page (hardcoded bg-white → CSS variables, hardcoded blue tones → .box-secondary)
   - All container styling now uses semantic classes; no raw inline Tailwind patterns for cards/alerts/tables
   - Improves maintainability by centralizing design system definitions in app.css
-- **Commits 9–10 (planned)** — Loading states, accessibility, animations, component docs
+- **Commit 9** ✅ — Enhanced post quoting with reference links and copy permalink
+  - Posts with `reply_to_post_id` now display as quoted replies with visual distinction
+  - Copy permalink button on each post for easy sharing
+  - Quote links render the referenced post content inline
+  - Full-text search integration for finding quoted posts
+- **Commit 10** ✅ — User profile and notification preferences management
+  - User profile page (/user/[handle]) displays Bluesky identity, DIDs, and forum activity
+  - "Edit Profile" button links to settings for display name editing
+  - "Notification Settings" button for toggling Bluesky DM notifications (opt-in)
+  - Notification preferences UI explains which events trigger notifications (replies, quotes, thread activity)
+  - `notifyViaBluesky` flag in SessionUser type ensures proper type safety
+  - Users can manage which forums notify them and notification frequency
+- **Commit 11** ✅ — Post and account management for users
+  - New `/user/[handle]/manage-posts` page with searchable, paginated post list (25 per page)
+  - Users can manage their own posts: hide, delete, restore
+  - Admins can manage any user's posts via "Manage User's Posts" button on user profile
+  - Post status badges show hidden/deleted state with visual indicators
+  - Settings danger zone for account operations:
+    - Delete all posts: permanently removes post content (stubs preserved for quote integrity)
+    - Delete account: anonymizes account (overwrites handle, displayName, avatar)
+    - Users can re-register with same Bluesky identity after account deletion
+    - Confirmation requires typing handle to prevent accidents
+    - All sessions deleted on account removal
+  - Proper mod_log entries for all irreversible actions
+- **Additional Enhancement** ✅ — Distinguish user-hidden vs moderator-hidden posts
+  - Checks mod_log to determine if post was hidden by author (`hide_own_post`) or by moderator
+  - Display "[post hidden by author]" when user hides their own post
+  - Display "[post hidden by moderator]" when mod hides a post
+  - Provides clarity on who made the visibility decision
 
 ---
 
@@ -292,7 +319,8 @@ Only Caddy is exposed to the internet. All other services are unreachable from o
 | `body_html` | TEXT | Sanitized HTML, generated server-side at submit |
 | `reply_to_post_id` | UUID NULLABLE FK → posts | For quote/reference links — flat model |
 | `link_metadata` | JSONB NULLABLE | OG data for first bare-line URL in post |
-| `is_deleted` | BOOLEAN | Soft delete — preserve thread integrity |
+| `status` | TEXT | `'active'`, `'hidden'`, `'archived'`, `'deleted'` — post visibility state |
+| `is_deleted` | BOOLEAN | DEPRECATED — use `status` column instead |
 | `created_at` | TIMESTAMPTZ | |
 | `edited_at` | TIMESTAMPTZ NULLABLE | |
 | `body_tsv` | TSVECTOR | Generated column for full-text search |
@@ -336,6 +364,29 @@ Revisions are append-only. Current version lives in `posts`. Accessible at `/f/[
 
 Global `admin` and `banned` on `users.global_role` always override this table. One role per user per forum.
 
+### `roles` (admin-defined custom roles)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PRIMARY KEY | |
+| `name` | TEXT UNIQUE | Role name (e.g., "Moderator", "Contributor", "VIP") |
+| `description` | TEXT NULLABLE | Role description for UI/documentation |
+| `color` | TEXT NULLABLE | Hex color code for role badge (e.g., `#e11d48`) |
+| `created_at` | TIMESTAMPTZ | |
+
+Admins can create custom roles and assign them globally to users. These supplement per-forum moderator assignments.
+
+### `user_roles` (global custom role assignments)
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_did` | TEXT FK → users.did | Composite PK with role_id |
+| `role_id` | UUID FK → roles.id | Cascade delete on role removal |
+| `assigned_by` | TEXT FK → users.did | |
+| `assigned_at` | TIMESTAMPTZ | |
+
+Many-to-many relationship: users can have multiple global roles. Role badges are displayed on user profiles and in forum threads.
+
 ### `notification_queue`
 
 | Column | Type | Notes |
@@ -354,12 +405,12 @@ Global `admin` and `banned` on `users.global_role` always override this table. O
 |---|---|---|
 | `id` | UUID PRIMARY KEY | |
 | `moderator_did` | TEXT FK → users.did | |
-| `action` | TEXT | `ban`, `unban`, `delete_post`, `restore_post`, `lock_thread`, `unlock_thread`, `pin_thread`, `unpin_thread`, `assign_forum_mod`, `remove_forum_mod`, `promote_admin` |
+| `action` | TEXT | Thread ops: `lock_thread`, `unlock_thread`, `pin_thread`, `unpin_thread`; Post ops: `hide_post`, `hide_own_post`, `delete_post`, `delete_own_post`, `restore_post`; User ops: `ban`, `unban`, `promote_admin`, `demote_admin`, `delete_account`, `delete_all_posts`; Role ops: `create_role`, `edit_role`, `delete_role`, `assign_custom_role`, `remove_custom_role`; Forum ops: `reorder_forum`, `assign_forum_mod`, `remove_forum_mod`, `update_forum_permission` |
 | `target_did` | TEXT NULLABLE | User acted upon, if applicable |
-| `target_post_id` | UUID NULLABLE | |
-| `target_thread_id` | UUID NULLABLE | |
-| `target_forum_id` | UUID NULLABLE | |
-| `reason` | TEXT NULLABLE | |
+| `target_post_id` | UUID NULLABLE | Post acted upon, if applicable |
+| `target_thread_id` | UUID NULLABLE | Thread acted upon, if applicable |
+| `target_forum_id` | UUID NULLABLE | Forum acted upon, if applicable |
+| `reason` | TEXT NULLABLE | Reason for action, or related data (role name, etc) |
 | `created_at` | TIMESTAMPTZ | |
 
 ### `sessions` (custom, roll-your-own, self-pruning)

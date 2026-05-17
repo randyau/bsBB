@@ -5,6 +5,24 @@
 
 	let displayName = $state(data.user.displayName ?? '');
 	let notifyViaBluesky = $state(data.user.notifyViaBluesky ?? false);
+	let deleteAccountHandle = $state('');
+
+	function confirmDeleteAllPosts(): boolean {
+		return confirm(
+			'Delete all of your posts?\n\n' +
+			'This will permanently delete all post content. The post stubs will remain for quotes/links, but your content cannot be recovered.\n\n' +
+			'This action cannot be undone.'
+		);
+	}
+
+	function confirmDeleteAccount(): boolean {
+		return confirm(
+			'Delete your account?\n\n' +
+			'Your account will be anonymized. Your handle and identity will be removed from the forum, but your post stubs will remain to preserve quote/link integrity.\n\n' +
+			'You can register again with the same Bluesky identity later.\n\n' +
+			'This action cannot be undone.'
+		);
+	}
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-lg">
@@ -96,6 +114,62 @@
 				<p class="text-xs text-[rgb(var(--color-text-muted))]">
 					Note: You'll need to authorize your Bluesky account for the forum to send DMs. You'll be prompted when you first enable this.
 				</p>
+			</div>
+
+			<!-- Danger Zone -->
+			<div class="border-t border-[rgb(var(--color-border))] pt-6">
+				<h2 class="text-lg font-semibold mb-3 text-[rgb(var(--color-error))]">Danger Zone</h2>
+				<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+					These actions are permanent and cannot be undone.
+				</p>
+
+				<div class="space-y-4">
+					<!-- Delete all posts -->
+					<div class="p-4 border-2 border-[rgb(var(--color-error))] rounded-lg bg-red-50 dark:bg-red-950">
+						<h3 class="font-semibold text-[rgb(var(--color-error))] mb-2">Delete All Posts</h3>
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+							Permanently delete the content of all your posts. Post stubs will remain to preserve quotes and links, but your text will be irretrievably removed.
+						</p>
+						<form method="POST" action="?/deleteAllPosts" onsubmit={confirmDeleteAllPosts}>
+							<input type="hidden" name="confirm" value="true" />
+							<button type="submit" class="btn btn-danger btn-sm">
+								Delete All Post Content
+							</button>
+						</form>
+					</div>
+
+					<!-- Delete account -->
+					<div class="p-4 border-2 border-[rgb(var(--color-error))] rounded-lg bg-red-50 dark:bg-red-950">
+						<h3 class="font-semibold text-[rgb(var(--color-error))] mb-2">Delete Your Account</h3>
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+							Permanently delete your account. Your identity and handle will be removed from the forum, but post stubs will remain. You can re-register with the same Bluesky account later.
+						</p>
+
+						<form method="POST" action="?/deleteAccount" onsubmit={confirmDeleteAccount} class="space-y-3">
+							<input type="hidden" name="confirm" value="true" />
+							<div class="form-group">
+								<label for="confirmHandle" class="form-label text-sm">
+									Type your handle to confirm: <span class="font-mono font-semibold">@{data.user.handle}</span>
+								</label>
+								<input
+									type="text"
+									id="confirmHandle"
+									name="confirmHandle"
+									bind:value={deleteAccountHandle}
+									placeholder={data.user.handle}
+									class="form-control"
+								/>
+							</div>
+							<button
+								type="submit"
+								disabled={deleteAccountHandle !== data.user.handle}
+								class="btn btn-danger btn-sm"
+							>
+								Delete Account Permanently
+							</button>
+						</form>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>

@@ -2,7 +2,7 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts—everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** 🚀 PHASE 7 IN PROGRESS (Phases 1–6 complete, 100+ commits, production-grade) — UI/Design refinement underway
+**Status:** ✅ ALL PHASES COMPLETE (55+ commits, production-ready) — Full feature set with custom roles, user post management, notification preferences, and comprehensive design system
 
 ## Why bsBB?
 
@@ -89,10 +89,18 @@ Available test users:
 
 ### 5. What's Available
 
-- **Forum**: http://localhost:5173
+- **Forum**: http://localhost:5173 (create threads, reply, quote posts)
+- **User profiles**: http://localhost:5173/user/[handle] (view user posts, settings, notification preferences)
+- **User post management**: http://localhost:5173/user/[handle]/manage-posts (hide/delete/restore own posts)
+- **Settings**: http://localhost:5173/settings (notification preferences, account management)
+- **Search**: http://localhost:5173/search (full-text search across posts)
 - **Admin dashboard**: http://localhost:5173/admin (admin only)
-- **SQL query runner**: http://localhost:5173/admin/query (admin only)
-- **Mod log**: http://localhost:5173/admin/mod-log
+  - User management (ban/promote/demote, manage user posts)
+  - Forum management (reorder, assign moderators, permissions)
+  - Roles management (create custom roles, assign users)
+  - Thread management (lock/pin threads)
+  - SQL query interface (SELECT-only)
+  - Mod log viewer (append-only audit trail)
 
 ### Manual Setup (Without the Script)
 

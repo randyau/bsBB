@@ -23,20 +23,18 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — Phases 1–6 Complete; Phase 7 In Progress
+## Status — All Phases Complete (1–7) — 55+ Commits ✅
 
-> ⚠️ **Note:** This document was written with Phase 4 as the endpoint. Phases 5 and 6 have been completed since. For the most current status (including Phase 5: Notifications, Phase 6: Post Edits & Search, Phase 7: Design/UI), see **STATUS.md** in the project root.
-
-**Current Implementation (35+ commits):**
+**Current Implementation (55+ commits):**
 - ✅ Phase 1: Foundations (auth, sessions, DB, Docker)
 - ✅ Phase 2: Read-only forum views
 - ✅ Phase 3: Post creation with markdown + OG metadata
 - ✅ Phase 4: Moderation & admin (rate limiting, ban/delete/lock/pin, mod log, 17 integration tests)
 - ✅ Phase 5: Notifications & background tasks (email, Bluesky DM, worker, encryption)
 - ✅ Phase 6: Post edits, full-text search, production Docker stack
-- 🚀 Phase 7: Theme system, dark mode, admin UI improvements (2/10 commits)
+- ✅ Phase 7: Theme system, dark mode, custom roles, post management, user profiles, design polish (11 commits)
 
-**See STATUS.md for detailed breakdown of all phases and current implementation status.**
+**See CLAUDE.md for detailed breakdown of all phases and complete feature list.**
 
 ---
 
@@ -246,7 +244,8 @@ body_markdown    TEXT NOT NULL
 body_html        TEXT NOT NULL                   -- sanitized; generated server-side at submit
 reply_to_post_id UUID REFERENCES posts(id)      -- flat model; for quote links only
 link_metadata    JSONB                           -- OG data for first bare URL, or null
-is_deleted       BOOLEAN NOT NULL DEFAULT false
+status           TEXT NOT NULL DEFAULT 'active'  -- 'active' | 'hidden' | 'archived' | 'deleted'
+is_deleted       BOOLEAN NOT NULL DEFAULT false  -- DEPRECATED: use status column instead
 created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 edited_at        TIMESTAMPTZ                     -- null if never edited
 
@@ -257,6 +256,12 @@ body_tsv  TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', body_markdown)) S
 ```sql
 CREATE INDEX posts_body_tsv_idx ON posts USING GIN (body_tsv);
 ```
+
+> **Status values:**
+> - `'active'` — post is visible (default)
+> - `'hidden'` — post hidden by author or moderator (marked with "[post hidden by author]" or "[post hidden by moderator]")
+> - `'archived'` — post archived (not visible in listings, but accessible directly)
+> - `'deleted'` — post content permanently deleted (stub remains for quote integrity)
 
 ### `post_revisions`
 
@@ -313,6 +318,33 @@ PRIMARY KEY (user_did, forum_id)
 > Global `admin` and `banned` on `users.global_role` always take precedence over this table.
 > Permission resolution order: banned → admin → user_forum_roles → forum_permissions by role.
 
+### `roles` (Admin-defined custom roles)
+
+```sql
+id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
+name        TEXT NOT NULL UNIQUE
+description TEXT                                 -- optional role description
+color       TEXT                                 -- optional hex color (e.g. '#e11d48')
+created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+> Admins can create custom roles (e.g., "Moderator", "Contributor", "VIP") and assign them globally to users.
+> Role badges are displayed on user profiles and in forum threads using the color if provided.
+
+### `user_roles` (Global custom role assignments)
+
+```sql
+user_did    TEXT NOT NULL REFERENCES users(did)
+role_id     UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE
+assigned_by TEXT NOT NULL REFERENCES users(did)
+assigned_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+PRIMARY KEY (user_did, role_id)
+```
+
+> Many-to-many relationship: users can have multiple global custom roles.
+> Distinguished from per-forum moderator assignments (`user_forum_roles`).
+
 ### `notification_queue`
 
 ```sql
@@ -333,18 +365,21 @@ sent_at        TIMESTAMPTZ
 id               UUID PRIMARY KEY DEFAULT gen_random_uuid()
 moderator_did    TEXT NOT NULL REFERENCES users(did)
 action           TEXT NOT NULL
-                 -- 'ban' | 'unban' | 'delete_post' | 'restore_post'
-                 -- 'lock_thread' | 'unlock_thread' | 'pin_thread' | 'unpin_thread'
-                 -- 'assign_forum_mod' | 'remove_forum_mod' | 'promote_admin' (breakglass)
+                 -- Thread ops: 'lock_thread' | 'unlock_thread' | 'pin_thread' | 'unpin_thread'
+                 -- Post ops: 'hide_post' | 'hide_own_post' | 'delete_post' | 'delete_own_post' | 'restore_post'
+                 -- User ops: 'ban' | 'unban' | 'promote_admin' | 'demote_admin' | 'delete_account' | 'delete_all_posts'
+                 -- Role ops: 'create_role' | 'edit_role' | 'delete_role' | 'assign_custom_role' | 'remove_custom_role'
+                 -- Forum ops: 'reorder_forum' | 'assign_forum_mod' | 'remove_forum_mod' | 'update_forum_permission'
 target_did       TEXT REFERENCES users(did)
 target_post_id   UUID REFERENCES posts(id)
 target_thread_id UUID REFERENCES threads(id)
 target_forum_id  UUID REFERENCES forums(id)
-reason           TEXT
+reason           TEXT                            -- optional reason/context (role name, etc)
 created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
-> Append-only. No update or delete routes exist anywhere in the codebase.
+> Append-only audit trail. No update or delete routes exist anywhere in the codebase.
+> Distinguishes user-initiated actions (hide_own_post, delete_own_post) from moderator actions (hide_post, delete_post).
 
 ### `sessions` (Custom roll-your-own)
 
@@ -910,5 +945,5 @@ src/lib/abuse/
 **For comprehensive breakdown of all phases (1–7) with detailed commit counts and feature checklists, see `STATUS.md` in the project root.**
 
 Current status summary:
-- ✅ **Phases 1–6 Complete** (35+ commits, 12 DB tables, 10 admin pages, 40+ integration tests)
-- 🚀 **Phase 7 In Progress** (theme system, dark mode, UI refinements)
+- ✅ **Phases 1–7 Complete** (55+ commits, 14 DB tables, custom roles system, user post management, notification preferences, comprehensive design system)
+- 🎉 **Production Ready** — All core features, security hardening, and design polish complete
