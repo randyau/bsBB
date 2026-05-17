@@ -2,8 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 
-	let { data }: { data: PageData } = $props();
-	let form: ActionData = $state(undefined);
+	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
 	let previewHtml: string = $state('');
 	let replyBody: string = $state('');
@@ -54,7 +53,7 @@
 			replyBody = quotedText + (replyBody ? '\n\n' + replyBody : '');
 		}
 
-		document.querySelector('textarea[name="body"]')?.focus();
+		(document.querySelector('textarea[name="body"]') as HTMLTextAreaElement)?.focus();
 	}
 
 	function startEdit(postId: string) {
@@ -379,7 +378,7 @@
 
 							<!-- Live Preview -->
 							<div>
-								<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
+								<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2">Preview</p>
 								<div
 									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[150px] overflow-auto prose-content"
 								>

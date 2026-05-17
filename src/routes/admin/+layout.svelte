@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { LayoutData } from './$types';
+	import type { Snippet } from 'svelte';
 
-	let { data, children }: { data: LayoutData; children: any } = $props();
+	let { data, children }: { data: LayoutData; children: Snippet } = $props();
 </script>
 
 <div class="flex min-h-screen bg-[rgb(var(--color-bg))]">
@@ -41,6 +42,6 @@
 	<!-- Main Content -->
 	<div class="flex-1 p-8 bg-[rgb(var(--color-bg))]">
 		<a href="/" class="text-[rgb(var(--color-primary))] hover:underline text-sm mb-4 block">← Back to Forum</a>
-		<slot />
+		{@render children?.()}
 	</div>
 </div>

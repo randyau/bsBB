@@ -3,11 +3,15 @@
 	import { goto } from '$app/navigation';
 	import TableSearch from '$components/TableSearch.svelte';
 
-	let { data }: { data: PageData } = $props();
-	let form: ActionData = $state(undefined);
+	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
 	let forumVal = $state(data.forumFilter);
 	let periodVal = $state(data.period);
+
+	$effect(() => {
+		forumVal = data.forumFilter;
+		periodVal = data.period;
+	});
 
 	function navigate() {
 		const params = new URLSearchParams();

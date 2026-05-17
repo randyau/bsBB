@@ -60,8 +60,12 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 
 		return { allowed: true };
 	} catch (err) {
-		// If rate_limit_buckets doesn't exist yet, log and allow (graceful fallback)
 		console.error('[abuse check error]', String(err));
+		// In production, fail closed (deny) to prevent abuse during DB issues.
+		// In development, fail open (allow) to avoid blocking during setup/testing.
+		if (process.env.NODE_ENV === 'production') {
+			return { allowed: false, reason: 'Rate limiter unavailable', retryAfterSeconds: 60 };
+		}
 		return { allowed: true };
 	}
 }

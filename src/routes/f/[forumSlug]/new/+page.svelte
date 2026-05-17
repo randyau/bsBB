@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import type { ActionData } from './$types';
+	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 
-	let { data }: { data: PageData } = $props();
-	let form: ActionData = $state(undefined);
+	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
+
+	let { data, form }: { data: PageData; form: FormData } = $props();
 
 	let titleValue: string = $state(form?.title || '');
 	let bodyValue: string = $state(form?.body || '');
@@ -94,7 +94,7 @@
 
 				<!-- Live Preview -->
 				<div>
-					<label class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Preview</label>
+					<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2">Preview</p>
 					<div
 						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[300px] overflow-auto prose-content"
 					>

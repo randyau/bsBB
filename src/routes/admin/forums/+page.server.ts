@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, userForumRoles, modLog, users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async () => {
@@ -155,7 +155,7 @@ export const actions: Actions = {
 
 		try {
 			await db.delete(userForumRoles).where(
-				(ufr) => eq(ufr.forumId, forumId) && eq(ufr.userDid, userDid)
+				and(eq(userForumRoles.forumId, forumId), eq(userForumRoles.userDid, userDid))
 			);
 
 			await db.insert(modLog).values({

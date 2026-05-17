@@ -24,7 +24,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
  *   - Rate limit verdict is in returned object (allowed: boolean), not thrown exception.
  */
 
-const BASE_URL = 'http://localhost:5173';
+const BASE_URL = 'http://localhost:5178';
 
 interface TestSession {
 	token: string;

@@ -2,7 +2,6 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 	import type { LayoutData } from './$types.js';
-	import { theme } from '$lib/theme';
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
@@ -16,18 +15,14 @@
 			window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
 		}
 	}
-
-	// Initialize theme on mount
-	$effect(() => {
-		if (typeof window !== 'undefined') {
-			const storedTheme = localStorage.getItem('theme') || 'dark';
-			document.documentElement.setAttribute('data-theme', storedTheme);
-		}
-	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<script>
+		const theme = document.cookie.split('; ').find(c => c.startsWith('theme='))?.split('=')[1] || 'dark';
+		document.documentElement.setAttribute('data-theme', theme);
+	</script>
 </svelte:head>
 
 <nav class="border-b px-4 py-3 flex items-center justify-between gap-4 bg-[rgb(var(--color-bg))]">
@@ -51,7 +46,6 @@
 				<a href="/admin" class="font-semibold hover:underline">Admin</a>
 			{/if}
 			<a href="/user/{user.handle}" class="text-secondary hover:underline">@{user.handle}</a>
-			<a href="/settings" class="hover:underline">Settings</a>
 			<form method="POST" action="/logout">
 				<button type="submit" class="hover:underline">Sign out</button>
 			</form>
