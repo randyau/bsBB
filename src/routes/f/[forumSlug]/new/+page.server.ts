@@ -72,7 +72,7 @@ export const actions: Actions = {
 		// Retry slug uniqueness up to 5 times
 		for (let i = 2; i <= 5; i++) {
 			try {
-				const bodyHtml = await renderMarkdown(body);
+				const bodyHtml = await renderMarkdown(body, db);
 				const linkMetadata = await fetchLinkMetadata(body, ip);
 
 				const result = await db.transaction(async (tx) => {
