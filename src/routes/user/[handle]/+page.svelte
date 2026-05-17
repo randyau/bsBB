@@ -94,6 +94,18 @@
 		</div>
 	</div>
 
+	<!-- Personal profile actions (when viewing own profile) -->
+	{#if data.isSelf}
+		<div class="mb-8 flex gap-3">
+			<a href="/settings" class="btn btn-primary text-sm">
+				Edit Profile
+			</a>
+			<a href="/settings#notifications" class="btn btn-secondary text-sm">
+				Notification Settings
+			</a>
+		</div>
+	{/if}
+
 	<!-- Recent posts -->
 	{#if data.recentPosts.length > 0}
 		<div class="card mb-8">

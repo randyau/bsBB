@@ -20,6 +20,7 @@ const testUser = {
 	displayName: 'Test User',
 	avatarUrl: null,
 	globalRole: 'member' as const,
+	notifyViaBluesky: false,
 };
 
 const testAdmin = {
@@ -28,6 +29,7 @@ const testAdmin = {
 	displayName: 'Admin',
 	avatarUrl: null,
 	globalRole: 'admin' as const,
+	notifyViaBluesky: false,
 };
 
 describe('canRead permission resolution', () => {
