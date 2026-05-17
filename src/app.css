@@ -365,6 +365,13 @@ input[type="radio"]:disabled {
 	padding: 0.75rem 1rem;
 }
 
+/* Table wrapper container */
+.table-container {
+	border: 1px solid rgb(var(--color-border));
+	border-radius: 0.5rem;
+	overflow-x: auto;
+}
+
 /* Alerts and messages */
 .alert {
 	border-radius: 0.5rem;

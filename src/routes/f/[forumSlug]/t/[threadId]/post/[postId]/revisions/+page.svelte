@@ -32,7 +32,7 @@
 	</div>
 
 	{#if data.revisions.length === 0}
-		<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-8 text-center">
+		<div class="box-secondary text-center">
 			<p class="text-[rgb(var(--color-text-secondary))]">No edits — post has not been modified.</p>
 		</div>
 	{:else}
@@ -43,7 +43,7 @@
 			</p>
 
 			{#each data.revisions as revision (revision.id)}
-				<div class="rounded-lg border border-[rgb(var(--color-border))] bg-white overflow-hidden">
+				<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] overflow-hidden">
 					<!-- Revision Header -->
 					<button
 						type="button"
@@ -69,7 +69,7 @@
 							<!-- Original Content -->
 							<div>
 								<h4 class="font-semibold text-sm mb-2">Original content:</h4>
-								<div class="prose-content bg-white p-3 rounded border border-[rgb(var(--color-border))]">
+								<div class="prose-content bg-[rgb(var(--color-bg))] p-3 rounded border border-[rgb(var(--color-border))]">
 									{@html revision.bodyHtml}
 								</div>
 								<details class="mt-2">
@@ -84,7 +84,7 @@
 							{#if revision === data.revisions[data.revisions.length - 1]}
 								<div class="pt-4 border-t border-[rgb(var(--color-border))]">
 									<h4 class="font-semibold text-sm mb-2">Current content (after this edit):</h4>
-									<div class="prose-content bg-white p-3 rounded border border-[rgb(var(--color-border))]">
+									<div class="prose-content bg-[rgb(var(--color-bg))] p-3 rounded border border-[rgb(var(--color-border))]">
 										{@html data.post.bodyHtml}
 									</div>
 									<details class="mt-2">
@@ -102,12 +102,12 @@
 		</div>
 
 		<!-- Original Post Info -->
-		<div class="rounded-lg bg-blue-50 border border-blue-200 p-4">
-			<p class="text-sm text-blue-900">
+		<div class="box-secondary">
+			<p class="text-sm">
 				<strong>Original post:</strong> Created {new Date(data.post.createdAt).toLocaleString()}
 			</p>
 			{#if data.post.editedAt}
-				<p class="text-sm text-blue-900 mt-1">
+				<p class="text-sm mt-1">
 					<strong>Last edited:</strong> {new Date(data.post.editedAt).toLocaleString()}
 				</p>
 			{/if}
