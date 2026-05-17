@@ -58,22 +58,36 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// For posts with reply_to_post_id, fetch the referenced post for quote preview
 	const postMap = new Map(postList.map((p) => [p.id, p]));
 
-	const enrichedPosts = postList.map((post) => {
-		let quotedPost = null;
+	const enrichedPosts = await Promise.all(
+		postList.map(async (post) => {
+			let quotedPost = null;
+			let hiddenByUser = false;
 
-		if (post.replyToPostId && postMap.has(post.replyToPostId)) {
-			const quoted = postMap.get(post.replyToPostId)!;
-			if (quoted.status === 'active') {
-				quotedPost = {
-					id: quoted.id,
-					authorHandle: quoted.authorHandle,
-					bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
-				};
+			if (post.replyToPostId && postMap.has(post.replyToPostId)) {
+				const quoted = postMap.get(post.replyToPostId)!;
+				if (quoted.status === 'active') {
+					quotedPost = {
+						id: quoted.id,
+						authorHandle: quoted.authorHandle,
+						bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
+					};
+				}
 			}
-		}
 
-		return { ...post, quotedPost };
-	});
+			// Check if post was hidden by the user (author) or a moderator
+			if (post.status === 'hidden') {
+				const hideLog = await db.query.modLog.findFirst({
+					where: and(
+						eq(modLog.targetPostId, post.id),
+						eq(modLog.action, 'hide_own_post')
+					),
+				});
+				hiddenByUser = !!hideLog;
+			}
+
+			return { ...post, quotedPost, hiddenByUser };
+		})
+	);
 
 	// Get thread author info
 	const threadAuthor = await db.query.users.findFirst({
