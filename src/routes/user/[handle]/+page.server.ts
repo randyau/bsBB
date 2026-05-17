@@ -9,9 +9,10 @@ import {
 	forums,
 	userForumRoles,
 	modLog,
-	sessions
+	sessions,
+	notificationSubscriptions
 } from '$lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
 
@@ -81,6 +82,31 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const isAdmin = locals.user?.globalRole === 'admin';
 	const isSelf = locals.user?.did === profileUser.did;
 
+	// Load followed threads (for self-profile only)
+	let followedThreads: Array<{
+		threadId: string;
+		threadTitle: string;
+		threadSlug: string;
+		forumSlug: string;
+		subscriptionType: string;
+	}> = [];
+
+	if (isSelf && locals.user) {
+		followedThreads = await db
+			.select({
+				threadId: notificationSubscriptions.threadId,
+				subscriptionType: notificationSubscriptions.subscriptionType,
+				threadTitle: threads.title,
+				threadSlug: threads.slug,
+				forumSlug: forums.slug
+			})
+			.from(notificationSubscriptions)
+			.innerJoin(threads, eq(threads.id, notificationSubscriptions.threadId))
+			.innerJoin(forums, eq(forums.id, threads.forumId))
+			.where(eq(notificationSubscriptions.userDid, profileUser.did))
+			.orderBy(desc(notificationSubscriptions.createdAt));
+	}
+
 	return {
 		profileUser,
 		customRoles,
@@ -93,7 +119,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		allRoles,
 		isAdmin,
 		isSelf,
-		viewerUser: locals.user ?? null
+		viewerUser: locals.user ?? null,
+		followedThreads
 	};
 };
 

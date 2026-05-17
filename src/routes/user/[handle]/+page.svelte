@@ -141,6 +141,33 @@
 		</div>
 	{/if}
 
+	<!-- Followed threads -->
+	{#if data.isSelf && data.followedThreads.length > 0}
+		<div class="card mb-8">
+			<h2 class="text-xl font-bold mb-4">Followed Threads</h2>
+			<div class="space-y-3">
+				{#each data.followedThreads as sub}
+					<div class="flex items-center justify-between gap-3 p-3 rounded border border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))] transition">
+						<a
+							href="/f/{sub.forumSlug}/t/{sub.threadSlug}"
+							class="flex-1 link font-semibold"
+						>
+							{sub.threadTitle}
+						</a>
+						<span class="text-xs text-[rgb(var(--color-text-muted))] capitalize font-medium px-2 py-1 bg-[rgb(var(--color-bg))] rounded">
+							{sub.subscriptionType}
+						</span>
+						<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/unwatchThread" class="inline">
+							<button type="submit" class="btn btn-sm btn-secondary text-xs whitespace-nowrap">
+								Remove
+							</button>
+						</form>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
 	<!-- Admin management panel -->
 	{#if data.isAdmin && !data.isSelf}
 		<div class="card border-l-4 border-l-amber-500">
