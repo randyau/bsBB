@@ -1,22 +1,29 @@
 # bsBB — Implementation Status
 
-**Last Updated:** 2026-05-16  
-**Overall Status:** 🚀 Phase 7 In Progress (Phases 1–6 Complete, 35+ commits)
+**Last Updated:** 2026-05-17  
+**Overall Status:** ✅ All Phases Complete (Phases 1–7 Done, 55+ commits)
 
 ## Summary
 
-All core features are implemented and production-ready. Phase 7 focuses on design and UI refinements. The forum is fully functional with:
+All core features and design polish are complete and production-ready. The forum is fully functional with:
 - ✅ ATproto authentication via OAuth
 - ✅ Forum hierarchy with permissions
-- ✅ Post creation with markdown + OG metadata
-- ✅ Full moderation suite (ban/delete/lock/pin)
+- ✅ Post creation with markdown + OG metadata + quote links
+- ✅ Full moderation suite (ban/delete/lock/pin/hide)
+- ✅ Custom roles system (admin-defined, globally assigned)
+- ✅ User profile pages with Bluesky identity
+- ✅ User post management (hide, delete, restore)
+- ✅ Account management with danger zone (delete account, delete all posts)
+- ✅ Notification preferences (opt-in Bluesky DMs)
 - ✅ Email + Bluesky DM notifications
 - ✅ Background worker for async tasks
 - ✅ Full-text search (hybrid tsvector + substring)
 - ✅ Post editing with revision history
+- ✅ Post status system (ACTIVE, HIDDEN, ARCHIVED, DELETED)
+- ✅ Comprehensive design system (typography, spacing, buttons, forms, cards, tables)
+- ✅ Light/dark theme with system preference detection
 - ✅ Production Docker Compose stack
-- 🚀 Theme system with light/dark mode (Phase 7)
-- 🚀 Admin forums management (Phase 7)
+- ✅ Security hardening (CSP, headers, rate limiting, input validation)
 
 ---
 
@@ -200,9 +207,9 @@ All core features are implemented and production-ready. Phase 7 focuses on desig
 
 ---
 
-### Phase 7 🚀 — Design, UI & Interaction Refinements (2/10 commits)
+### Phase 7 ✅ — Design, UI & Interaction Refinements + User Features (11 commits + enhancements)
 
-**Status:** In Progress  
+**Status:** Complete
 
 #### Commit 1 ✅ — Theme System & Light/Dark Mode
 - CSS custom properties for light/dark themes
@@ -220,33 +227,95 @@ All core features are implemented and production-ready. Phase 7 focuses on desig
 - Fixed "New Thread" button styling
 - Clean search result rendering
 
-**Planned Commits (3–10):**
-3. Typography & spacing scale
-4. Button & form control styles
-5. Card & container components
-6. Modal & dialog system
-7. Loading states & animations
-8. Responsive layout & mobile polish
-9. Accessibility & focus management
-10. Component library documentation
+#### Commit 3 ✅ — Markdown Preview, Responsive Layout, Global CSS, Dark Mode Defaults
+- Markdown preview rendering with semantic CSS classes
+- Responsive container layout with max-widths per breakpoint
+- Global semantic classes for maintainability
+- Dark mode as system default
+- Fixed theme toggle icons
+
+#### Commit 4 ✅ — Custom Roles & Role-Based Forum Access
+- New `roles` table for admin-defined custom roles
+- `userRoles` table for global custom role assignments
+- Permissions enforcement checks both per-forum + custom roles
+- Admin roles page with create/edit/delete/assign UI
+- Admin forum permissions matrix with click-to-toggle
+- Hierarchical permission inheritance via parent chain
+- Comprehensive audit trail in mod_log
+
+#### Commit 5 ✅ — Admin UI Details Polish
+- Fixed roles page member count expansion toggle
+- Added pagination to user management page (50 items/page)
+
+#### Commit 6 ✅ — Typography Scale & Semantic Spacing
+- CSS custom properties for text sizes (--text-xs to --text-3xl)
+- Semantic heading classes (.page-title, .section-title, etc.)
+- Applied to all main route h1 elements
+- Wired up .thread-item family of classes
+- Fixed hardcoded colors with themed CSS variables
+
+#### Commit 7 ✅ — Button & Form Refinement
+- Button focus rings with colored shadows
+- Button states (hover, active, disabled)
+- Form validation state classes
+- Custom checkbox and radio styling
+- Applied semantic form classes to all admin pages
+
+#### Commit 8 ✅ — Card Component Refinement
+- Semantic .table-container class for table wrappers
+- Replaced inline alerts with .alert-error/.alert-success
+- Replaced inline cards with .box-secondary/.card-secondary
+- Centralized design system definitions in app.css
+
+#### Commit 9 ✅ — Enhanced Post Quoting with Reference Links
+- Posts with reply_to_post_id display as quoted replies
+- Copy permalink button on each post
+- Quote links render referenced post content inline
+- Full-text search integration for quoted posts
+
+#### Commit 10 ✅ — User Profile & Notification Preferences
+- User profile pages (/user/[handle])
+- "Edit Profile" button for display name
+- "Notification Settings" button (opt-in Bluesky DMs)
+- Notification preferences UI explaining triggers
+- Forum-specific notification management
+
+#### Commit 11 ✅ — Post and Account Management for Users
+- `/user/[handle]/manage-posts` page (searchable, paginated)
+- Users can manage their own posts (hide/delete/restore)
+- Admins can manage any user's posts
+- Post status badges with visual indicators
+- Settings danger zone:
+  - Delete all posts (content removed, stubs preserved)
+  - Delete account (anonymized, allows re-registration)
+  - Confirmation requires typing handle
+  - All sessions deleted on account removal
+- Proper mod_log entries for all actions
+
+#### Additional Enhancement ✅ — User vs Moderator Post Visibility
+- Checks mod_log for post hide initiator
+- Display "[post hidden by author]" vs "[post hidden by moderator]"
+- Clear visibility decision attribution
 
 ---
 
 ## Database Schema Summary
 
-**12 Tables:**
-1. `users` — DIDs, handles, roles, profile cache
+**14 Tables:**
+1. `users` — DIDs, handles, roles, profile cache, notification preferences
 2. `forums` — Hierarchical forum structure
 3. `threads` — Thread metadata
-4. `posts` — Post content (markdown + HTML)
+4. `posts` — Post content (markdown + HTML) with status (ACTIVE/HIDDEN/ARCHIVED/DELETED)
 5. `post_revisions` — Append-only edit history
 6. `forum_permissions` — Role-based access control
 7. `user_forum_roles` — Per-forum moderators
-8. `sessions` — Custom roll-your-own (SHA-256 hash, auto-pruning)
-9. `mod_log` — Audit trail (ban/delete/lock/etc.)
-10. `notification_queue` — Async worker queue
-11. `rate_limit_buckets` — Atomic rate limit tracking
-12. `instance_settings` — Configuration flags
+8. `roles` — Admin-defined custom roles with colors
+9. `user_roles` — Global custom role assignments
+10. `sessions` — Custom roll-your-own (SHA-256 hash, auto-pruning)
+11. `mod_log` — Audit trail (ban/delete/lock/hide/role ops/etc.)
+12. `notification_queue` — Async worker queue
+13. `rate_limit_buckets` — Atomic rate limit tracking
+14. `instance_settings` — Configuration flags
 
 **Key Indexes:** `did`, `email`, `slug`, `tsvector`, `created_at`, foreign keys
 
@@ -280,8 +349,8 @@ All core features are implemented and production-ready. Phase 7 focuses on desig
 | Phase 4 | 7 | ✅ |
 | Phase 5 | 6 | ✅ |
 | Phase 6 | 6 | ✅ |
-| Phase 7 | 2/10 | 🚀 |
-| **Total** | **35+** | **In Progress** |
+| Phase 7 | 11 + enhancements | ✅ |
+| **Total** | **55+** | **✅ Complete** |
 
 ---
 

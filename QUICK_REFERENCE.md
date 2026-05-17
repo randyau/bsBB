@@ -41,25 +41,31 @@ One-sentence summary: ATproto/Bluesky-based forum. No passwords. DID-keyed users
 | **Permissions model** | Explicit rows in `forum_permissions`, not bitmask |
 | **Moderator role** | Per-forum only (in `user_forum_roles`), not global |
 | **Global roles** | `admin`, `member`, `banned` (in `users.global_role`) |
+| **Custom roles** | Admin-defined roles in `roles` table, globally assigned in `user_roles` |
+| **Post status** | `'active'`, `'hidden'`, `'archived'`, `'deleted'` (status column, not just is_deleted) |
+| **User vs mod hidden** | Checked via mod_log action type (hide_own_post vs hide_post) for display |
+| **Notifications** | Opt-in Bluesky DMs via `notifyViaBluesky` flag, encrypted chat tokens in `chat_session_encrypted` |
 
 ---
 
 ## Database Schema Summary
 
 **Core tables:**
-- `users` — DIDs, cached profile, global_role, session tokens
+- `users` — DIDs, cached profile, global_role, notifyViaBluesky flag, chat_session_encrypted
 - `forums` — hierarchical (parent_id), name, slug, visibility
 - `threads` — author_did, title, slug, is_locked, is_pinned, last_post_at
-- `posts` — author_did, thread_id, body_markdown, body_html, reply_to_post_id, link_metadata JSONB, is_deleted soft-flag
+- `posts` — author_did, thread_id, body_markdown, body_html, reply_to_post_id, link_metadata JSONB, status (ACTIVE/HIDDEN/ARCHIVED/DELETED)
 - `post_revisions` — append-only snapshots, body_markdown + body_html
 
 **Auth/Access:**
 - `sessions` — id (token hash), user_did, expires_at
 - `forum_permissions` — role, forum_id, can_read/post/moderate flags
 - `user_forum_roles` — user_did, forum_id, role (moderator only), assigned_by, assigned_at
+- `roles` — admin-defined custom roles with color, description
+- `user_roles` — user_did, role_id (many-to-many)
 
 **Audit/Notifications:**
-- `mod_log` — action, moderator_did, target_did/post_id/thread_id/forum_id, reason, created_at
+- `mod_log` — action (ban/unban/promote/demote/create_role/assign_custom_role/hide_post/hide_own_post/delete_post/delete_own_post/etc.), moderator_did, target_did/post_id/thread_id/forum_id, reason, created_at
 - `notification_queue` — recipient_did, type, payload JSONB, status (pending/sent/failed)
 - `instance_settings` — key-value for setup state, default_forum_visibility, first_admin_claimed
 

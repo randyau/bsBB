@@ -99,6 +99,40 @@ if (!allowed) {
 }
 ```
 
+### Custom roles (admin-defined)
+```typescript
+import { db } from '$lib/db';
+import { roles, userRoles } from '$lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+// Create a custom role
+await db.insert(roles).values({
+  name: 'Moderator',
+  description: 'Community moderators',
+  color: '#e11d48',  // hex color for badge
+});
+
+// Assign role to user
+await db.insert(userRoles).values({
+  userDid: targetDid,
+  roleId: roleId,
+  assignedBy: locals.user.did,
+});
+
+// Query user's custom roles
+const userCustomRoles = await db.query.userRoles.findMany({
+  where: eq(userRoles.userDid, userDid),
+  with: { role: true },  // join to get role name/color
+});
+
+// Remove custom role
+await db.delete(userRoles)
+  .where(and(
+    eq(userRoles.userDid, userDid),
+    eq(userRoles.roleId, roleId)
+  ));
+```
+
 ---
 
 ## Database Queries
@@ -159,19 +193,59 @@ await db.update(users)
   .where(eq(users.did, did));
 ```
 
-### Delete (or soft-delete)
+### Update post status (not is_deleted)
 ```typescript
 import { db } from '$lib/db';
 import { posts } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-// Hard delete (rare)
-await db.delete(posts).where(eq(posts.id, postId));
-
-// Soft delete (posts)
+// Use status column instead of is_deleted
+// Status values: 'active' | 'hidden' | 'archived' | 'deleted'
 await db.update(posts)
-  .set({ is_deleted: true })
+  .set({ status: 'hidden' })  // User or mod hides post
   .where(eq(posts.id, postId));
+
+await db.update(posts)
+  .set({ status: 'deleted' }) // Content removed, stub preserved
+  .where(eq(posts.id, postId));
+
+// Query posts by status
+const activePostsInThread = await db.query.posts.findMany({
+  where: and(
+    eq(posts.threadId, threadId),
+    eq(posts.status, 'active')
+  ),
+});
+```
+
+### Log moderation actions (append-only audit trail)
+```typescript
+import { db } from '$lib/db';
+import { modLog } from '$lib/db/schema';
+
+// Always log mod actions — never modify/delete mod_log
+await db.insert(modLog).values({
+  moderatorDid: locals.user.did,
+  action: 'hide_post',  // or 'hide_own_post', 'delete_post', 'ban', etc.
+  targetPostId: postId,
+  targetDid: post.authorDid,
+  reason: 'Spam',  // optional context
+});
+
+// Check if post was hidden by author or mod
+const hideAction = await db.query.modLog.findFirst({
+  where: and(
+    or(
+      eq(modLog.action, 'hide_own_post'),
+      eq(modLog.action, 'hide_post')
+    ),
+    eq(modLog.targetPostId, postId)
+  ),
+  orderBy: desc(modLog.createdAt),
+});
+
+const isUserHidden = hideAction?.action === 'hide_own_post';
+const isModHidden = hideAction?.action === 'hide_post';
 ```
 
 ---
@@ -391,6 +465,9 @@ interface SessionUser {
   display_name: string | null;
   avatar_url: string | null;
   global_role: 'admin' | 'member' | 'banned';
+  notifyViaBluesky: boolean;  // opt-in DM notifications flag
+  lastProfileSync: Date;      // when profile was last synced from PDS
+  createdAt: Date;            // account creation timestamp
 }
 ```
 
@@ -481,4 +558,8 @@ const threadSlug = generateSlug(title);
 6. **First admin is idempotent** — Safe to call multiple times; gated by `instance_settings.first_admin_claimed`.
 7. **Banned users get redirected** — In `hooks.server.ts` before route load. Except `/banned` and `/logout`.
 8. **Custom sessions (no external library)** — Proven simple and secure (32-byte token + SHA-256 hash). See `src/lib/auth/session.ts`. Don't replace with Lucia or similar.
+9. **Use post.status, not post.is_deleted** — `status` column replaces `is_deleted` boolean. Values: `'active'` | `'hidden'` | `'archived'` | `'deleted'`.
+10. **Check mod_log to distinguish user vs mod action** — `hide_own_post` vs `hide_post`, `delete_own_post` vs `delete_post`. Display accordingly.
+11. **Custom roles are global** — Assigned via `user_roles` (many-to-many). Distinguished from per-forum moderator assignments in `user_forum_roles`.
+12. **Mod_log is append-only** — No delete or update routes. Provides permanent audit trail. Check this table for action history.
 
