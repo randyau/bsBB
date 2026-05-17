@@ -239,44 +239,50 @@
 			{/if}
 
 			{#if data.user}
-				<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden">
-					<!-- Mute button -->
-					<form method="POST" action="?/muteThread" style="display: contents;">
-						<button
-							type="submit"
-							class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'mute'
-								? 'bg-[rgb(var(--color-primary))] text-white'
-								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
-						>
-							Mute
-						</button>
-					</form>
+				{#if data.user.notifyViaBluesky}
+					<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden">
+						<!-- Mute button -->
+						<form method="POST" action="?/muteThread" style="display: contents;">
+							<button
+								type="submit"
+								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'mute'
+									? 'bg-[rgb(var(--color-primary))] text-white'
+									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+							>
+								Mute
+							</button>
+						</form>
 
-					<!-- Default button -->
-					<form method="POST" action="?/unwatchThread" style="display: contents;">
-						<button
-							type="submit"
-							class="px-3 py-2 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
-								? 'bg-[rgb(var(--color-primary))] text-white'
-								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
-						>
-							<div>Default</div>
-							<div>notifs</div>
-						</button>
-					</form>
+						<!-- Default button -->
+						<form method="POST" action="?/unwatchThread" style="display: contents;">
+							<button
+								type="submit"
+								class="px-3 py-2 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
+									? 'bg-[rgb(var(--color-primary))] text-white'
+									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+							>
+								<div>Default</div>
+								<div>notifs</div>
+							</button>
+						</form>
 
-					<!-- Watch button -->
-					<form method="POST" action="?/watchThread" style="display: contents;">
-						<button
-							type="submit"
-							class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'follow'
-								? 'bg-[rgb(var(--color-primary))] text-white'
-								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
-						>
-							Watch
-						</button>
-					</form>
-				</div>
+						<!-- Watch button -->
+						<form method="POST" action="?/watchThread" style="display: contents;">
+							<button
+								type="submit"
+								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'follow'
+									? 'bg-[rgb(var(--color-primary))] text-white'
+									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+							>
+								Watch
+							</button>
+						</form>
+					</div>
+				{:else}
+					<p class="text-sm text-[rgb(var(--color-text-muted))]">
+						<a href="/settings#notifications" class="text-[rgb(var(--color-primary))] hover:underline">Enable notifications</a> to watch or mute threads.
+					</p>
+				{/if}
 			{/if}
 
 			{#if data.canModerate}

@@ -60,6 +60,38 @@ export const actions: Actions = {
 		}
 	},
 
+	updateNotificationPreferences: async ({ locals, request }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Not logged in' });
+		}
+
+		const form = await request.formData();
+		const notificationType = String(form.get('notificationType') ?? 'both').trim();
+		const notificationFrequency = String(form.get('notificationFrequency') ?? 'immediate').trim();
+
+		const validTypes = ['both', 'replies', 'quotes'];
+		const validFrequencies = ['immediate', 'hourly', 'daily'];
+
+		if (!validTypes.includes(notificationType)) {
+			return fail(422, { error: 'Invalid notification type' });
+		}
+		if (!validFrequencies.includes(notificationFrequency)) {
+			return fail(422, { error: 'Invalid notification frequency' });
+		}
+
+		try {
+			await db
+				.update(users)
+				.set({ notificationType, notificationFrequency })
+				.where(eq(users.did, locals.user.did));
+
+			return { success: true };
+		} catch (err) {
+			console.error('updateNotificationPreferences error:', err);
+			return fail(500, { error: 'Failed to update notification preferences' });
+		}
+	},
+
 	deleteAllPosts: async ({ locals, request }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'Not logged in' });
