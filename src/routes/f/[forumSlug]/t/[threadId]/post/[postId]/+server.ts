@@ -1,8 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
-import { posts, postRevisions, users, threads, forums } from '$lib/db/schema';
-import { eq, and, max } from 'drizzle-orm';
+import { posts, postRevisions, modLog } from '$lib/db/schema';
+import { eq, max } from 'drizzle-orm';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 
@@ -41,9 +41,11 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 			return json({ error: 'You cannot edit this post' }, { status: 403 });
 		}
 
-		// Load new body from request
+		// Load new body and optional mod reason from request
 		const body = await request.json();
 		const newBodyMarkdown = String(body.body ?? '').trim();
+		const modReason = String(body.modReason ?? '').trim() || undefined;
+		const isModEdit = body.isModEdit === true;
 
 		if (!newBodyMarkdown || newBodyMarkdown.length < 1 || newBodyMarkdown.length > 50000) {
 			return json({ error: 'Body must be 1-50,000 characters' }, { status: 422 });
@@ -58,7 +60,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 		const newBodyHtml = await renderMarkdown(newBodyMarkdown, db);
 		const newLinkMetadata = await fetchLinkMetadata(newBodyMarkdown, getClientAddress());
 
-		// Transaction: create revision, update post
+		// Transaction: create revision, update post, optionally log mod edit
 		await db.transaction(async (tx) => {
 			// Get next revision number for this post
 			const [lastRev] = await tx
@@ -87,6 +89,16 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 					editedAt: new Date()
 				})
 				.where(eq(posts.id, post.id));
+
+			// If mod edit, log it
+			if (isModEdit && post.authorDid !== locals.user!.did && locals.user!.globalRole === 'admin') {
+				await tx.insert(modLog).values({
+					moderatorDid: locals.user!.did,
+					action: 'edit_post_as_mod',
+					targetPostId: post.id,
+					reason: modReason
+				});
+			}
 		});
 
 		return json({

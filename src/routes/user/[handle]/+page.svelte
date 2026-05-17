@@ -154,14 +154,41 @@
 						>
 							{sub.threadTitle}
 						</a>
-						<span class="text-xs text-[rgb(var(--color-text-muted))] capitalize font-medium px-2 py-1 bg-[rgb(var(--color-bg))] rounded">
-							{sub.subscriptionType}
-						</span>
-						<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/unwatchThread" class="inline">
-							<button type="submit" class="btn btn-sm btn-secondary text-xs whitespace-nowrap">
-								Remove
-							</button>
-						</form>
+						<!-- Subscription state button group -->
+						<div class="flex items-center gap-0 border border-[rgb(var(--color-border))] rounded overflow-hidden">
+							<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/muteThread" style="display: contents;">
+								<button
+									type="submit"
+									class="px-2 py-1 text-xs font-medium transition {sub.subscriptionType === 'mute'
+										? 'bg-[rgb(var(--color-primary))] text-white'
+										: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+								>
+									Mute
+								</button>
+							</form>
+							<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/unwatchThread" style="display: contents;">
+								<button
+									type="submit"
+									class="px-2 py-1 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {sub.subscriptionType === null
+										? 'bg-[rgb(var(--color-primary))] text-white'
+										: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+									title="Use default notification settings"
+								>
+									<div>Default</div>
+									<div>notifs</div>
+								</button>
+							</form>
+							<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/watchThread" style="display: contents;">
+								<button
+									type="submit"
+									class="px-2 py-1 text-xs font-medium transition {sub.subscriptionType === 'follow'
+										? 'bg-[rgb(var(--color-primary))] text-white'
+										: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
+								>
+									Watch
+								</button>
+							</form>
+						</div>
 					</div>
 				{/each}
 			</div>

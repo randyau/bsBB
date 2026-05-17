@@ -21,6 +21,8 @@ export const users = pgTable('users', {
 	lastProfileSync: timestamp('last_profile_sync', { withTimezone: true }).notNull(),
 	globalRole: text('global_role').notNull().default('member'),
 	notifyViaBluesky: boolean('notify_via_bluesky').notNull().default(false),
+	notificationType: text('notification_type').notNull().default('both'), // 'replies' | 'quotes' | 'both'
+	notificationFrequency: text('notification_frequency').notNull().default('immediate'), // 'immediate' | 'hourly' | 'daily'
 	chatSessionEncrypted: text('chat_session_encrypted'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

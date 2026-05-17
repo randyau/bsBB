@@ -5,6 +5,8 @@
 
 	let displayName = $state(data.user.displayName ?? '');
 	let notifyViaBluesky = $state(data.user.notifyViaBluesky ?? false);
+	let notificationType = $state(data.user.notificationType ?? 'both');
+	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
 	let deleteAccountHandle = $state('');
 
 	function confirmDeleteAllPosts(): boolean {
@@ -83,8 +85,6 @@
 
 		<!-- Notification preferences -->
 		<div class="border-t border-[rgb(var(--color-border))] pt-6">
-			<h2 class="text-lg font-semibold mb-3">Notifications</h2>
-
 			<div class="space-y-4">
 				<div class="p-4 bg-[rgb(var(--color-bg-secondary))] rounded-lg">
 					<h3 class="font-semibold mb-2">Bluesky DM Notifications</h3>
@@ -92,23 +92,67 @@
 						Receive DM notifications when someone replies to your thread, quotes your post, or a moderator takes action on your content.
 					</p>
 
-					{#if notifyViaBluesky}
-						<p class="text-sm text-green-600 font-medium mb-3">✓ Enabled</p>
-						<form method="POST" action="?/toggleNotifications" class="inline">
-							<input type="hidden" name="enabled" value="false" />
-							<button type="submit" class="btn btn-sm btn-secondary">
-								Disable Notifications
-							</button>
-						</form>
-					{:else}
-						<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
-						<form method="POST" action="?/toggleNotifications" class="inline">
-							<input type="hidden" name="enabled" value="true" />
-							<button type="submit" class="btn btn-sm btn-primary">
-								Enable Notifications
-							</button>
-						</form>
-					{/if}
+					<form method="POST" action="?/updateNotificationPreferences" class="space-y-4">
+						<!-- Enable/Disable toggle -->
+						<div>
+							{#if notifyViaBluesky}
+								<p class="text-sm text-green-600 font-medium mb-3">✓ Enabled</p>
+								<input type="hidden" name="enabled" value="true" />
+								<button type="submit" formaction="?/toggleNotifications" value="false" name="enabled" class="btn btn-sm btn-secondary">
+									Disable Notifications
+								</button>
+							{:else}
+								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
+								<input type="hidden" name="enabled" value="false" />
+								<button type="submit" formaction="?/toggleNotifications" value="true" name="enabled" class="btn btn-sm btn-primary">
+									Enable Notifications
+								</button>
+							{/if}
+						</div>
+
+						<!-- Notification type and frequency (only if enabled) -->
+						{#if notifyViaBluesky}
+							<div class="border-t border-[rgb(var(--color-border))] pt-4 space-y-4">
+								<!-- Type -->
+								<div>
+									<label for="notificationType" class="block text-sm font-medium mb-2">Notify me about:</label>
+									<select
+										id="notificationType"
+										name="notificationType"
+										bind:value={notificationType}
+										class="form-control"
+									>
+										<option value="both">Replies & Quotes</option>
+										<option value="replies">Replies only</option>
+										<option value="quotes">Quotes only</option>
+									</select>
+									<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
+										Choose which types of interactions trigger notifications.
+									</p>
+								</div>
+
+								<!-- Frequency -->
+								<div>
+									<label for="notificationFrequency" class="block text-sm font-medium mb-2">Notification frequency:</label>
+									<select
+										id="notificationFrequency"
+										name="notificationFrequency"
+										bind:value={notificationFrequency}
+										class="form-control"
+									>
+										<option value="immediate">Max once every 10 minutes</option>
+										<option value="hourly">Max once per hour</option>
+										<option value="daily">Max once per day</option>
+									</select>
+									<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
+										How often you'll receive batches of notifications.
+									</p>
+								</div>
+
+								<button type="submit" class="btn btn-primary">Save Preferences</button>
+							</div>
+						{/if}
+					</form>
 				</div>
 
 				<p class="text-xs text-[rgb(var(--color-text-muted))]">
