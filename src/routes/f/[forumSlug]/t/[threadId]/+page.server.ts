@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts, users, userForumRoles, modLog, threadViews } from '$lib/db/schema';
+import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions } from '$lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -148,6 +148,22 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		}
 	}
 
+	// Load thread subscription status for logged-in users
+	let userSubscription: 'follow' | 'mute' | null = null;
+	if (locals.user) {
+		const [sub] = await db
+			.select({ subscriptionType: notificationSubscriptions.subscriptionType })
+			.from(notificationSubscriptions)
+			.where(
+				and(
+					eq(notificationSubscriptions.userDid, locals.user.did),
+					eq(notificationSubscriptions.threadId, thread.id)
+				)
+			)
+			.limit(1);
+		userSubscription = (sub?.subscriptionType as 'follow' | 'mute') ?? null;
+	}
+
 	return {
 		forum,
 		thread,
@@ -156,6 +172,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		canPost: userCanPost,
 		canModerate,
 		user: locals.user ?? null,
+		userSubscription,
 	};
 };
 
@@ -329,5 +346,103 @@ export const actions: Actions = {
 		await db.update(posts).set({ status: 'active' }).where(eq(posts.id, postId));
 		await db.insert(modLog).values({ moderatorDid: user.did, action: 'restore_post', targetPostId: postId, reason: reason || undefined });
 		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
+	},
+
+	watchThread: async ({ locals, params }) => {
+		if (!locals.user) throw error(403, 'Not authenticated');
+
+		// Resolve thread
+		const [forum] = await db.select().from(forums).where(eq(forums.slug, params.forumSlug)).limit(1);
+		if (!forum) throw error(404, 'Forum not found');
+
+		const [thread] = await db.select().from(threads)
+			.where(and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)))
+			.limit(1);
+		if (!thread) throw error(404, 'Thread not found');
+
+		// Check if subscription exists
+		const [existing] = await db.select()
+			.from(notificationSubscriptions)
+			.where(and(
+				eq(notificationSubscriptions.userDid, locals.user.did),
+				eq(notificationSubscriptions.threadId, thread.id)
+			))
+			.limit(1);
+
+		if (existing) {
+			// Update subscription type to 'follow'
+			await db.update(notificationSubscriptions)
+				.set({ subscriptionType: 'follow' })
+				.where(eq(notificationSubscriptions.id, existing.id));
+		} else {
+			// Insert new subscription
+			await db.insert(notificationSubscriptions).values({
+				userDid: locals.user.did,
+				threadId: thread.id,
+				subscriptionType: 'follow',
+			});
+		}
+
+		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
+	},
+
+	muteThread: async ({ locals, params }) => {
+		if (!locals.user) throw error(403, 'Not authenticated');
+
+		// Resolve thread
+		const [forum] = await db.select().from(forums).where(eq(forums.slug, params.forumSlug)).limit(1);
+		if (!forum) throw error(404, 'Forum not found');
+
+		const [thread] = await db.select().from(threads)
+			.where(and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)))
+			.limit(1);
+		if (!thread) throw error(404, 'Thread not found');
+
+		// Check if subscription exists
+		const [existing] = await db.select()
+			.from(notificationSubscriptions)
+			.where(and(
+				eq(notificationSubscriptions.userDid, locals.user.did),
+				eq(notificationSubscriptions.threadId, thread.id)
+			))
+			.limit(1);
+
+		if (existing) {
+			// Update subscription type to 'mute'
+			await db.update(notificationSubscriptions)
+				.set({ subscriptionType: 'mute' })
+				.where(eq(notificationSubscriptions.id, existing.id));
+		} else {
+			// Insert new subscription
+			await db.insert(notificationSubscriptions).values({
+				userDid: locals.user.did,
+				threadId: thread.id,
+				subscriptionType: 'mute',
+			});
+		}
+
+		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
+	},
+
+	unwatchThread: async ({ locals, params }) => {
+		if (!locals.user) throw error(403, 'Not authenticated');
+
+		// Resolve thread
+		const [forum] = await db.select().from(forums).where(eq(forums.slug, params.forumSlug)).limit(1);
+		if (!forum) throw error(404, 'Forum not found');
+
+		const [thread] = await db.select().from(threads)
+			.where(and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)))
+			.limit(1);
+		if (!thread) throw error(404, 'Thread not found');
+
+		// Delete subscription
+		await db.delete(notificationSubscriptions)
+			.where(and(
+				eq(notificationSubscriptions.userDid, locals.user.did),
+				eq(notificationSubscriptions.threadId, thread.id)
+			));
+
+		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
 	},
 };

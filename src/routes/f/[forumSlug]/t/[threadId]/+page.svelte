@@ -163,6 +163,33 @@
 				<span class="text-xs bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] px-2 py-1 rounded">locked</span>
 			{/if}
 
+			{#if data.user}
+				<div class="flex items-center gap-2">
+					{#if data.userSubscription === 'follow'}
+						<form method="POST" action="?/unwatchThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Watching</button>
+						</form>
+						<form method="POST" action="?/muteThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Mute</button>
+						</form>
+					{:else if data.userSubscription === 'mute'}
+						<form method="POST" action="?/unwatchThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Muted</button>
+						</form>
+						<form method="POST" action="?/watchThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Watch</button>
+						</form>
+					{:else}
+						<form method="POST" action="?/watchThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Watch</button>
+						</form>
+						<form method="POST" action="?/muteThread" style="display: inline;">
+							<button type="submit" class="btn btn-secondary text-sm">Mute</button>
+						</form>
+					{/if}
+				</div>
+			{/if}
+
 			{#if data.canModerate}
 				<details class="relative ml-auto">
 					<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-3 py-1 rounded list-none select-none">

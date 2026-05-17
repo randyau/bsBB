@@ -6,8 +6,8 @@
  */
 
 import { db } from './db';
-import { notificationQueue, users } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { notificationQueue, users, notificationSubscriptions } from './db/schema';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Get all admin/moderator DIDs for a forum.
@@ -60,20 +60,56 @@ export async function enqueueModerationAlert(
 /**
  * Enqueue a user DM notification (opt-in).
  * Sent to opted-in users when they're mentioned or replied to.
+ * Can be overridden by thread-level subscriptions (follow/mute).
  */
 export async function enqueueDmNotification(
 	recipientDid: string,
 	notificationType: 'reply' | 'quote' | 'new_reply_in_thread',
 	payload: any
 ) {
-	// Check if user has opted in
+	// Check thread-level subscription first (if threadId in payload)
+	const threadId = payload.threadId;
+	if (threadId) {
+		const [sub] = await db
+			.select({ subscriptionType: notificationSubscriptions.subscriptionType })
+			.from(notificationSubscriptions)
+			.where(
+				and(
+					eq(notificationSubscriptions.userDid, recipientDid),
+					eq(notificationSubscriptions.threadId, threadId)
+				)
+			)
+			.limit(1);
+
+		if (sub?.subscriptionType === 'mute') {
+			return; // User has explicitly muted this thread
+		}
+
+		if (sub?.subscriptionType === 'follow') {
+			// User has explicitly followed this thread — always send notification
+			await db.insert(notificationQueue).values({
+				recipientDid,
+				type: 'dm_notification',
+				payload: {
+					notificationType,
+					...payload,
+					timestamp: new Date().toISOString()
+				}
+			});
+
+			console.log(`[notifications] enqueued DM (followed thread): ${notificationType} to ${recipientDid}`);
+			return;
+		}
+	}
+
+	// Fall through to global notification preference check
 	const user = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: { notifyViaBluesky: true }
 	});
 
 	if (!user?.notifyViaBluesky) {
-		return; // User hasn't opted in
+		return; // User hasn't opted in globally
 	}
 
 	await db.insert(notificationQueue).values({

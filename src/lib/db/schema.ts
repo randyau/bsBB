@@ -188,6 +188,25 @@ export const threadViews = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// notification_subscriptions (thread follow/mute subscriptions)
+// ---------------------------------------------------------------------------
+export const notificationSubscriptions = pgTable(
+	'notification_subscriptions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userDid: text('user_did')
+			.notNull()
+			.references(() => users.did),
+		threadId: uuid('thread_id')
+			.notNull()
+			.references(() => threads.id),
+		subscriptionType: text('subscription_type').notNull(), // 'follow' | 'mute'
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [unique().on(t.userDid, t.threadId)],
+);
+
+// ---------------------------------------------------------------------------
 // notification_queue
 // ---------------------------------------------------------------------------
 export const notificationQueue = pgTable('notification_queue', {
