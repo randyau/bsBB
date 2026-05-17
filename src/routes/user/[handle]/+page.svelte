@@ -25,6 +25,24 @@
 		// Use white text for dark colors, dark text for light colors
 		return luminance > 0.5 ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)';
 	}
+
+	function confirmBan(): boolean {
+		return confirm(
+			`Are you sure you want to ban @${data.profileUser.handle}?\n\nThis action prevents them from posting and will be logged.`
+		);
+	}
+
+	function confirmPromote(): boolean {
+		return confirm(
+			`Promote @${data.profileUser.handle} to Admin?\n\nThey will gain full moderation powers. This can be reverted.`
+		);
+	}
+
+	function confirmDemote(): boolean {
+		return confirm(
+			`Remove admin privileges from @${data.profileUser.handle}?\n\nThey will return to member status.`
+		);
+	}
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -118,7 +136,7 @@
 							</button>
 						</form>
 					{:else}
-						<form method="POST" action="?/ban" class="space-y-3">
+						<form method="POST" action="?/ban" class="space-y-3" onsubmit={confirmBan}>
 							<input type="hidden" name="targetDid" value={data.profileUser.did} />
 							<div class="form-group">
 								<label for="ban-reason" class="form-label">Ban Reason (optional)</label>
@@ -138,14 +156,14 @@
 
 					<div class="pt-2 border-t border-[rgb(var(--color-border))]">
 						{#if data.profileUser.globalRole !== 'admin'}
-							<form method="POST" action="?/promote" class="inline">
+							<form method="POST" action="?/promote" class="inline" onsubmit={confirmPromote}>
 								<input type="hidden" name="targetDid" value={data.profileUser.did} />
 								<button type="submit" class="btn btn-sm btn-primary">
 									Promote to Admin
 								</button>
 							</form>
 						{:else}
-							<form method="POST" action="?/demote" class="inline">
+							<form method="POST" action="?/demote" class="inline" onsubmit={confirmDemote}>
 								<input type="hidden" name="targetDid" value={data.profileUser.did} />
 								<button type="submit" class="btn btn-sm btn-secondary">
 									Demote from Admin

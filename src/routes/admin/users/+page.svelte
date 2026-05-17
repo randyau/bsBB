@@ -3,6 +3,14 @@
 	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
+
+	function confirmPromote(handle: string): boolean {
+		return confirm(`Promote @${handle} to Admin?\n\nThey will gain full moderation powers.`);
+	}
+
+	function confirmBan(handle: string): boolean {
+		return confirm(`Ban @${handle}?\n\nThis prevents them from posting and will be logged.`);
+	}
 </script>
 
 <div class="space-y-6">
@@ -63,7 +71,7 @@
 						<td class="px-4 py-3">
 							<div class="flex flex-col gap-2 text-xs">
 								{#if user.globalRole !== 'admin' && user.globalRole !== 'banned'}
-									<form method="POST" action="?/promote" class="inline">
+									<form method="POST" action="?/promote" class="inline" onsubmit={() => confirmPromote(user.handle)}>
 										<input type="hidden" name="did" value={user.did} />
 										<button type="submit" class="text-amber-600 hover:underline font-semibold">Make Admin</button>
 									</form>
@@ -80,7 +88,7 @@
 										<button type="submit" class="text-[rgb(var(--color-success))] hover:underline font-semibold">Unban</button>
 									</form>
 								{:else}
-									<form method="POST" action="?/ban" class="flex flex-col gap-1">
+									<form method="POST" action="?/ban" class="flex flex-col gap-1" onsubmit={() => confirmBan(user.handle)}>
 										<input type="hidden" name="did" value={user.did} />
 										<label for="ban-reason-{user.did}" class="text-[rgb(var(--color-text-muted))]">Ban reason (optional)</label>
 										<input
