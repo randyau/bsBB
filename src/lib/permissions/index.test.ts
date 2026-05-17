@@ -34,12 +34,14 @@ const testAdmin = {
 
 describe('canRead permission resolution', () => {
 	beforeEach(async () => {
-		// Clean up test data
+		// Clean up test data — delete child forums before parent to avoid FK constraint violations
 		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testForumId));
 		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testSubForumId));
 		await db.delete(userForumRoles).where(eq(userForumRoles.userDid, testDid));
-		await db.delete(forums).where(eq(forums.id, testForumId));
+		// Delete child forum first
 		await db.delete(forums).where(eq(forums.id, testSubForumId));
+		// Then parent forum
+		await db.delete(forums).where(eq(forums.id, testForumId));
 		await db.delete(users).where(eq(users.did, testDid));
 		await db.delete(users).where(eq(users.did, testAdmin.did));
 
@@ -237,12 +239,14 @@ describe('canRead permission resolution', () => {
 
 describe('canPost permission resolution', () => {
 	beforeEach(async () => {
-		// Clean up test data
+		// Clean up test data — delete child forums before parent to avoid FK constraint violations
 		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testForumId));
 		await db.delete(forumPermissions).where(eq(forumPermissions.forumId, testSubForumId));
 		await db.delete(userForumRoles).where(eq(userForumRoles.userDid, testDid));
-		await db.delete(forums).where(eq(forums.id, testForumId));
+		// Delete child forum first
 		await db.delete(forums).where(eq(forums.id, testSubForumId));
+		// Then parent forum
+		await db.delete(forums).where(eq(forums.id, testForumId));
 		await db.delete(users).where(eq(users.did, testDid));
 		await db.delete(users).where(eq(users.did, testAdmin.did));
 

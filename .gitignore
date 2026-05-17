@@ -5,3 +5,4 @@ client-metadata.json
 .svelte-kit/
 build/
 .env.local
+coverage/
