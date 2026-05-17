@@ -553,6 +553,66 @@ CSP is declared in `svelte.config.js` under `kit.csp.directives` — **not** in 
 
 **Admin promotion:** The first user to log in is automatically promoted to admin (one-time, gated by `instance_settings.first_admin_claimed` flag). After that, use the `/admin/users` page to manually promote other users. All promotions are logged in `mod_log` with `action = 'promote_admin'`.
 
+---
+
+## User Safety Guardrails
+
+These guardrails prevent accidental data loss and destructive actions:
+
+### Confirmation Dialogs for Irreversible Actions
+
+**All actions that destroy, permanently delete, or irreversibly modify data must have a confirmation dialog.** This includes:
+
+- **Permanently delete** operations (post content cleared, data unrecoverable)
+- **Ban users** (reverts to message, but high-impact)
+- **Promote/demote admins** (grants/revokes powerful permissions)
+- **Clear/overwrite content** (any operation that cannot be undone via undo/restore)
+
+**Implementation pattern:**
+
+```typescript
+function confirmDelete(): boolean {
+  return confirm(
+    'Permanently delete this post?\n\n' +
+    'This will irreversibly clear all content. The post stub will remain ' +
+    'for quotes/links, but content cannot be recovered.\n\n' +
+    'This action cannot be undone.'
+  );
+}
+```
+
+Then on the form:
+```html
+<form method="POST" action="?/delete" onsubmit={confirmDelete}>
+  <!-- form fields -->
+  <button type="submit">Delete</button>
+</form>
+```
+
+**Confirmation message guidelines:**
+- Be specific: state what will happen and whether it's reversible
+- Use "irreversible" / "cannot be undone" language for permanent operations
+- Use "removed from view" / "can be restored" language for soft-delete operations
+- Keep it short (2-3 sentences max)
+
+**Soft-delete actions** (hide, archive, mute) where content is preserved or reversible do not strictly require confirmation but should clarify reversibility:
+- "Hide this post? It will be removed from view but can be restored."
+
+### Button Styling for Destructive Actions
+
+Irreversible actions should use `.btn-danger` styling (red) to signal severity and draw attention to prevent accidental clicks.
+
+### Audit Trail for Destructive Actions
+
+All irreversible operations must be logged in `mod_log` with:
+- The moderator/user who took the action
+- What action was taken
+- Optional reason field (for ban, delete, etc.)
+- Timestamp
+- Target resource (post ID, user DID, etc.)
+
+This ensures accountability and allows recovery/investigation of accidental deletions.
+
 ### Deployment Workflow
 
 ```bash
