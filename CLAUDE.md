@@ -2,7 +2,7 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (7/10 commits)
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (8/10 commits)
 
 **Total Implementation:** 42+ commits, production-ready forum with all core features complete
 
@@ -14,7 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (7/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (8/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -64,7 +64,15 @@ This file contains the full specification, architecture decisions, and design ra
   - Updated permission toggles with improved visual feedback (checkmark indicators)
   - Updated new thread form to use semantic form classes throughout
   - Section headings now use .section-title class
-- **Commits 8–10 (planned)** — Cards/modals, loading states, accessibility, animations, component docs
+- **Commit 8** ✅ — Card component refinement
+  - Add .table-container semantic class for borderless table wrapper pattern (5+ admin pages)
+  - Replace 15+ inline alert patterns with .alert-error/.alert-success across all admin pages
+  - Replace inline empty-state and card patterns with .box-secondary/.card-secondary
+  - Replace inline table wrappers with .table-container throughout admin UI (posts, users, threads, mod-log, query)
+  - Fix theme safety bugs in revisions page (hardcoded bg-white → CSS variables, hardcoded blue tones → .box-secondary)
+  - All container styling now uses semantic classes; no raw inline Tailwind patterns for cards/alerts/tables
+  - Improves maintainability by centralizing design system definitions in app.css
+- **Commits 9–10 (planned)** — Loading states, accessibility, animations, component docs
 
 ---
 

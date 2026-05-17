@@ -40,7 +40,7 @@
 
 	<!-- Thread List -->
 	{#if data.threads.length === 0}
-		<div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-secondary))] p-6 text-center text-[rgb(var(--color-text-muted))] px-4 md:px-8">
+		<div class="card-secondary text-center text-[rgb(var(--color-text-muted))] mx-4 md:mx-8">
 			<p>No threads yet.</p>
 			{#if data.user}
 				<p class="mt-2 text-sm">

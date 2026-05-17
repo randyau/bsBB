@@ -40,13 +40,13 @@
 	<h1 class="page-title">Thread Management</h1>
 
 	{#if form?.error}
-		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))] text-sm">
+		<div class="alert alert-error text-sm">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="rounded-lg border border-[rgb(var(--color-success))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-success))] text-sm">
+		<div class="alert alert-success text-sm">
 			✓ Thread action completed: {form.action}
 		</div>
 	{/if}
@@ -103,7 +103,7 @@
 		</span>
 	</div>
 
-	<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
+	<div class="table-container">
 		<table class="w-full text-sm">
 			<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 				<tr>

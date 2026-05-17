@@ -52,7 +52,7 @@
 	</div>
 
 	{#if data.entries.length > 0}
-		<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
+		<div class="table-container">
 			<table class="w-full text-sm">
 				<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 					<tr>
@@ -105,7 +105,7 @@
 			{/if}
 		</p>
 	{:else}
-		<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-8 text-center">
+		<div class="box-secondary text-center">
 			<p class="text-sm text-[rgb(var(--color-text-secondary))]">
 				No moderation actions found
 				{#if data.currentFilter || data.q}

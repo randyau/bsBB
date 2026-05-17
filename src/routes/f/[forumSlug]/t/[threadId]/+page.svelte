@@ -339,7 +339,7 @@
 				<h3 class="text-lg font-semibold mb-4">Reply to this thread</h3>
 
 				{#if form?.error}
-					<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-3 text-[rgb(var(--color-error))] mb-4 text-sm">
+					<div class="alert alert-error mb-4 text-sm">
 						<p>{form.error}</p>
 					</div>
 				{/if}

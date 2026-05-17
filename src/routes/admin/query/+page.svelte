@@ -13,7 +13,7 @@
 	</div>
 
 	{#if form?.error}
-		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))] text-sm">
+		<div class="alert alert-error text-sm">
 			{form.error}
 		</div>
 	{/if}
@@ -57,14 +57,14 @@
 
 	{#if form?.success}
 		<div class="space-y-4">
-			<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-success))] p-4">
-				<p class="text-sm text-[rgb(var(--color-success))]">
+			<div class="alert alert-success">
+				<p class="text-sm">
 					✓ Query executed in {form.executionMs}ms, returned {form.rowCount} row{form.rowCount !== 1 ? 's' : ''}
 				</p>
 			</div>
 
 			{#if form.rows && form.rows.length > 0}
-				<div class="rounded-lg border border-[rgb(var(--color-border))] overflow-x-auto">
+				<div class="table-container">
 					<table class="w-full text-sm">
 						<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 							<tr>
@@ -87,7 +87,7 @@
 					</table>
 				</div>
 			{:else}
-				<div class="rounded-lg bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] p-4">
+				<div class="card-secondary">
 					<p class="text-sm text-[rgb(var(--color-text-secondary))]">No rows returned.</p>
 				</div>
 			{/if}
