@@ -15,6 +15,13 @@
       "when": 1778964606974,
       "tag": "0001_nebulous_terror",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778992283534,
+      "tag": "0002_nostalgic_preak",
+      "breakpoints": true
     }
   ]
 }
