@@ -61,11 +61,13 @@
 	}
 
 	function toggleExpand(roleId: string) {
-		if (expandedRoles.has(roleId)) {
-			expandedRoles.delete(roleId);
+		const newSet = new Set(expandedRoles);
+		if (newSet.has(roleId)) {
+			newSet.delete(roleId);
 		} else {
-			expandedRoles.add(roleId);
+			newSet.add(roleId);
 		}
+		expandedRoles = newSet;
 	}
 
 	function selectUser(user: typeof data.users[0]) {
