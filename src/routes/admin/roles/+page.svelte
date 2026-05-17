@@ -13,6 +13,9 @@
 		color: '#3b82f6'
 	});
 	let roleSearch = $state('');
+	let selectedRoleForMember = $state<string | null>(null);
+	let userSearchQuery = $state('');
+	let selectedUser = $state<{ did: string; handle: string; displayName: string | null } | null>(null);
 
 	const filteredRoles = $derived(
 		roleSearch.trim()
@@ -23,6 +26,23 @@
 				)
 			: data.roles
 	);
+
+	const filteredUsers = $derived.by(() => {
+		if (!userSearchQuery.trim() || !selectedRoleForMember) return [];
+		const query = userSearchQuery.toLowerCase();
+		const roleMembers = data.roleMembers[selectedRoleForMember] || [];
+		const assignedDids = new Set(roleMembers.map((m) => m.userDid));
+
+		return data.users
+			.filter(
+				(u) =>
+					!assignedDids.has(u.did) &&
+					(u.handle.toLowerCase().includes(query) ||
+						(u.displayName?.toLowerCase().includes(query) ?? false) ||
+						u.did.toLowerCase().includes(query))
+			)
+			.slice(0, 10);
+	});
 
 	function startEdit(role: any) {
 		editingRole = role.id;
@@ -41,11 +61,24 @@
 	}
 
 	function toggleExpand(roleId: string) {
-		if (expandedRoles.has(roleId)) {
-			expandedRoles.delete(roleId);
+		const newSet = new Set(expandedRoles);
+		if (newSet.has(roleId)) {
+			newSet.delete(roleId);
 		} else {
-			expandedRoles.add(roleId);
+			newSet.add(roleId);
 		}
+		expandedRoles = newSet;
+	}
+
+	function selectUser(user: typeof data.users[0]) {
+		selectedUser = user;
+		userSearchQuery = '';
+	}
+
+	function clearSelection() {
+		selectedUser = null;
+		selectedRoleForMember = null;
+		userSearchQuery = '';
 	}
 
 	function confirmDelete(roleName: string) {
@@ -53,7 +86,7 @@
 	}
 </script>
 
-<div class="container mx-auto px-4 py-8 max-w-2xl">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
 	<div class="flex items-center justify-between mb-8">
 		<h1 class="text-3xl font-bold">Manage Custom Roles</h1>
 		{#if !editingRole}
@@ -66,6 +99,63 @@
 			</button>
 		{/if}
 	</div>
+
+	<!-- Add Member to Role -->
+	{#if selectedRoleForMember}
+		<div class="card mb-8 border-l-4 border-blue-500">
+			<h2 class="text-lg font-semibold mb-4">Add Member to Role</h2>
+			<div class="space-y-4">
+				<div>
+					<div class="block text-sm font-semibold mb-2">
+						Role: <span class="font-mono">{data.roles.find((r) => r.id === selectedRoleForMember)?.name}</span>
+					</div>
+				</div>
+
+				<div class="relative">
+					<label for="userSearch" class="block text-sm font-semibold mb-2">Search Users</label>
+					<input
+						id="userSearch"
+						type="text"
+						bind:value={userSearchQuery}
+						placeholder="Search by name, handle, or DID..."
+						class="form-control w-full"
+					/>
+					{#if userSearchQuery && filteredUsers.length > 0}
+						<div class="absolute top-full left-0 right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+							{#each filteredUsers as user (user.did)}
+								<button
+									type="button"
+									onclick={() => selectUser(user)}
+									class="w-full text-left px-3 py-2 hover:bg-[rgb(var(--color-bg-secondary))] text-sm"
+								>
+									<div class="font-semibold">{user.displayName || user.handle}</div>
+									<div class="text-xs text-[rgb(var(--color-text-muted))] font-mono">@{user.handle}</div>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				{#if selectedUser}
+					<div class="p-3 bg-[rgb(var(--color-bg-secondary))] rounded border border-[rgb(var(--color-border))]">
+						<div class="font-semibold">{selectedUser.displayName || selectedUser.handle}</div>
+						<div class="text-sm text-[rgb(var(--color-text-muted))] font-mono">@{selectedUser.handle}</div>
+					</div>
+
+					<form method="POST" action="?/addRoleMember" class="flex gap-2">
+						<input type="hidden" name="roleId" value={selectedRoleForMember} />
+						<input type="hidden" name="userDid" value={selectedUser.did} />
+						<button type="submit" class="btn btn-primary flex-1">Add Member</button>
+						<button type="button" onclick={clearSelection} class="btn btn-secondary">Cancel</button>
+					</form>
+				{:else}
+					<div class="flex gap-2">
+						<button type="button" onclick={clearSelection} class="btn btn-secondary">Close</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
 
 	<!-- Create / Edit form (expandable) -->
 	{#if showCreateForm || editingRole}
@@ -178,6 +268,15 @@
 									{/if}
 								</td>
 								<td class="py-3 px-3 text-right space-x-2">
+									<button
+										type="button"
+										onclick={() => {
+											selectedRoleForMember = role.id;
+										}}
+										class="btn btn-sm text-green-600 hover:underline"
+									>
+										+ Add
+									</button>
 									<button
 										type="button"
 										onclick={() => startEdit(role)}

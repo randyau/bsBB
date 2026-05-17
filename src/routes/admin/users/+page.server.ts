@@ -1,12 +1,16 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { users, modLog, sessions } from '$lib/db/schema';
-import { eq, or, ilike } from 'drizzle-orm';
+import { eq, or, ilike, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const q = url.searchParams.get('q') ?? '';
+	const pageStr = url.searchParams.get('page') ?? '1';
+	const pageSize = 50;
+	const page = Math.max(1, parseInt(pageStr) || 1);
+	const offset = (page - 1) * pageSize;
 
 	const baseQuery = db
 		.select({
@@ -18,14 +22,32 @@ export const load: PageServerLoad = async ({ url }) => {
 		})
 		.from(users);
 
-	const userList = await (q.trim()
+	const query = q.trim()
 		? baseQuery.where(or(ilike(users.handle, `%${q}%`), ilike(users.displayName, `%${q}%`)))
-		: baseQuery
-	).orderBy(users.createdAt);
+		: baseQuery;
+
+	const [userList, totalResult] = await Promise.all([
+		query.orderBy(users.createdAt).limit(pageSize).offset(offset),
+		db
+			.select({ count: count() })
+			.from(users)
+			.where(
+				q.trim()
+					? or(ilike(users.handle, `%${q}%`), ilike(users.displayName, `%${q}%`))
+					: undefined
+			)
+	]);
+
+	const total = Number(totalResult[0]?.count || 0);
+	const totalPages = Math.ceil(total / pageSize);
 
 	return {
 		users: userList,
-		q
+		q,
+		page,
+		pageSize,
+		total,
+		totalPages
 	};
 };
 

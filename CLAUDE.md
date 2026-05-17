@@ -2,9 +2,9 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (2/10 commits)
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (4/10 commits)
 
-**Total Implementation:** 35+ commits, production-ready forum with all core features complete
+**Total Implementation:** 40+ commits, production-ready forum with all core features complete
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
@@ -14,7 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (3/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (4/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -34,21 +34,27 @@ This file contains the full specification, architecture decisions, and design ra
   - Abstract CSS into global semantic classes (.box, .alert, .btn-*, .form-*, .post, .thread-item, etc.)
   - Set dark mode as system default
   - Fix theme toggle sun/moon icons
-- **Commits 4–10** — Custom roles system, user role management, typography scale, button/form refinement, cards/modals, loading states, accessibility, animations, component docs
-  - **Commit 4 (planned)** — Custom roles & role-based forum access
-    - New `roles` table for admin-defined custom roles (name, description, optional color for UI)
-    - Refactor `userForumRoles` → `userRoles` (global role assignments, many-to-many with users)
-    - `forumPermissions` already supports granular access: per-role, per-forum
-      - `canRead`: user can view forum and threads
-      - `canPost`: user can create/reply to threads (independent of canRead — allows read-only or write-only forums)
-      - `canModerate`: user can perform mod actions (delete, lock, ban, etc.)
-    - Use case examples: read-only announcements forum (canRead=true, canPost=false), contributor-only discussion (custom role with canRead+canPost), moderator-only (canModerate=true)
-    - Admin UI for forum management:
-      - Permissions tab: per-role matrix (read/post/moderate toggles for each role)
-      - Visibility selector: choose which roles have access to this forum
-      - Role member management: add/remove users from roles (with audit trail in mod_log)
-    - Forum visibility enforced: users see only forums where their roles grant `canRead`
-    - Mod log entries for: role creation, role edits, user role assignments/removals
+- **Commit 4 ✅** — Custom roles & role-based forum access
+  - New `roles` table for admin-defined custom roles (name, description, color for UI)
+  - `userRoles` table for global custom role assignments (many-to-many with users)
+  - Permissions enforcement in `canRead()`/`canPost()` functions checks both per-forum roles + custom roles
+  - Admin roles page: create/edit/delete roles, assign/remove users with user search
+  - Admin forum permissions matrix: click-to-toggle read/post/moderate per role per forum
+  - Hierarchical permission inheritance: walk parent chain until first match found
+  - Audit trail: all role/permission changes logged in mod_log with granular action names
+- **Commit 5 (bugfixes)** — Admin UI details polish
+  - Fix roles page member count click to toggle expansion (Set reactivity)
+  - Add pagination to user management page (50 items/page with first/back/next/last nav)
+- **Commits 6–10** — Typography scale, button/form refinement, cards/modals, loading states, accessibility, animations, component docs
+  - **Commit 6 (planned)** — Typography scale & semantic spacing
+    - Establish font-size scale (xs, sm, base, lg, xl, 2xl, 3xl) with line-height/letter-spacing
+    - Define spacing scale for consistent padding/margin (0.5rem, 1rem, 1.5rem, 2rem, 3rem, 4rem)
+    - Apply to all text elements across site
+  - **Commit 7 (planned)** — Button & form refinement
+    - Consistent button states: default, hover, active, disabled with clear focus rings
+    - Form field styling: input, textarea, select with validation states (error, success, loading)
+    - Form layout patterns: labels, hints, error messages, required indicators
+  - **Commits 8–10 (planned)** — Cards/modals, loading states, accessibility, animations, component docs
 
 ---
 
@@ -500,7 +506,7 @@ SETUP_COMPLETE=true
 These must be in place from day one, not added later:
 
 - `SameSite=Strict` on all session cookies
-- Content Security Policy headers (configured in Caddy or SvelteKit hooks)
+- Content Security Policy headers — see details below
 - All markdown sanitized server-side via `rehype-sanitize` **before storage**
 - Drizzle parameterized queries throughout — no raw string concatenation
 - Rate limiting at HTTP layer: by DID post-auth, by IP pre-auth
@@ -508,6 +514,14 @@ These must be in place from day one, not added later:
 - `chat_session_encrypted` tokens encrypted at rest (AES-256)
 - Postgres and app containers not exposed outside Docker network
 - Mod action log is append-only — no delete route
+
+### Content Security Policy
+
+CSP is declared in `svelte.config.js` under `kit.csp.directives` — **not** in `hooks.server.ts`. This lets SvelteKit generate a fresh per-request nonce and stamp it on every inline `<script>` it injects (hydration bootstrap, `<svelte:head>` scripts), so `'unsafe-inline'` is not needed in `script-src`.
+
+**Critical:** the `kit.csp` block is wrapped in `process.env.NODE_ENV === 'production'` and is intentionally absent in dev. Vite's HMR dev server injects its own inline scripts that SvelteKit cannot nonce — applying CSP in dev breaks hydration entirely (the toggle/any interactivity stops working with no obvious error). Do not add CSP to dev mode.
+
+`hooks.server.ts` sets the other security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) but must not set `Content-Security-Policy` manually — that would conflict with and override the nonce SvelteKit generates.
 
 ---
 

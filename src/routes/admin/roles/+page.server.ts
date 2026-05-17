@@ -7,7 +7,7 @@ import { count } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || locals.user.globalRole !== 'admin') {
-		return { roles: [], roleMembers: {} };
+		return { roles: [], roleMembers: {}, users: [] };
 	}
 
 	const roleList = await db
@@ -45,9 +45,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		roleMembers[member.roleId].push(member);
 	}
 
+	// Fetch all users for member selection
+	const userList = await db
+		.select({
+			did: users.did,
+			handle: users.handle,
+			displayName: users.displayName
+		})
+		.from(users)
+		.orderBy(users.handle);
+
 	return {
 		roles: roleList,
-		roleMembers
+		roleMembers,
+		users: userList
 	};
 };
 
@@ -186,6 +197,65 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('deleteRole action error:', err);
 			return fail(500, { error: 'Failed to delete role' });
+		}
+	},
+
+	addRoleMember: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') {
+			return fail(403, { error: 'Admin access required' });
+		}
+
+		const form = await request.formData();
+		const roleId = String(form.get('roleId') ?? '').trim();
+		const userDid = String(form.get('userDid') ?? '').trim();
+
+		if (!roleId || !userDid) {
+			return fail(422, { error: 'Role ID and user DID are required' });
+		}
+
+		try {
+			// Check if user already has this role
+			const existing = await db.query.userRoles.findFirst({
+				where: and(eq(userRoles.roleId, roleId), eq(userRoles.userDid, userDid)),
+			});
+
+			if (existing) {
+				return fail(422, { error: 'User already has this role' });
+			}
+
+			// Verify user exists
+			const user = await db.query.users.findFirst({
+				where: eq(users.did, userDid),
+				columns: { did: true }
+			});
+
+			if (!user) {
+				return fail(404, { error: 'User not found' });
+			}
+
+			await db.insert(userRoles).values({
+				userDid,
+				roleId,
+				assignedBy: locals.user.did
+			});
+
+			// Get role name for logging
+			const role = await db.query.roles.findFirst({
+				where: eq(roles.id, roleId),
+				columns: { name: true }
+			});
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'assign_custom_role',
+				targetDid: userDid,
+				reason: role?.name || roleId
+			});
+
+			return { success: true, action: 'addRoleMember', roleId, userDid };
+		} catch (err) {
+			console.error('addRoleMember action error:', err);
+			return fail(500, { error: 'Failed to add user to role' });
 		}
 	},
 
