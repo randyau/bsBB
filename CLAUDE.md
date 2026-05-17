@@ -2,7 +2,7 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (6/10 commits)
+## Status — All Phases Complete (1–6) — Phase 7 🚀 In Progress (7/10 commits)
 
 **Total Implementation:** 42+ commits, production-ready forum with all core features complete
 
@@ -14,7 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 
-### In Progress: Phase 7 — Design, UI & Interaction Refinements (6/10 commits)
+### In Progress: Phase 7 — Design, UI & Interaction Refinements (7/10 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -53,12 +53,18 @@ This file contains the full specification, architecture decisions, and design ra
   - Fix hardcoded colors (text-blue-600 → themed via CSS variables or .link class)
   - Set body baseline: font-size/line-height via CSS variables
   - Zero visual changes — pure maintainability layer (type scale now inspectable, updatable in one place)
-- **Commits 7–10 (planned)** — Button/form refinement, cards/modals, loading states, accessibility, animations, component docs
-  - **Commit 7 (planned)** — Button & form refinement
-    - Consistent button states: default, hover, active, disabled with clear focus rings
-    - Form field styling: input, textarea, select with validation states (error, success, loading)
-    - Form layout patterns: labels, hints, error messages, required indicators
-  - **Commits 8–10 (planned)** — Cards/modals, loading states, accessibility, animations, component docs
+- **Commit 7** ✅ — Button & form refinement
+  - Button focus rings: 3px colored shadows for all variants (primary/secondary/danger)
+  - Button states: hover (lift effect), active (inset shadow), disabled (opacity + no focus)
+  - Form validation state classes: .form-control-error, .form-control-success, .form-control-loading
+  - Form message classes: .form-error, .form-success, .form-required for required indicators
+  - Custom checkbox and radio button styling with checked states and focus rings
+  - Updated admin forums page: buttons use .btn/.btn-primary/.btn-secondary with proper focus rings
+  - Updated admin forums page: form fields use .form-control, .form-group, .form-label
+  - Updated permission toggles with improved visual feedback (checkmark indicators)
+  - Updated new thread form to use semantic form classes throughout
+  - Section headings now use .section-title class
+- **Commits 8–10 (planned)** — Cards/modals, loading states, accessibility, animations, component docs
 
 ---
 
