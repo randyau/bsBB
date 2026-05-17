@@ -13,6 +13,18 @@
 	function isRoleAssigned(roleId: string): boolean {
 		return data.customRoles.some((r) => r.id === roleId);
 	}
+
+	function getContrastColor(hexColor: string | null | undefined): string {
+		if (!hexColor) return 'rgb(var(--color-text))';
+		const hex = hexColor.replace('#', '');
+		const r = parseInt(hex.slice(0, 2), 16);
+		const g = parseInt(hex.slice(2, 4), 16);
+		const b = parseInt(hex.slice(4, 6), 16);
+		// Calculate luminance using standard formula
+		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+		// Use white text for dark colors, dark text for light colors
+		return luminance > 0.5 ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)';
+	}
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -52,7 +64,7 @@
 
 				<!-- Custom role badges -->
 				{#each data.customRoles as role}
-					<span class="badge border" style:background-color={role.color ? role.color + '20' : undefined} style:color={role.color || undefined}>
+					<span class="badge border-2" style:background-color={role.color || 'rgb(var(--color-bg-secondary))'} style:color={getContrastColor(role.color)} style:border-color={role.color || 'rgb(var(--color-border))'}>
 						{role.name}
 					</span>
 				{/each}
@@ -214,10 +226,10 @@
 									<input type="hidden" name="roleId" value={role.id} />
 									<button
 										type="submit"
-										class="badge border px-3 py-2 cursor-pointer hover:shadow-md transition font-medium"
-										style:background-color={role.color ? role.color + '20' : undefined}
-										style:color={role.color || undefined}
-										style:border-color={role.color || undefined}
+										class="badge border-2 px-3 py-2 cursor-pointer hover:opacity-90 transition font-medium"
+										style:background-color={role.color || 'rgb(var(--color-bg-secondary))'}
+										style:color={getContrastColor(role.color)}
+										style:border-color={role.color || 'rgb(var(--color-border))'}
 									>
 										{isRoleAssigned(role.id) ? '✓' : '+'} {role.name}
 									</button>
