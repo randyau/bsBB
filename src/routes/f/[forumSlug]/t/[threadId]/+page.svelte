@@ -10,6 +10,11 @@
 	let editBody: string = $state('');
 	let editPreviewHtml: string = $state('');
 	let isEditSaving: boolean = $state(false);
+	let modEditingPostId: string | null = $state(null);
+	let modEditBody: string = $state('');
+	let modEditPreviewHtml: string = $state('');
+	let modEditReason: string = $state('');
+	let isModEditSaving: boolean = $state(false);
 
 	function updateReplyPreview() {
 		previewHtml = renderMarkdownClient(replyBody);
@@ -25,6 +30,10 @@
 
 	$effect(() => {
 		updateEditPreview();
+	});
+
+	$effect(() => {
+		updateModEditPreview();
 	});
 
 	function confirmDeletePost(): boolean {
@@ -128,6 +137,72 @@
 	function cancelEdit() {
 		editingPostId = null;
 		editBody = '';
+	}
+
+	function startModEdit(postId: string) {
+		const post = data.posts.find(p => p.id === postId);
+		if (!post) return;
+		modEditingPostId = postId;
+		modEditBody = post.bodyMarkdown;
+		modEditReason = '';
+		updateModEditPreview();
+	}
+
+	function updateModEditPreview() {
+		modEditPreviewHtml = renderMarkdownClient(modEditBody);
+	}
+
+	async function saveModEdit(postId: string) {
+		if (!modEditBody.trim()) {
+			alert('Body cannot be empty');
+			return;
+		}
+
+		if (!modEditReason.trim()) {
+			alert('Reason for edit is required');
+			return;
+		}
+
+		isModEditSaving = true;
+		try {
+			const response = await fetch(`/f/${data.forum.slug}/t/${data.thread.slug}/post/${postId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					body: modEditBody,
+					modReason: modEditReason,
+					isModEdit: true
+				})
+			});
+
+			if (!response.ok) {
+				const err = await response.json();
+				alert(err.error || 'Failed to save edit');
+				return;
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				const post = data.posts.find(p => p.id === postId);
+				if (post) {
+					post.bodyMarkdown = modEditBody;
+					post.bodyHtml = result.post.bodyHtml;
+					post.editedAt = new Date(result.post.editedAt);
+				}
+				modEditingPostId = null;
+			}
+		} catch (err) {
+			console.error('Mod edit error:', err);
+			alert('Failed to save edit');
+		} finally {
+			isModEditSaving = false;
+		}
+	}
+
+	function cancelModEdit() {
+		modEditingPostId = null;
+		modEditBody = '';
+		modEditReason = '';
 	}
 
 	function formatTime(date: Date) {
@@ -310,7 +385,16 @@
 									<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-2 py-1 rounded list-none select-none">
 										⋯
 									</summary>
-									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[140px]">
+									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
+										{#if post.status === 'active' && data.user?.globalRole === 'admin' && post.authorDid !== data.user.did}
+											<button
+												type="button"
+												onclick={() => startModEdit(post.id)}
+												class="w-full text-left px-4 py-2 text-sm text-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-bg-secondary))]"
+											>
+												Edit as mod
+											</button>
+										{/if}
 										{#if post.status !== 'active'}
 											<form method="POST" action="?/restorePost">
 												<input type="hidden" name="postId" value={post.id} />
@@ -366,7 +450,44 @@
 								</button>
 							</div>
 						</div>
-					{:else if post.status === 'hidden'}
+					{:else if modEditingPostId === post.id}
+						<div class="space-y-3 p-3 border border-[rgb(var(--color-primary))] rounded-lg bg-[rgb(var(--color-bg-secondary))]">
+							<p class="text-sm font-semibold text-[rgb(var(--color-primary))]">Edit as Moderator</p>
+							<textarea
+								bind:value={modEditBody}
+								class="w-full h-32 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
+								placeholder="Edit post content..."
+							></textarea>
+							<textarea
+								bind:value={modEditReason}
+								class="w-full h-16 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
+								placeholder="Reason for edit (required)..."
+							></textarea>
+							<div class="text-xs text-[rgb(var(--color-text-muted))] space-y-1">
+								<p><strong>Preview:</strong></p>
+								<div class="prose-content bg-[rgb(var(--color-bg))] p-3 rounded">
+									{@html modEditPreviewHtml || '<em>No preview</em>'}
+								</div>
+							</div>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									onclick={() => saveModEdit(post.id)}
+									disabled={isModEditSaving}
+									class="px-4 py-2 bg-[rgb(var(--color-primary))] text-white rounded hover:bg-[rgb(var(--color-primary-dark))] disabled:opacity-50"
+								>
+									{isModEditSaving ? 'Saving...' : 'Save as Mod'}
+								</button>
+								<button
+									type="button"
+									onclick={cancelModEdit}
+									disabled={isModEditSaving}
+									class="px-4 py-2 bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] rounded hover:bg-[rgb(var(--color-border))] disabled:opacity-50"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
 						<p class="italic text-[rgb(var(--color-text-muted))]">
 							{#if post.hiddenByUser}
 								[post hidden by author]
