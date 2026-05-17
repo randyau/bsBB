@@ -22,7 +22,7 @@
 	<!-- Forum Header -->
 	<div class="flex items-start justify-between gap-4 px-4 md:px-8">
 		<div class="flex-1">
-			<h1 class="text-3xl font-bold">{data.forum.name}</h1>
+			<h1 class="page-title">{data.forum.name}</h1>
 			{#if data.forum.description}
 				<p class="mt-2 text-secondary">{data.forum.description}</p>
 			{/if}
@@ -51,12 +51,12 @@
 	{:else}
 		<div class="space-y-2 border-t border-[rgb(var(--color-border))] px-4 md:px-8">
 			{#each data.threads as thread (thread.id)}
-				<div class="border-b border-[rgb(var(--color-border))] py-3 hover:bg-[rgb(var(--color-bg-secondary))] transition px-4 -mx-4">
+				<div class="thread-item border-b border-[rgb(var(--color-border))] py-3 px-4 -mx-4">
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
-								<h3 class="text-lg font-semibold">
-									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="text-[rgb(var(--color-primary))] hover:underline break-words">
+								<h3 class="font-semibold">
+									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="thread-title break-words">
 										{thread.title}
 									</a>
 								</h3>
@@ -67,11 +67,11 @@
 									<span class="text-xs bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] px-2 py-1 rounded">locked</span>
 								{/if}
 							</div>
-							<p class="mt-1 text-sm text-[rgb(var(--color-text-secondary))]">
+							<p class="thread-meta mt-1">
 								by <strong>{thread.authorDisplayName || thread.authorHandle}</strong>
 							</p>
 						</div>
-						<div class="text-right text-sm text-[rgb(var(--color-text-muted))] flex-shrink-0">
+						<div class="thread-stats flex-shrink-0">
 							<p><strong>{thread.postCount}</strong> post{thread.postCount !== 1 ? 's' : ''}</p>
 							<p class="text-xs">{formatTime(thread.lastPostAt)}</p>
 						</div>

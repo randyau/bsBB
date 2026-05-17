@@ -38,7 +38,7 @@
 </script>
 
 <div class="space-y-6">
-	<h1 class="text-3xl font-bold">Forum Management</h1>
+	<h1 class="page-title">Forum Management</h1>
 
 	{#if form?.error}
 		<div class="card-secondary text-error">

@@ -32,7 +32,7 @@
 		<span>New Thread</span>
 	</div>
 
-	<h1 class="text-3xl font-bold">Create New Thread</h1>
+	<h1 class="page-title">Create New Thread</h1>
 
 	{#if form?.error}
 		<div class="rounded-lg border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg-secondary))] p-4 text-[rgb(var(--color-error))]">
