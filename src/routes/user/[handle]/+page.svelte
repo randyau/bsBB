@@ -13,6 +13,18 @@
 	function isRoleAssigned(roleId: string): boolean {
 		return data.customRoles.some((r) => r.id === roleId);
 	}
+
+	function getContrastColor(hexColor: string | null | undefined): string {
+		if (!hexColor) return 'rgb(var(--color-text))';
+		const hex = hexColor.replace('#', '');
+		const r = parseInt(hex.slice(0, 2), 16);
+		const g = parseInt(hex.slice(2, 4), 16);
+		const b = parseInt(hex.slice(4, 6), 16);
+		// Calculate luminance using standard formula
+		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+		// Use white text for dark colors, dark text for light colors
+		return luminance > 0.5 ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)';
+	}
 </script>
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -37,7 +49,7 @@
 
 		<!-- User info -->
 		<div class="flex-1">
-			<h1 class="text-3xl font-bold mb-1">{data.profileUser.displayName || data.profileUser.handle}</h1>
+			<h1 class="page-title mb-1">{data.profileUser.displayName || data.profileUser.handle}</h1>
 			<p class="text-[rgb(var(--color-text-muted))] font-mono text-sm mb-3">@{data.profileUser.handle}</p>
 
 			<div class="flex gap-2 items-center mb-3">
@@ -52,7 +64,7 @@
 
 				<!-- Custom role badges -->
 				{#each data.customRoles as role}
-					<span class="badge border" style:background-color={role.color ? role.color + '20' : undefined} style:color={role.color || undefined}>
+					<span class="badge border-2" style:background-color={role.color || 'rgb(var(--color-bg-secondary))'} style:color={getContrastColor(role.color)} style:border-color={role.color || 'rgb(var(--color-border))'}>
 						{role.name}
 					</span>
 				{/each}
@@ -94,43 +106,49 @@
 
 			<div class="space-y-6">
 				<!-- Global role management -->
-				<div class="box-secondary">
-					<h3 class="font-semibold mb-3">Global Role</h3>
-					<div class="flex gap-2">
-						{#if data.profileUser.globalRole === 'banned'}
-							<form method="POST" action="?/unban" class="inline">
-								<input type="hidden" name="targetDid" value={data.profileUser.did} />
-								<button type="submit" class="btn btn-sm bg-green-50 text-green-600 hover:bg-green-100 border border-green-200">
-									Unban
-								</button>
-							</form>
-						{:else}
-							<form method="POST" action="?/ban" class="inline space-x-2 flex">
-								<input type="hidden" name="targetDid" value={data.profileUser.did} />
+				<div class="box-secondary space-y-4">
+					<h3 class="subsection-title">Global Role</h3>
+
+					{#if data.profileUser.globalRole === 'banned'}
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-3">User is currently banned.</p>
+						<form method="POST" action="?/unban" class="inline">
+							<input type="hidden" name="targetDid" value={data.profileUser.did} />
+							<button type="submit" class="btn btn-sm btn-secondary">
+								Unban User
+							</button>
+						</form>
+					{:else}
+						<form method="POST" action="?/ban" class="space-y-3">
+							<input type="hidden" name="targetDid" value={data.profileUser.did} />
+							<div class="form-group">
+								<label for="ban-reason" class="form-label">Ban Reason (optional)</label>
 								<textarea
+									id="ban-reason"
 									name="reason"
-									placeholder="Reason (optional)"
-									class="form-control text-xs w-40 h-16"
+									placeholder="Explain why this user is being banned..."
+									rows="3"
+									class="form-control form-textarea"
 									bind:value={banReason}
 								></textarea>
-								<button type="submit" class="btn btn-sm bg-red-50 text-red-600 hover:bg-red-100 border border-red-200">
-									Ban
-								</button>
-							</form>
-						{/if}
+								<p class="form-hint">This reason will be logged in the moderation log.</p>
+							</div>
+							<button type="submit" class="btn btn-sm btn-danger">Ban User</button>
+						</form>
+					{/if}
 
+					<div class="pt-2 border-t border-[rgb(var(--color-border))]">
 						{#if data.profileUser.globalRole !== 'admin'}
 							<form method="POST" action="?/promote" class="inline">
 								<input type="hidden" name="targetDid" value={data.profileUser.did} />
-								<button type="submit" class="btn btn-sm bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200">
+								<button type="submit" class="btn btn-sm btn-primary">
 									Promote to Admin
 								</button>
 							</form>
 						{:else}
 							<form method="POST" action="?/demote" class="inline">
 								<input type="hidden" name="targetDid" value={data.profileUser.did} />
-								<button type="submit" class="btn btn-sm bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200">
-									Demote
+								<button type="submit" class="btn btn-sm btn-secondary">
+									Demote from Admin
 								</button>
 							</form>
 						{/if}
@@ -139,23 +157,23 @@
 
 				<!-- Forum moderator assignments -->
 				{#if data.allForums.length > 0}
-					<div class="box-secondary">
-						<h3 class="font-semibold mb-4">Forum Moderator</h3>
+					<div class="box-secondary space-y-4">
+						<h3 class="subsection-title">Forum Moderator</h3>
 
 						<!-- Currently moderating -->
-						<div class="mb-4">
+						<div>
 							<p class="text-sm font-medium text-[rgb(var(--color-text))] mb-2">Currently moderating:</p>
 							{#if data.forumModAssignments.length === 0}
 								<p class="text-sm text-[rgb(var(--color-text-muted))] italic">None</p>
 							{:else}
 								<div class="space-y-2">
 									{#each data.forumModAssignments as assignment}
-										<div class="flex items-center justify-between p-2 bg-[rgb(var(--color-bg))] rounded border border-[rgb(var(--color-border))]">
+										<div class="flex items-center justify-between p-3 bg-[rgb(var(--color-bg))] rounded border border-[rgb(var(--color-border))]">
 											<span class="text-sm font-medium">{assignment.forumName}</span>
 											<form method="POST" action="?/removeForumMod" class="inline">
 												<input type="hidden" name="targetDid" value={data.profileUser.did} />
 												<input type="hidden" name="forumId" value={assignment.forumId} />
-												<button type="submit" class="text-red-600 hover:text-red-700 text-xs underline">
+												<button type="submit" class="text-sm text-[rgb(var(--color-error))] hover:underline font-medium">
 													Remove
 												</button>
 											</form>
@@ -166,33 +184,28 @@
 						</div>
 
 						<!-- Assign new moderator -->
-						<div>
-							<p class="text-sm font-medium text-[rgb(var(--color-text))] mb-2">Assign to forum:</p>
-							<div class="flex gap-2">
-								<select bind:value={forumModSelect} class="form-control text-sm flex-1">
-									<option value="">Select a forum...</option>
-									{#each data.allForums as forum}
-										{#if !data.forumModAssignments.some((a) => a.forumId === forum.id)}
-											<option value={forum.id}>{forum.name}</option>
-										{/if}
-									{/each}
-								</select>
-								<form
-									method="POST"
-									action="?/assignForumMod"
-									class="inline"
+						<div class="border-t border-[rgb(var(--color-border))] pt-4">
+							<p class="text-sm font-medium text-[rgb(var(--color-text))] mb-3">Assign to forum:</p>
+							<form method="POST" action="?/assignForumMod" class="space-y-3">
+								<input type="hidden" name="targetDid" value={data.profileUser.did} />
+								<div class="form-group">
+									<select name="forumId" bind:value={forumModSelect} class="form-control">
+										<option value="">Select a forum...</option>
+										{#each data.allForums as forum}
+											{#if !data.forumModAssignments.some((a) => a.forumId === forum.id)}
+												<option value={forum.id}>{forum.name}</option>
+											{/if}
+										{/each}
+									</select>
+								</div>
+								<button
+									type="submit"
+									disabled={!forumModSelect}
+									class="btn btn-sm btn-primary"
 								>
-									<input type="hidden" name="targetDid" value={data.profileUser.did} />
-									<input type="hidden" name="forumId" value={forumModSelect} />
-									<button
-										type="submit"
-										disabled={!forumModSelect}
-										class="btn btn-sm btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										Assign
-									</button>
-								</form>
-							</div>
+									Assign Moderator
+								</button>
+							</form>
 						</div>
 					</div>
 				{/if}
@@ -200,8 +213,9 @@
 				<!-- Custom roles -->
 				{#if data.allRoles.length > 0}
 					<div class="box-secondary">
-						<h3 class="font-semibold mb-3">Custom Roles</h3>
-						<div class="space-y-2">
+						<h3 class="subsection-title mb-4">Custom Roles</h3>
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">Click to assign or remove roles:</p>
+						<div class="flex flex-wrap gap-2">
 							{#each data.allRoles as role}
 								<form
 									method="POST"
@@ -212,9 +226,10 @@
 									<input type="hidden" name="roleId" value={role.id} />
 									<button
 										type="submit"
-										class="badge border px-3 py-1.5 cursor-pointer hover:opacity-80 transition"
-										style:background-color={role.color ? role.color + '20' : undefined}
-										style:color={role.color || undefined}
+										class="badge border-2 px-3 py-2 cursor-pointer hover:opacity-90 transition font-medium"
+										style:background-color={role.color || 'rgb(var(--color-bg-secondary))'}
+										style:color={getContrastColor(role.color)}
+										style:border-color={role.color || 'rgb(var(--color-border))'}
 									>
 										{isRoleAssigned(role.id) ? '✓' : '+'} {role.name}
 									</button>

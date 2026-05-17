@@ -54,7 +54,7 @@
 
 	<!-- Forums List -->
 	<div class="space-y-2">
-		<h2 class="text-xl font-semibold mb-4">Forums</h2>
+		<h2 class="section-title mb-4">Forums</h2>
 		<div class="card-secondary">
 			<table class="w-full text-sm">
 				<thead class="border-b">
@@ -75,12 +75,12 @@
 								<form method="POST" action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="up" />
-									<button type="submit" class="text-xs hover:underline">↑</button>
+									<button type="submit" class="btn btn-sm btn-secondary" title="Move up">↑</button>
 								</form>
 								<form method="POST" action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="down" />
-									<button type="submit" class="text-xs hover:underline">↓</button>
+									<button type="submit" class="btn btn-sm btn-secondary" title="Move down">↓</button>
 								</form>
 							</td>
 						</tr>
@@ -92,27 +92,27 @@
 
 	<!-- Moderator Assignment -->
 	<div class="space-y-4">
-		<h2 class="text-xl font-semibold">Assign Moderators</h2>
+		<h2 class="section-title">Assign Moderators</h2>
 		<div class="card-secondary space-y-4">
 			<div class="grid grid-cols-2 gap-4">
-				<div>
-					<label for="forumSelect" class="block text-sm font-semibold mb-1">Forum</label>
-					<select id="forumSelect" bind:value={selectedForumId} class="w-full border rounded px-3 py-2">
+				<div class="form-group">
+					<label for="forumSelect" class="form-label">Forum</label>
+					<select id="forumSelect" bind:value={selectedForumId} class="form-control">
 						<option value="">Select a forum</option>
 						{#each data.forums as forum (forum.id)}
 							<option value={forum.id}>{forum.name}</option>
 						{/each}
 					</select>
 				</div>
-				<div>
-					<label for="userSearch" class="block text-sm font-semibold mb-1">User (Search or Select)</label>
+				<div class="form-group">
+					<label for="userSearch" class="form-label">User (Search or Select)</label>
 					<div class="relative">
 						<input
 							id="userSearch"
 							type="text"
 							bind:value={userSearchQuery}
 							placeholder="Search by handle, name, or DID..."
-							class="w-full border rounded px-3 py-2"
+							class="form-control"
 						/>
 						{#if userSearchQuery && filteredUsers.length > 0}
 							<div class="absolute top-full left-0 right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 max-h-48 overflow-y-auto">
@@ -120,7 +120,7 @@
 									<button
 										type="button"
 										onclick={() => selectUser(user)}
-										class="w-full text-left px-3 py-2 hover:bg-[rgb(var(--color-bg-secondary))] text-sm"
+										class="w-full text-left px-3 py-2 hover:bg-[rgb(var(--color-bg-secondary))] text-sm transition-colors"
 									>
 										<div class="font-semibold">{user.displayName || user.handle}</div>
 										<div class="text-xs text-muted font-mono">{user.did}</div>
@@ -149,7 +149,7 @@
 				<button
 					type="submit"
 					disabled={!selectedForumId || !modUserId}
-					class="px-4 py-2 btn-primary rounded disabled:opacity-50 disabled:cursor-not-allowed"
+					class="btn btn-primary"
 				>
 					Assign Moderator
 				</button>
@@ -159,7 +159,7 @@
 
 	<!-- Current Moderators -->
 	<div class="space-y-2">
-		<h2 class="text-xl font-semibold mb-4">Forum Moderators</h2>
+		<h2 class="section-title mb-4">Forum Moderators</h2>
 		<div class="card-secondary">
 			{#if data.mods.length === 0}
 				<p class="text-sm text-muted">No forum moderators assigned yet.</p>
@@ -182,7 +182,7 @@
 							onclick={() => { modForumFilter = ''; modUserFilter = ''; }}
 							class="btn btn-sm btn-secondary"
 						>
-							Clear
+							Clear filters
 						</button>
 					{/if}
 					<span class="text-xs text-muted">
@@ -230,7 +230,7 @@
 	<!-- Permissions Matrix -->
 	{#if data.roles.length > 0}
 		<div class="space-y-4">
-			<h2 class="text-xl font-semibold">Role Permissions</h2>
+			<h2 class="section-title">Role Permissions</h2>
 			<div class="card-secondary space-y-4">
 				<p class="text-sm text-[rgb(var(--color-text-muted))]">
 					Set per-role permissions for each forum. Roles inherit permissions from parent forums unless explicitly overridden.
@@ -238,7 +238,7 @@
 
 				{#each data.forums as forum (forum.id)}
 					<details class="border border-[rgb(var(--color-border))] rounded">
-						<summary class="p-4 font-semibold cursor-pointer hover:bg-[rgb(var(--color-bg-secondary))]">
+						<summary class="p-4 font-semibold cursor-pointer hover:bg-[rgb(var(--color-bg-secondary))] transition-colors">
 							{forum.name}
 						</summary>
 						<div class="p-4 border-t border-[rgb(var(--color-border))] overflow-x-auto">
@@ -262,7 +262,11 @@
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canRead" />
 													<input type="hidden" name="value" value={!(perm?.canRead ?? false)} />
-													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canRead ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canRead ? 'Remove read access' : 'Grant read access'}></button>
+													<button type="submit" class="relative w-5 h-5 inline-flex items-center justify-center border-2 border-[rgb(var(--color-border))] rounded transition-all hover:border-[rgb(var(--color-primary))] focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.5)]" title={perm?.canRead ? 'Remove read access' : 'Grant read access'}>
+														{#if perm?.canRead}
+															<span class="absolute inset-0 bg-[rgb(var(--color-success))] rounded flex items-center justify-center text-white text-xs">✓</span>
+														{/if}
+													</button>
 												</form>
 											</td>
 											<td class="text-center py-2 px-2">
@@ -271,7 +275,11 @@
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canPost" />
 													<input type="hidden" name="value" value={!(perm?.canPost ?? false)} />
-													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canPost ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canPost ? 'Remove post access' : 'Grant post access'}></button>
+													<button type="submit" class="relative w-5 h-5 inline-flex items-center justify-center border-2 border-[rgb(var(--color-border))] rounded transition-all hover:border-[rgb(var(--color-primary))] focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.5)]" title={perm?.canPost ? 'Remove post access' : 'Grant post access'}>
+														{#if perm?.canPost}
+															<span class="absolute inset-0 bg-[rgb(var(--color-success))] rounded flex items-center justify-center text-white text-xs">✓</span>
+														{/if}
+													</button>
 												</form>
 											</td>
 											<td class="text-center py-2 px-2">
@@ -280,7 +288,11 @@
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canModerate" />
 													<input type="hidden" name="value" value={!(perm?.canModerate ?? false)} />
-													<button type="submit" class={`w-5 h-5 rounded border ${perm?.canModerate ? 'bg-green-500 border-green-600' : 'border-[rgb(var(--color-border))]'}`} title={perm?.canModerate ? 'Remove moderate access' : 'Grant moderate access'}></button>
+													<button type="submit" class="relative w-5 h-5 inline-flex items-center justify-center border-2 border-[rgb(var(--color-border))] rounded transition-all hover:border-[rgb(var(--color-primary))] focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.5)]" title={perm?.canModerate ? 'Remove moderate access' : 'Grant moderate access'}>
+														{#if perm?.canModerate}
+															<span class="absolute inset-0 bg-[rgb(var(--color-success))] rounded flex items-center justify-center text-white text-xs">✓</span>
+														{/if}
+													</button>
 												</form>
 											</td>
 										</tr>
