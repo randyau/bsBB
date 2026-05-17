@@ -14,7 +14,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "bash scripts/migrate.sh"
+		"db:migrate": "bash scripts/migrate.sh",
+		"worker": "tsx src/worker.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/kit": "^2.57.0",
