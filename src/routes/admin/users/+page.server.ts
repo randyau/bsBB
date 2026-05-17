@@ -69,8 +69,9 @@ export const actions: Actions = {
 			});
 
 			await db.update(users).set({ globalRole: 'banned' }).where(eq(users.did, targetDid));
-			// Immediately invalidate all active sessions so the ban takes effect now
-			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
+			// Note: Don't delete sessions. Keep them valid so validateSession() will load the updated
+			// globalRole='banned' from the users table on the next request, triggering the redirect
+			// in hooks.server.ts. This allows us to show the /banned page to the user.
 
 			await db.insert(modLog).values({
 				moderatorDid: locals.user!.did,
