@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { encrypt, decrypt, generateKey } from '$lib/crypto';
 import { sendEmail, testEmail } from '$lib/email';
 
@@ -16,6 +16,11 @@ import { sendEmail, testEmail } from '$lib/email';
  */
 
 describe('Phase 5 — Worker & Notifications', () => {
+	beforeAll(() => {
+		// Set a valid 32-byte hex encryption key for tests
+		process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+	});
+
 	describe('Encryption (AES-256-GCM)', () => {
 		it('encrypts and decrypts correctly', () => {
 			const plaintext = 'secret_token_12345';
