@@ -256,11 +256,12 @@
 					<form method="POST" action="?/unwatchThread" style="display: contents;">
 						<button
 							type="submit"
-							class="px-3 py-2 text-sm font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
+							class="px-3 py-2 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
 								? 'bg-[rgb(var(--color-primary))] text-white'
 								: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
 						>
-							Default
+							<div>Default</div>
+							<div>notifs</div>
 						</button>
 					</form>
 

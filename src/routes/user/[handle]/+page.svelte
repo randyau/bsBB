@@ -169,12 +169,13 @@
 							<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/unwatchThread" style="display: contents;">
 								<button
 									type="submit"
-									class="px-2 py-1 text-xs font-medium transition border-l border-r border-[rgb(var(--color-border))] {sub.subscriptionType === null
+									class="px-2 py-1 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {sub.subscriptionType === null
 										? 'bg-[rgb(var(--color-primary))] text-white'
 										: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
-									title="Remove from watched list"
+									title="Use default notification settings"
 								>
-									Remove
+									<div>Default</div>
+									<div>notifs</div>
 								</button>
 							</form>
 							<form method="POST" action="/f/{sub.forumSlug}/t/{sub.threadSlug}?/watchThread" style="display: contents;">
