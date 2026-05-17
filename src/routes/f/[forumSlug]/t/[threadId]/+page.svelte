@@ -28,6 +28,10 @@
 		updateEditPreview();
 	});
 
+	function confirmDeletePost(): boolean {
+		return confirm('Hide this post? It will be removed from view but content is preserved and can be restored.');
+	}
+
 	function setQuoteTarget(postId: string) {
 		const post = data.posts.find(p => p.id === postId);
 		if (!post) return;
@@ -257,10 +261,10 @@
 												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Restore post</button>
 											</form>
 										{:else}
-											<form method="POST" action="?/deletePost" onsubmit={(e) => { const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
+											<form method="POST" action="?/deletePost" onsubmit={(e) => { if (!confirmDeletePost()) { e.preventDefault(); return; } const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
 												<input type="hidden" name="postId" value={post.id} />
 												<input type="hidden" name="reason" value="" />
-												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-bg-secondary))]">Delete post</button>
+												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-bg-secondary))]">Hide post</button>
 											</form>
 										{/if}
 									</div>

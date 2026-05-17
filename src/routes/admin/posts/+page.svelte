@@ -3,6 +3,16 @@
 	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
+
+	function confirmHide(): boolean {
+		return confirm('Hide this post? It will be removed from view but content is preserved and it can be restored.');
+	}
+
+	function confirmPermanentlyDelete(): boolean {
+		return confirm(
+			'Permanently delete this post?\n\nThis will irreversibly clear all content. The post stub will remain for quotes/links, but content cannot be recovered.\n\nThis action cannot be undone.'
+		);
+	}
 </script>
 
 <div class="space-y-6">
@@ -76,7 +86,7 @@
 						</td>
 						<td class="px-4 py-3">
 							{#if post.status === 'active'}
-								<form method="POST" action="?/hide" class="flex flex-col gap-1">
+								<form method="POST" action="?/hide" class="flex flex-col gap-1" onsubmit={confirmHide}>
 									<input type="hidden" name="postId" value={post.id} />
 									<label for="hide-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Reason (optional)</label>
 									<input
@@ -94,7 +104,7 @@
 										<input type="hidden" name="postId" value={post.id} />
 										<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Restore</button>
 									</form>
-									<form method="POST" action="?/permanentlyDelete" class="flex flex-col gap-1">
+									<form method="POST" action="?/permanentlyDelete" class="flex flex-col gap-1" onsubmit={confirmPermanentlyDelete}>
 										<input type="hidden" name="postId" value={post.id} />
 										<label for="delete-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Delete reason</label>
 										<input
