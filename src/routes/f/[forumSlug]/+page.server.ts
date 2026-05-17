@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			lastPostAt: threads.lastPostAt,
 			authorHandle: users.handle,
 			authorDisplayName: users.displayName,
-			postCount: sql<number>`COUNT(${posts.id}) FILTER (WHERE NOT ${posts.isDeleted})`,
+			postCount: sql<number>`COUNT(${posts.id}) FILTER (WHERE ${posts.status} = 'active')`,
 		})
 		.from(threads)
 		.innerJoin(users, eq(threads.authorDid, users.did))

@@ -223,7 +223,7 @@
 								{/if}
 							</div>
 
-							{#if data.user && data.canPost && !data.thread.isLocked && !post.isDeleted}
+							{#if data.user && data.canPost && !data.thread.isLocked && post.status === 'active'}
 								<button
 									type="button"
 									onclick={() => setQuoteTarget(post.id)}
@@ -235,7 +235,7 @@
 								</button>
 							{/if}
 
-							{#if data.user && (post.authorDid === data.user.did || data.user.globalRole === 'admin') && !post.isDeleted}
+							{#if data.user && (post.authorDid === data.user.did || data.user.globalRole === 'admin') && post.status === 'active'}
 								<button
 									type="button"
 									onclick={() => startEdit(post.id)}
@@ -251,7 +251,7 @@
 										⋯
 									</summary>
 									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[140px]">
-										{#if post.isDeleted}
+										{#if post.status !== 'active'}
 											<form method="POST" action="?/restorePost">
 												<input type="hidden" name="postId" value={post.id} />
 												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Restore post</button>
@@ -306,8 +306,12 @@
 								</button>
 							</div>
 						</div>
-					{:else if post.isDeleted}
-						<p class="italic text-[rgb(var(--color-text-muted))]">[post deleted]</p>
+					{:else if post.status === 'hidden'}
+						<p class="italic text-[rgb(var(--color-text-muted))]">[post hidden by moderator]</p>
+					{:else if post.status === 'deleted'}
+						<p class="italic text-[rgb(var(--color-text-muted))]">[post permanently deleted]</p>
+					{:else if post.status === 'archived'}
+						<p class="italic text-[rgb(var(--color-text-muted))]">[post archived]</p>
 					{:else}
 						<div class="prose-content">
 							{@html post.bodyHtml}

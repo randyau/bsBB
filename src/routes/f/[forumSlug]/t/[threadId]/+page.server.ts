@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			bodyMarkdown: posts.bodyMarkdown,
 			bodyHtml: posts.bodyHtml,
 			replyToPostId: posts.replyToPostId,
-			isDeleted: posts.isDeleted,
+			status: posts.status,
 			createdAt: posts.createdAt,
 			editedAt: posts.editedAt,
 			authorHandle: users.handle,
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 		if (post.replyToPostId && postMap.has(post.replyToPostId)) {
 			const quoted = postMap.get(post.replyToPostId)!;
-			if (!quoted.isDeleted) {
+			if (quoted.status === 'active') {
 				quotedPost = {
 					id: quoted.id,
 					authorHandle: quoted.authorHandle,
@@ -265,8 +265,8 @@ export const actions: Actions = {
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
 		if (!postId) return fail(422, { error: 'Post ID required' });
-		await db.update(posts).set({ isDeleted: true }).where(eq(posts.id, postId));
-		await db.insert(modLog).values({ moderatorDid: user.did, action: 'delete_post', targetPostId: postId, reason: reason || undefined });
+		await db.update(posts).set({ status: 'hidden' }).where(eq(posts.id, postId));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'hide_post', targetPostId: postId, reason: reason || undefined });
 		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
 	},
 
@@ -274,9 +274,10 @@ export const actions: Actions = {
 		const { user, forum: f, thread: t } = await loadForMod(locals, params);
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
+		const reason = String(form.get('reason') ?? '').trim();
 		if (!postId) return fail(422, { error: 'Post ID required' });
-		await db.update(posts).set({ isDeleted: false }).where(eq(posts.id, postId));
-		await db.insert(modLog).values({ moderatorDid: user.did, action: 'restore_post', targetPostId: postId });
+		await db.update(posts).set({ status: 'active' }).where(eq(posts.id, postId));
+		await db.insert(modLog).values({ moderatorDid: user.did, action: 'restore_post', targetPostId: postId, reason: reason || undefined });
 		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
 	},
 };
