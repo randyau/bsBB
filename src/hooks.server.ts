@@ -82,6 +82,20 @@ function formatHtml(html: string): string {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Host header validation (prevents host header injection attacks)
+	// Extract hostname without port for comparison
+	// Skip validation in dev to avoid blocking different port numbers during testing
+	if (process.env.NODE_ENV === 'production') {
+		const hostHeader = event.request.headers.get('host') ?? '';
+		const hostname = hostHeader.split(':')[0];
+		const allowedHosts = (process.env.ALLOWED_HOSTS ?? 'localhost,127.0.0.1').split(',').map(h => h.trim());
+
+		// Only validate if a host header is present
+		if (hostname && !allowedHosts.includes(hostname)) {
+			return new Response('Invalid host', { status: 400 });
+		}
+	}
+
 	// Session hydration
 	const token = getSessionToken(event);
 	if (token) {
@@ -115,6 +129,29 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return formatHtml(html);
 		}
 	});
+
+	// Security headers: defend against clickjacking, MIME sniffing, and other attacks
+	response.headers.set('X-Frame-Options', 'DENY');
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('Referrer-Policy', 'no-referrer');
+	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+	// Content Security Policy: restrictive by default, allow same-origin assets
+	const csp = [
+		"default-src 'self'",
+		"script-src 'self'",
+		"style-src 'self' 'unsafe-inline'",
+		"img-src 'self' data: https:",
+		"font-src 'self'",
+		"connect-src 'self'",
+		"frame-ancestors 'none'"
+	].join('; ');
+	response.headers.set('Content-Security-Policy', csp);
+
+	// HSTS: enforce HTTPS in production
+	if (process.env.NODE_ENV === 'production') {
+		response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+	}
 
 	return response;
 };

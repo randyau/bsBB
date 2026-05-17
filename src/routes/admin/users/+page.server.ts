@@ -124,6 +124,8 @@ export const actions: Actions = {
 			});
 
 			await db.update(users).set({ globalRole: 'admin' }).where(eq(users.did, targetDid));
+			// Invalidate all sessions so privilege change takes effect immediately
+			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
 
 			await db.insert(modLog).values({
 				moderatorDid: locals.user!.did,
@@ -173,6 +175,8 @@ export const actions: Actions = {
 			});
 
 			await db.update(users).set({ globalRole: 'member' }).where(eq(users.did, targetDid));
+			// Invalidate all sessions so privilege change takes effect immediately
+			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
 
 			await db.insert(modLog).values({
 				moderatorDid: locals.user!.did,

@@ -4,6 +4,11 @@ import { renderMarkdown } from '$lib/markdown/index.js';
 import { checkAbuse } from '$lib/abuse/index.js';
 
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
+	const contentType = request.headers.get('content-type') ?? '';
+	if (!contentType.includes('application/x-www-form-urlencoded') && !contentType.includes('multipart/form-data')) {
+		return json({ error: 'Invalid Content-Type. Use application/x-www-form-urlencoded or multipart/form-data' }, { status: 415 });
+	}
+
 	const ip = getClientAddress();
 
 	const verdict = await checkAbuse({ type: 'preview_request', did: locals.user?.did ?? null, ip });
