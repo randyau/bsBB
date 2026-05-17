@@ -21,9 +21,11 @@
 
 import { db } from '$lib/db';
 import { notificationQueue, users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
+import { decrypt } from '$lib/crypto';
+import { BskyAgent } from '@atproto/api';
 
 async function processNotifications() {
 	try {
@@ -55,8 +57,30 @@ async function processNotifications() {
 			const recipientDid = row.recipient_did;
 			const type = row.type;
 			const payload = row.payload;
+			const createdAt = new Date(row.created_at);
 
 			try {
+				// For DM notifications, check frequency-based rate limiting
+				if (type === 'dm_notification') {
+					const userPrefs = await db.query.users.findFirst({
+						where: eq(users.did, recipientDid),
+						columns: { notificationFrequency: true }
+					});
+
+					if (userPrefs) {
+						const lastSent = await getLastDmSentTime(recipientDid);
+						const freqWindow = getFrequencyWindow(userPrefs.notificationFrequency);
+
+						if (lastSent && Date.now() - lastSent.getTime() < freqWindow) {
+							// Too soon — defer this notification
+							console.log(
+								`[worker] deferred (frequency throttled): ${recipientDid} (will retry in ${Math.ceil((freqWindow - (Date.now() - lastSent.getTime())) / 1000)}s)`
+							);
+							continue; // Skip to next notification, leave this as pending
+						}
+					}
+				}
+
 				// Route by notification type
 				if (type === 'moderator_alert') {
 					await handleModeratorAlert(recipientDid, payload);
@@ -132,16 +156,17 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 }
 
 async function handleDmNotification(recipientDid: string, payload: any) {
-	const { notificationType, threadTitle, replyAuthorHandle } = payload;
+	const { notificationType, threadTitle, threadSlug, forumSlug, replyAuthorHandle } = payload;
 
-	// Rate limiting: max 1 DM per user per hour
-	// (In production, check last_dm_sent_at for this recipient)
-	// For now, just send — future commits can add rate limiting
-
-	// Get recipient's service account chat session
+	// Get recipient's preferences and chat session
 	const recipient = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
-		columns: { chatSessionEncrypted: true, notifyViaBluesky: true }
+		columns: {
+			chatSessionEncrypted: true,
+			notifyViaBluesky: true,
+			notificationType: true,
+			notificationFrequency: true
+		}
 	});
 
 	if (!recipient?.notifyViaBluesky || !recipient?.chatSessionEncrypted) {
@@ -151,12 +176,60 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 		return;
 	}
 
-	// Placeholder: In full implementation, would decrypt session and send via @atproto/api
-	// For now, log the intent
-	const message = buildDmMessage(notificationType, threadTitle, replyAuthorHandle);
-	console.log(
-		`[worker:dm_notification] would send to ${recipientDid}: ${message}`
-	);
+	// Check notification type preference
+	if (
+		(recipient.notificationType === 'replies' && notificationType === 'quote') ||
+		(recipient.notificationType === 'quotes' && notificationType === 'reply')
+	) {
+		console.log(
+			`[worker:dm_notification] skipped (type filtered): ${recipientDid} type=${notificationType}`
+		);
+		return;
+	}
+
+	try {
+		// Decrypt chat session
+		let sessionJson: any;
+		try {
+			sessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
+		} catch (err) {
+			console.error(`[worker:dm_notification] failed to decrypt session for ${recipientDid}`);
+			throw new Error('Failed to decrypt chat session');
+		}
+
+		// Send DM via service account
+		const agent = new BskyAgent({
+			service: 'https://bsky.social'
+		});
+
+		// Use service account credentials
+		const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
+		const servicePassword = process.env.ATPROTO_SERVICE_APP_PASSWORD;
+
+		if (!serviceHandle || !servicePassword) {
+			throw new Error('ATPROTO_SERVICE_HANDLE or ATPROTO_SERVICE_APP_PASSWORD not set');
+		}
+
+		await agent.login({
+			identifier: serviceHandle,
+			password: servicePassword
+		});
+
+		// Build message with thread link
+		const threadLink = threadSlug && forumSlug ? `\n\nhttps://yourforum.com/f/${forumSlug}/t/${threadSlug}` : '';
+		const message = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
+
+		// Send the DM
+		await agent.chat.defs.sendMessage({
+			conversationId: sessionJson.conversationId,
+			text: message
+		});
+
+		console.log(`[worker:dm_notification] sent to ${recipientDid}`);
+	} catch (err) {
+		console.error(`[worker:dm_notification] failed to send to ${recipientDid}:`, err);
+		throw err;
+	}
 }
 
 function buildDmMessage(
@@ -168,7 +241,7 @@ function buildDmMessage(
 		case 'reply':
 			return `@${authorHandle} replied to your thread "${threadTitle}"`;
 		case 'quote':
-			return `@${authorHandle} quoted your post`;
+			return `@${authorHandle} quoted your post in "${threadTitle}"`;
 		case 'new_reply_in_thread':
 			return `New reply in "${threadTitle}"`;
 		default:
@@ -176,10 +249,45 @@ function buildDmMessage(
 	}
 }
 
+/**
+ * Get the last time a DM notification was sent to a user.
+ * Uses the notification_queue sentAt field for the most recent sent DM.
+ */
+async function getLastDmSentTime(recipientDid: string): Promise<Date | null> {
+	const lastSent = await db
+		.select({ sentAt: notificationQueue.sentAt })
+		.from(notificationQueue)
+		.where(
+			and(
+				eq(notificationQueue.recipientDid, recipientDid),
+				eq(notificationQueue.type, 'dm_notification'),
+				eq(notificationQueue.status, 'sent')
+			)
+		)
+		.orderBy(desc(notificationQueue.sentAt))
+		.limit(1);
+
+	return lastSent[0]?.sentAt || null;
+}
+
+/**
+ * Convert notification frequency setting to milliseconds.
+ */
+function getFrequencyWindow(frequency: string): number {
+	switch (frequency) {
+		case 'immediate':
+			return 10 * 60 * 1000; // 10 minutes
+		case 'hourly':
+			return 60 * 60 * 1000; // 1 hour
+		case 'daily':
+			return 24 * 60 * 60 * 1000; // 1 day
+		default:
+			return 10 * 60 * 1000; // default to 10 min
+	}
+}
+
 async function handleProfileSync(recipientDid: string, payload: any) {
-	// Re-resolve user's DID and update cached profile data
-	// In production, would call ATproto PLC Directory to resolve DID
-	// and fetch fresh profile from their PDS
+	// Re-resolve user's DID and update cached profile data from ATproto
 
 	try {
 		const user = await db.query.users.findFirst({
@@ -191,18 +299,29 @@ async function handleProfileSync(recipientDid: string, payload: any) {
 			throw new Error(`User ${recipientDid} not found`);
 		}
 
-		// Placeholder: In full implementation, would:
-		// 1. Call PLC Directory: await resolveDid(recipientDid)
-		// 2. Fetch profile from PDS: await fetchProfile(resolvedDid)
-		// 3. Update users table with fresh handle, displayName, avatarUrl
-		// For now, just log and update lastProfileSync timestamp
+		const agent = new BskyAgent({
+			service: 'https://bsky.social'
+		});
 
+		// Fetch profile from Bluesky
+		const profile = await agent.getProfile({ actor: recipientDid });
+
+		if (!profile.value) {
+			throw new Error(`Could not fetch profile for ${recipientDid}`);
+		}
+
+		// Update cached profile data
 		await db
 			.update(users)
-			.set({ lastProfileSync: new Date() })
+			.set({
+				handle: profile.value.handle,
+				displayName: profile.value.displayName || null,
+				avatarUrl: profile.value.avatar || null,
+				lastProfileSync: new Date()
+			})
 			.where(eq(users.did, recipientDid));
 
-		console.log(`[worker:profile_sync] updated ${user.handle} (${recipientDid})`);
+		console.log(`[worker:profile_sync] updated ${profile.value.handle} (${recipientDid})`);
 	} catch (err) {
 		console.error(`[worker:profile_sync] failed for ${recipientDid}:`, err);
 		throw err;
