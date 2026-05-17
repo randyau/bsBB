@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, users, posts } from '$lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { forums, threads, users, posts, threadViews } from '$lib/db/schema';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { canRead } from '$lib/permissions';
 
@@ -62,9 +62,37 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.limit(THREADS_PER_PAGE)
 		.offset(offset);
 
+	// Load unread status if user is logged in
+	let viewedThreads: Record<string, Date> = {};
+	if (locals.user) {
+		const threadIds = threadList.map((t) => t.id);
+		const views = await db
+			.select({
+				threadId: threadViews.threadId,
+				lastViewedAt: threadViews.lastViewedAt,
+			})
+			.from(threadViews)
+			.where(
+				and(
+					eq(threadViews.userDid, locals.user.did),
+					inArray(threadViews.threadId, threadIds),
+				),
+			);
+
+		views.forEach((view) => {
+			viewedThreads[view.threadId] = view.lastViewedAt;
+		});
+	}
+
+	// Add hasUnread flag to threads
+	const threadsWithUnread = threadList.map((thread) => ({
+		...thread,
+		hasUnread: !viewedThreads[thread.id] || thread.lastPostAt > viewedThreads[thread.id],
+	}));
+
 	return {
 		forum,
-		threads: threadList,
+		threads: threadsWithUnread,
 		currentPage: page,
 		totalPages,
 		totalThreads,

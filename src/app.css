@@ -957,3 +957,12 @@ input[type="radio"]:disabled {
 .prose-content td {
 	color: rgb(var(--color-text));
 }
+
+/* Unread indicator dot for threads */
+.unread-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: rgb(var(--color-primary));
+	flex-shrink: 0;
+}
