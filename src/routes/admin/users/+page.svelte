@@ -2,8 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
 
-	let { data }: { data: PageData } = $props();
-	let form: ActionData = $state(undefined);
+	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 </script>
 
 <div class="space-y-6">

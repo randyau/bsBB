@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
-	let form: ActionData = $state(undefined);
+	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 	let query: string = $state('SELECT * FROM users LIMIT 10;');
 	let isLoading: boolean = $state(false);
 </script>
