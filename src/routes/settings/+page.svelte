@@ -140,9 +140,9 @@
 										bind:value={notificationFrequency}
 										class="form-control"
 									>
-										<option value="immediate">Every 10 minutes</option>
+										<option value="immediate">Max once every 10 minutes</option>
 										<option value="hourly">Max once per hour</option>
-										<option value="daily">Once per day</option>
+										<option value="daily">Max once per day</option>
 									</select>
 									<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
 										How often you'll receive batches of notifications.
