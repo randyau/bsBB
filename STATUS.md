@@ -371,22 +371,33 @@ All core features and design polish are complete and production-ready. The forum
 
 ---
 
-## Next Steps
+## Next Steps (Phase 9+)
 
-**Phase 7 (Commits 3–10):**
-- Establish typography and spacing scale
-- Unified button & form styling
-- Reusable card, modal, alert components
-- Loading states and micro-animations
-- Full responsive design (mobile-first)
-- WCAG 2.1 AA accessibility compliance
-- Component library documentation
+**Phase 9 — Core Forum Experience & Mod Tools:**
+1. Post/Thread Moving (Mod Tool)
+2. Inline Mod Tools for Posts
+3. Bulk Moderation
+4. Thread Follow/Mute System
+5. Unread Thread Indicators & Counts
 
-**After Phase 7:**
-- Internal testing with real forum usage
-- Performance profiling and optimization
-- Security audit
-- Public release / open source
+**Phase 10 — Search & Discovery:**
+1. Search by Poster & Posts by Poster
+2. Forum Statistics Module
+3. Advanced Search Filters (Tier 2)
+
+**Phase 11 — Accessibility & Polish:**
+1. Accessibility Audit & WCAG 2.1 AA Compliance (4 commits)
+2. Breadcrumb Hierarchy Verification
+
+**Phase 12+ — Content Management & Community Engagement:**
+- Approval Queue (optional moderator feature)
+- Thread Tags/Labels
+- Digest-Style Notifications
+- Quote Preview on Hover
+- Favorites Sidebar
+- Share Post Button
+
+📄 **See [PHASE_9_PLAN.md](PHASE_9_PLAN.md) for complete roadmap with acceptance criteria, schema changes, and effort estimates.**
 
 ---
 
