@@ -13,7 +13,7 @@
 	{/if}
 
 	<div>
-		<h1 class="text-3xl font-bold">Forums</h1>
+		<h1 class="page-title">Forums</h1>
 		<p class="mt-2 text-[rgb(var(--color-text-secondary))]">
 			{#if data.user}
 				<span>Logged in as <strong>{data.user.handle}</strong></span>

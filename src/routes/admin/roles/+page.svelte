@@ -88,7 +88,7 @@
 
 <div class="container mx-auto px-4 py-8 max-w-4xl">
 	<div class="flex items-center justify-between mb-8">
-		<h1 class="text-3xl font-bold">Manage Custom Roles</h1>
+		<h1 class="page-title">Manage Custom Roles</h1>
 		{#if !editingRole}
 			<button
 				type="button"

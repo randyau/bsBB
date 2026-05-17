@@ -131,7 +131,7 @@
 		</div>
 
 		<div class="flex items-center gap-2 flex-wrap">
-			<h1 class="text-3xl font-bold">{data.thread.title}</h1>
+			<h1 class="page-title">{data.thread.title}</h1>
 			{#if data.thread.isPinned}
 				<span class="text-xs bg-[rgb(var(--color-warning))] text-[rgb(var(--color-bg))] px-2 py-1 rounded">pinned</span>
 			{/if}
@@ -216,7 +216,7 @@
 								{#if post.editedAt}
 									<a
 										href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
-										class="text-xs italic text-blue-600 hover:underline"
+										class="text-xs italic link"
 									>
 										edited {formatTime(post.editedAt)} (history)
 									</a>
@@ -228,8 +228,8 @@
 									type="button"
 									onclick={() => setQuoteTarget(post.id)}
 									class="text-xs {quotedPostId === post.id
-										? 'text-blue-600 font-semibold underline'
-										: 'text-blue-600 hover:underline'}"
+										? 'text-[rgb(var(--color-primary))] font-semibold underline'
+										: 'text-[rgb(var(--color-primary))] hover:underline'}"
 								>
 									{quotedPostId === post.id ? '✓ Quoted' : 'Quote'}
 								</button>

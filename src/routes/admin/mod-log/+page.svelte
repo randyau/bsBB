@@ -18,7 +18,7 @@
 </script>
 
 <div class="space-y-6">
-	<h1 class="text-3xl font-bold">Moderation Log</h1>
+	<h1 class="page-title">Moderation Log</h1>
 
 	<div class="flex flex-wrap items-center gap-3">
 		<TableSearch
