@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, threads, posts, users, userForumRoles, modLog, threadViews } from '$lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
@@ -114,17 +114,12 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Track thread view for logged-in users
 	if (locals.user) {
-		await db
-			.insert(threadViews)
-			.values({
-				userDid: locals.user.did,
-				threadId: thread.id,
-				lastViewedAt: new Date(),
-			})
-			.onConflictDoUpdate({
-				target: [threadViews.userDid, threadViews.threadId],
-				set: { lastViewedAt: new Date() },
-			});
+		await db.execute(
+			sql`INSERT INTO ${sql.identifier('thread_views')} (${sql.identifier('user_did')}, ${sql.identifier('thread_id')}, ${sql.identifier('last_viewed_at')})
+				VALUES (${locals.user.did}, ${thread.id}, NOW())
+				ON CONFLICT (${sql.identifier('user_did')}, ${sql.identifier('thread_id')})
+				DO UPDATE SET ${sql.identifier('last_viewed_at')} = NOW()`
+		);
 	}
 
 	return {
