@@ -78,15 +78,17 @@
 									<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Restore</button>
 								</form>
 							{:else}
-								<form method="POST" action="?/delete" class="flex gap-1 items-center">
+								<form method="POST" action="?/delete" class="flex flex-col gap-1">
 									<input type="hidden" name="postId" value={post.id} />
+									<label for="delete-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Delete reason (optional)</label>
 									<input
 										type="text"
+										id="delete-reason-{post.id}"
 										name="reason"
 										placeholder="Reason..."
-										class="form-control text-xs px-1 w-24 input-inline"
+										class="form-control text-xs"
 									/>
-									<button type="submit" class="text-xs text-[rgb(var(--color-error))] hover:underline whitespace-nowrap">Delete</button>
+									<button type="submit" class="text-xs text-[rgb(var(--color-error))] hover:underline text-left font-semibold">Delete post</button>
 								</form>
 							{/if}
 						</td>

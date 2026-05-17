@@ -5,6 +5,10 @@
 	let { data }: { data: PageData } = $props();
 	let selectedAction = $state(data.currentFilter || '');
 
+	$effect(() => {
+		selectedAction = data.currentFilter || '';
+	});
+
 	function handleActionChange() {
 		const params = new URLSearchParams();
 		if (selectedAction) params.set('action', selectedAction);

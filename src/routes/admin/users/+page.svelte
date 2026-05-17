@@ -62,34 +62,36 @@
 							{new Date(user.createdAt).toLocaleDateString()}
 						</td>
 						<td class="px-4 py-3">
-							<div class="flex flex-col gap-1 text-xs">
+							<div class="flex flex-col gap-2 text-xs">
+								{#if user.globalRole !== 'admin' && user.globalRole !== 'banned'}
+									<form method="POST" action="?/promote" class="inline">
+										<input type="hidden" name="did" value={user.did} />
+										<button type="submit" class="text-amber-600 hover:underline font-semibold">Make Admin</button>
+									</form>
+								{:else if user.globalRole === 'admin'}
+									<form method="POST" action="?/demote" class="inline">
+										<input type="hidden" name="did" value={user.did} />
+										<button type="submit" class="text-[rgb(var(--color-text-muted))] hover:underline">Remove Admin</button>
+									</form>
+								{/if}
+
 								{#if user.globalRole === 'banned'}
 									<form method="POST" action="?/unban" class="inline">
 										<input type="hidden" name="did" value={user.did} />
 										<button type="submit" class="text-[rgb(var(--color-success))] hover:underline font-semibold">Unban</button>
 									</form>
 								{:else}
-									<form method="POST" action="?/ban" class="flex gap-1 items-center">
+									<form method="POST" action="?/ban" class="flex flex-col gap-1">
 										<input type="hidden" name="did" value={user.did} />
+										<label for="ban-reason-{user.did}" class="text-[rgb(var(--color-text-muted))]">Ban reason (optional)</label>
 										<input
+											id="ban-reason-{user.did}"
 											type="text"
 											name="reason"
-											placeholder="Ban reason..."
-											class="form-control text-xs px-1 w-28 input-inline"
+											placeholder="Reason..."
+											class="form-control text-xs"
 										/>
-										<button type="submit" class="text-[rgb(var(--color-error))] hover:underline whitespace-nowrap">Ban</button>
-									</form>
-								{/if}
-
-								{#if user.globalRole !== 'admin'}
-									<form method="POST" action="?/promote" class="inline">
-										<input type="hidden" name="did" value={user.did} />
-										<button type="submit" class="text-amber-600 hover:underline">Make Admin</button>
-									</form>
-								{:else}
-									<form method="POST" action="?/demote" class="inline">
-										<input type="hidden" name="did" value={user.did} />
-										<button type="submit" class="text-[rgb(var(--color-text-muted))] hover:underline">Remove Admin</button>
+										<button type="submit" class="text-[rgb(var(--color-error))] hover:underline text-left font-semibold">Ban user</button>
 									</form>
 								{/if}
 							</div>

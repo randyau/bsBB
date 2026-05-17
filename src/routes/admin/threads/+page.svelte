@@ -9,6 +9,11 @@
 	let forumVal = $state(data.forumFilter);
 	let periodVal = $state(data.period);
 
+	$effect(() => {
+		forumVal = data.forumFilter;
+		periodVal = data.period;
+	});
+
 	function navigate() {
 		const params = new URLSearchParams();
 		if (forumVal) params.set('forum', forumVal);
