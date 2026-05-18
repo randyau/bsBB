@@ -11,7 +11,8 @@ export const load: PageServerLoad = async () => {
 			name: forums.name,
 			slug: forums.slug,
 			parentId: forums.parentId,
-			sortOrder: forums.sortOrder
+			sortOrder: forums.sortOrder,
+			requireApprovalDays: forums.requireApprovalDays,
 		})
 		.from(forums)
 		.orderBy(forums.sortOrder);
@@ -80,9 +81,9 @@ export const load: PageServerLoad = async () => {
 	}
 
 	return {
-		forums: forumList.map(f => ({
+		forums: forumList.map((f) => ({
 			...f,
-			parentName: parentNames[f.id] || null
+			parentName: parentNames[f.id] || null,
 		})),
 		users: userList,
 		mods: modsData,
@@ -204,6 +205,31 @@ export const actions: Actions = {
 		}
 	},
 
+	setApprovalDays: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const forumId = String(form.get('forumId') ?? '').trim();
+		const days = parseInt(String(form.get('days') ?? '0'), 10);
+
+		if (!forumId || isNaN(days) || days < 0) return fail(422, { error: 'Invalid request' });
+
+		try {
+			await db.update(forums).set({ requireApprovalDays: days }).where(eq(forums.id, forumId));
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'set_approval_days',
+				targetForumId: forumId,
+				reason: days === 0 ? 'Disabled approval requirement' : `Require approval for accounts < ${days} days old`,
+			});
+
+			return { success: true, action: 'setApprovalDays' };
+		} catch (err) {
+			console.error('setApprovalDays action error:', err);
+			return fail(500, { error: 'Failed to update approval setting' });
+		}
+	},
+
 	updatePermission: async ({ locals, request }) => {
 		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
@@ -214,6 +240,10 @@ export const actions: Actions = {
 
 		if (!forumId || !role || !['canRead', 'canPost', 'canModerate'].includes(permType)) {
 			return fail(422, { error: 'Invalid request' });
+		}
+
+		if (['admin', 'moderator'].includes(role)) {
+			return fail(422, { error: 'System roles cannot have per-forum permissions configured' });
 		}
 
 		try {

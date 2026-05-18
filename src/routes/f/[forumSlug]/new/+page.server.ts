@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts } from '$lib/db/schema';
+import { forums, threads, posts, users } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -66,6 +66,20 @@ export const actions: Actions = {
 			return fail(422, { error: 'Body must be 1-50,000 characters', title, body });
 		}
 
+		// Determine if post needs approval
+		const isAdmin = locals.user.globalRole === 'admin';
+		let requiresApproval = false;
+		if (!isAdmin && forum.requireApprovalDays > 0) {
+			const author = await db.query.users.findFirst({
+				where: eq(users.did, locals.user.did),
+				columns: { createdAt: true },
+			});
+			if (author) {
+				const accountAgeDays = (Date.now() - author.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+				requiresApproval = accountAgeDays < forum.requireApprovalDays;
+			}
+		}
+
 		let slug = generateSlug(title);
 		let threadId: string | undefined;
 
@@ -95,12 +109,16 @@ export const actions: Actions = {
 						bodyMarkdown: body,
 						bodyHtml,
 						linkMetadata,
+						isApproved: !requiresApproval,
 					});
 
-					await tx
-						.update(threads)
-						.set({ lastPostAt: new Date() })
-						.where(eq(threads.id, newThreadId));
+					// Only set lastPostAt for approved first posts
+					if (!requiresApproval) {
+						await tx
+							.update(threads)
+							.set({ lastPostAt: new Date() })
+							.where(eq(threads.id, newThreadId));
+					}
 
 					return newThreadId;
 				});
@@ -123,6 +141,9 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to create thread', title, body });
 		}
 
+		if (requiresApproval) {
+			throw redirect(303, `/f/${forum.slug}/t/${slug}?pending=1`);
+		}
 		throw redirect(303, `/f/${forum.slug}/t/${slug}`);
 	},
 };

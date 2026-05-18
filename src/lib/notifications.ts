@@ -6,8 +6,51 @@
  */
 
 import { db } from './db';
-import { notificationQueue, users, notificationSubscriptions } from './db/schema';
-import { eq, and } from 'drizzle-orm';
+import { notificationQueue, userNotifications, users, notificationSubscriptions } from './db/schema';
+import { eq, and, lt, sql } from 'drizzle-orm';
+
+const INBOX_MAX_PER_USER = 100;
+const INBOX_MAX_AGE_DAYS = 30;
+
+/**
+ * Write a notification to the user's in-app inbox.
+ * Always fires regardless of DM opt-in status.
+ * Enforces a per-user cap: last 30 days, max 100 items.
+ * Self-notifications are silently dropped.
+ */
+export async function writeInboxNotification(
+	recipientDid: string,
+	type: 'reply' | 'quote' | 'new_reply_in_thread' | 'post_rejected',
+	payload: Record<string, unknown>,
+	actorDid?: string
+) {
+	// Don't notify users about their own actions
+	if (actorDid && actorDid === recipientDid) return;
+
+	await db.transaction(async (tx) => {
+		// Insert the new notification
+		await tx.insert(userNotifications).values({ recipientDid, type, payload });
+
+		// Expire entries older than 30 days
+		const cutoff = new Date(Date.now() - INBOX_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+		await tx
+			.delete(userNotifications)
+			.where(and(eq(userNotifications.recipientDid, recipientDid), lt(userNotifications.createdAt, cutoff)));
+
+		// Cap at 100: delete oldest beyond the limit
+		// Subquery identifies the 101st-oldest row's created_at for this user
+		await tx.execute(sql`
+			DELETE FROM user_notifications
+			WHERE recipient_did = ${recipientDid}
+			  AND id NOT IN (
+			    SELECT id FROM user_notifications
+			    WHERE recipient_did = ${recipientDid}
+			    ORDER BY created_at DESC
+			    LIMIT ${INBOX_MAX_PER_USER}
+			  )
+		`);
+	});
+}
 
 /**
  * Get all admin/moderator DIDs for a forum.
@@ -58,16 +101,21 @@ export async function enqueueModerationAlert(
 }
 
 /**
- * Enqueue a user DM notification (opt-in).
- * Sent to opted-in users when they're mentioned or replied to.
- * Can be overridden by thread-level subscriptions (follow/mute).
+ * Enqueue a user notification.
+ * Always writes to the in-app inbox.
+ * Also enqueues a DM if the user has opted in and the thread is not muted.
+ * Can be overridden by thread-level subscriptions (follow/mute) for DM delivery only.
  */
 export async function enqueueDmNotification(
 	recipientDid: string,
 	notificationType: 'reply' | 'quote' | 'new_reply_in_thread',
-	payload: any
+	payload: any,
+	actorDid?: string
 ) {
-	// Check thread-level subscription first (if threadId in payload)
+	// Always write to in-app inbox
+	await writeInboxNotification(recipientDid, notificationType, payload, actorDid);
+
+	// Check thread-level subscription for DM delivery
 	const threadId = payload.threadId;
 	if (threadId) {
 		const [sub] = await db
@@ -82,44 +130,32 @@ export async function enqueueDmNotification(
 			.limit(1);
 
 		if (sub?.subscriptionType === 'mute') {
-			return; // User has explicitly muted this thread
+			return; // Muted: inbox written, no DM
 		}
 
 		if (sub?.subscriptionType === 'follow') {
-			// User has explicitly followed this thread — always send notification
 			await db.insert(notificationQueue).values({
 				recipientDid,
 				type: 'dm_notification',
-				payload: {
-					notificationType,
-					...payload,
-					timestamp: new Date().toISOString()
-				}
+				payload: { notificationType, ...payload, timestamp: new Date().toISOString() }
 			});
-
 			console.log(`[notifications] enqueued DM (followed thread): ${notificationType} to ${recipientDid}`);
 			return;
 		}
 	}
 
-	// Fall through to global notification preference check
+	// Fall through to global DM preference
 	const user = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: { notifyViaBluesky: true }
 	});
 
-	if (!user?.notifyViaBluesky) {
-		return; // User hasn't opted in globally
-	}
+	if (!user?.notifyViaBluesky) return;
 
 	await db.insert(notificationQueue).values({
 		recipientDid,
 		type: 'dm_notification',
-		payload: {
-			notificationType,
-			...payload,
-			timestamp: new Date().toISOString()
-		}
+		payload: { notificationType, ...payload, timestamp: new Date().toISOString() }
 	});
 
 	console.log(`[notifications] enqueued DM: ${notificationType} to ${recipientDid}`);

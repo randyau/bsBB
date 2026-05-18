@@ -7,6 +7,9 @@
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
+	import { page } from '$app/stores';
+	const showPendingNotice = $derived($page.url.searchParams.get('pending') === '1');
+
 	let previewHtml: string = $state('');
 	let replyBody: string = $state('');
 	let editingPostId: string | null = $state(null);
@@ -311,13 +314,29 @@
 		</p>
 	</div>
 
+	<!-- Pending approval notice (shown after posting when approval is required) -->
+	{#if showPendingNotice}
+		<div class="bg-[rgb(var(--color-warning))] text-[rgb(var(--color-bg))] rounded px-4 py-3 text-sm font-medium" role="status">
+			Your post has been submitted and is awaiting moderator approval. It will be visible to others once approved, or automatically after 24 hours.
+		</div>
+	{/if}
+
 	<!-- Posts -->
 	{#if data.posts.length === 0}
 		<EmptyState message="No posts yet." />
 	{:else}
 		<div class="space-y-4">
 			{#each data.posts as post, idx (post.id)}
-				<div class="post" id="post-{post.id}">
+				<div class="post{!post.isApproved ? ' opacity-70 border-dashed' : ''}" id="post-{post.id}">
+					{#if !post.isApproved}
+						<div class="px-4 py-2 text-xs font-medium bg-[rgb(var(--color-warning))]/20 text-[rgb(var(--color-warning))] rounded-t border-b border-[rgb(var(--color-warning))]/30">
+							{#if data.canModerate}
+								⏳ Pending approval — <a href="/admin/approval-queue" class="underline">Review in approval queue</a>
+							{:else}
+								⏳ Your post is pending moderator approval
+							{/if}
+						</div>
+					{/if}
 					<!-- Post Header -->
 					<div class="post-header">
 						<div class="post-author">

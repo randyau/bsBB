@@ -38,6 +38,7 @@ export const forums = pgTable('forums', {
 	description: text('description').notNull().default(''),
 	slug: text('slug').notNull().unique(),
 	sortOrder: integer('sort_order').notNull().default(0),
+	requireApprovalDays: integer('require_approval_days').notNull().default(0), // 0 = disabled; N = require approval for accounts < N days old
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -81,6 +82,8 @@ export const posts = pgTable('posts', {
 	linkMetadata: jsonb('link_metadata'),
 	status: text('status').notNull().default('active'), // 'active', 'hidden', 'archived', 'deleted'
 	isDeleted: boolean('is_deleted').notNull().default(false), // deprecated, use status instead
+	isApproved: boolean('is_approved').notNull().default(true),
+	rejectionReason: text('rejection_reason'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	editedAt: timestamp('edited_at', { withTimezone: true }),
 	// body_tsv TSVECTOR GENERATED ALWAYS AS ... is added as raw SQL in migration
@@ -258,6 +261,20 @@ export const sessions = pgTable('sessions', {
 export const instanceSettings = pgTable('instance_settings', {
 	key: text('key').primaryKey(),
 	value: text('value').notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// user_notifications (in-app inbox — always written, independent of DM opt-in)
+// ---------------------------------------------------------------------------
+export const userNotifications = pgTable('user_notifications', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	recipientDid: text('recipient_did')
+		.notNull()
+		.references(() => users.did, { onDelete: 'cascade' }),
+	type: text('type').notNull(), // 'reply' | 'quote' | 'new_reply_in_thread' | 'post_rejected'
+	payload: jsonb('payload').notNull(),
+	isRead: boolean('is_read').notNull().default(false),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------

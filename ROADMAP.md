@@ -1,8 +1,8 @@
 # v1.0 Launch Roadmap
 
 **Last Updated:** 2026-05-18  
-**Status:** Phase 10 Complete — Next: Phase 11 (Approval Queue)  
-**Execution Order:** Phase 11 → Phase 12 → Phase 13
+**Status:** Phase 11 Complete — Next: Phase 12 (Accessibility & Polish)  
+**Execution Order:** Phase 12 → Phase 13
 
 ---
 
@@ -32,7 +32,7 @@ All complete. 11 commits total covering:
 
 ---
 
-## Phase 11 ⭕ — Approval Queue
+## Phase 11 ✅ — Approval Queue
 
 **Goal:** Give moderators a spam prevention lever without blocking all new users.
 
@@ -49,12 +49,12 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 ```
 
 **Acceptance Criteria:**
-- [ ] Per-forum approval toggle in `/admin/forums`
-- [ ] New posts from young accounts require approval
-- [ ] Approval queue page shows pending posts with context
-- [ ] Approve/Reject buttons update mod_log
-- [ ] Reject sends DM with reason
-- [ ] Auto-approve after 24h
+- [x] Per-forum approval toggle in `/admin/forums`
+- [x] New posts from young accounts require approval
+- [x] Approval queue page shows pending posts with context
+- [x] Approve/Reject buttons update mod_log
+- [x] Reject sends DM with reason
+- [x] Auto-approve after 24h
 
 ---
 

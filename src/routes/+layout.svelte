@@ -5,7 +5,7 @@
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
-	const { user } = $derived(data);
+	const { user, unreadNotificationCount } = $derived(data);
 
 	let searchQuery = $state('');
 	let timezoneDetected = $state(false);
@@ -69,6 +69,14 @@
 			{#if user.globalRole === 'admin'}
 				<a href="/admin" class="font-semibold hover:underline">Admin</a>
 			{/if}
+			<a href="/notifications" class="relative hover:underline" aria-label="Notifications{unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}">
+				Notifications
+				{#if unreadNotificationCount > 0}
+					<span class="absolute -top-1 -right-3 min-w-[1.1rem] h-[1.1rem] rounded-full bg-[rgb(var(--color-primary))] text-white text-[10px] font-bold flex items-center justify-center px-0.5" aria-hidden="true">
+						{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+					</span>
+				{/if}
+			</a>
 			<a href="/user/{user.handle}" class="text-secondary hover:underline">@{user.handle}</a>
 			<form method="POST" action="/logout">
 				<button type="submit" class="hover:underline">Sign out</button>

@@ -174,7 +174,7 @@ describe('renderMarkdown — markdown to sanitized HTML', () => {
 
 		it('returns unchanged markdown when post not found', async () => {
 			const mocked = vi.mocked(db.query.posts.findFirst);
-			mocked.mockResolvedValue(null);
+			mocked.mockResolvedValue(undefined);
 
 			const markdown = '>!quote 12345678-1234-1234-1234-123456789012';
 			const html = await expandQuoteMarkers(markdown, db);
