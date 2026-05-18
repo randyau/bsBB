@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.offset((page - 1) * PAGE_SIZE);
 
 	const forumList = await db
-		.select({ name: forums.name, slug: forums.slug })
+		.select({ id: forums.id, name: forums.name, slug: forums.slug })
 		.from(forums)
 		.orderBy(forums.name);
 
@@ -161,6 +161,64 @@ export const actions: Actions = {
 			return { success: true, action: 'unpin', threadId };
 		} catch (err) {
 			return fail(500, { error: 'Failed to unpin thread' });
+		}
+	},
+
+	moveThread: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const threadId = String(form.get('threadId') ?? '').trim();
+		const destForumId = String(form.get('destForumId') ?? '').trim();
+
+		if (!threadId || !destForumId) return fail(422, { error: 'Thread ID and destination forum are required' });
+
+		try {
+			// Verify destination forum exists
+			const [destForum] = await db
+				.select({ id: forums.id, slug: forums.slug })
+				.from(forums)
+				.where(eq(forums.id, destForumId))
+				.limit(1);
+
+			if (!destForum) {
+				return fail(422, { error: 'Destination forum not found' });
+			}
+
+			// Get current forum info for reason field
+			const [thread] = await db
+				.select({ forumId: threads.forumId })
+				.from(threads)
+				.where(eq(threads.id, threadId))
+				.limit(1);
+
+			if (!thread) {
+				return fail(422, { error: 'Thread not found' });
+			}
+
+			const [currentForum] = await db
+				.select({ slug: forums.slug })
+				.from(forums)
+				.where(eq(forums.id, thread.forumId))
+				.limit(1);
+
+			// Move thread to new forum
+			await db
+				.update(threads)
+				.set({ forumId: destForumId })
+				.where(eq(threads.id, threadId));
+
+			// Log the action with source and destination info
+			await db.insert(modLog).values({
+				moderatorDid: locals.user!.did,
+				action: 'move_thread',
+				targetThreadId: threadId,
+				reason: `from: ${currentForum?.slug || 'unknown'}, to: ${destForum.slug}`
+			});
+
+			return { success: true, action: 'moveThread', threadId };
+		} catch (err) {
+			console.error('moveThread error:', err);
+			return fail(500, { error: 'Failed to move thread' });
 		}
 	}
 };

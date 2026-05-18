@@ -68,7 +68,9 @@
 		<div>
 			<h2 class="text-lg font-semibold mb-3">Display Name</h2>
 			<form method="POST" action="?/updateDisplayName" class="space-y-3">
+				<label for="displayName" class="form-label">Display Name</label>
 				<input
+					id="displayName"
 					type="text"
 					name="displayName"
 					bind:value={displayName}
