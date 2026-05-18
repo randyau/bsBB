@@ -4,6 +4,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let displayName = $state(data.user.displayName ?? '');
+	let timezone = $state(data.user.timezone ?? 'America/New_York');
 	let notifyViaBluesky = $state(data.user.notifyViaBluesky ?? false);
 	let notificationType = $state(data.user.notificationType ?? 'both');
 	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
@@ -13,6 +14,7 @@
 	$effect(() => {
 		console.log('[settings $effect] syncing from data, notifyViaBluesky:', data.user.notifyViaBluesky);
 		displayName = data.user.displayName ?? '';
+		timezone = data.user.timezone ?? 'America/New_York';
 		notifyViaBluesky = data.user.notifyViaBluesky ?? false;
 		notificationType = data.user.notificationType ?? 'both';
 		notificationFrequency = data.user.notificationFrequency ?? 'immediate';
@@ -46,18 +48,18 @@
 
 <div class="container mx-auto px-4 py-8 max-w-lg">
 	<div class="flex items-center justify-between mb-8">
-		<h1 class="text-3xl font-bold">Settings</h1>
+		<h1 class="page-title">Settings</h1>
 		<a href="/user/{data.user.handle}" class="text-sm text-[rgb(var(--color-primary))] hover:underline">
 			← Back to profile
 		</a>
 	</div>
 
 	{#if form?.error}
-		<div class="card-secondary text-error mb-4">{form.error}</div>
+		<div class="alert alert-error mb-4">{form.error}</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="card-secondary text-success mb-4">✓ Display name updated</div>
+		<div class="alert alert-success mb-4">✓ Display name updated</div>
 	{/if}
 
 	<div class="card space-y-6">
@@ -99,6 +101,40 @@
 					Shown on your profile and posts. Leave blank to use your handle.
 				</p>
 				<button type="submit" class="btn btn-primary">Save</button>
+			</form>
+		</div>
+
+		<!-- Time Zone -->
+		<div class="border-t border-[rgb(var(--color-border))] pt-6">
+			<h2 class="text-lg font-semibold mb-3">Time Zone</h2>
+			<form method="POST" action="?/updateTimezone" class="space-y-3">
+				<label for="timezone" class="form-label">Time Zone (IANA identifier)</label>
+				<select
+					id="timezone"
+					name="timezone"
+					bind:value={timezone}
+					class="form-control"
+				>
+					<option value="America/New_York">Eastern Time (America/New_York)</option>
+					<option value="America/Chicago">Central Time (America/Chicago)</option>
+					<option value="America/Denver">Mountain Time (America/Denver)</option>
+					<option value="America/Los_Angeles">Pacific Time (America/Los_Angeles)</option>
+					<option value="America/Anchorage">Alaska Time (America/Anchorage)</option>
+					<option value="Pacific/Honolulu">Hawaii Time (Pacific/Honolulu)</option>
+					<option value="UTC">UTC</option>
+					<option value="Europe/London">London (Europe/London)</option>
+					<option value="Europe/Paris">Central European (Europe/Paris)</option>
+					<option value="Europe/Berlin">Berlin (Europe/Berlin)</option>
+					<option value="Asia/Tokyo">Tokyo (Asia/Tokyo)</option>
+					<option value="Asia/Shanghai">Shanghai (Asia/Shanghai)</option>
+					<option value="Asia/Hong_Kong">Hong Kong (Asia/Hong_Kong)</option>
+					<option value="Asia/Singapore">Singapore (Asia/Singapore)</option>
+					<option value="Australia/Sydney">Sydney (Australia/Sydney)</option>
+				</select>
+				<p class="text-xs text-[rgb(var(--color-text-muted))]">
+					Used to display timestamps in your local time. Timestamps will show as "HH:MM:SS" in your selected timezone.
+				</p>
+				<button type="submit" class="btn btn-primary">Save Time Zone</button>
 			</form>
 		</div>
 

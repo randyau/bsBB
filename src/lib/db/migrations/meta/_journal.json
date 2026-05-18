@@ -43,6 +43,13 @@
       "when": 1779050130080,
       "tag": "0005_redundant_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779077600000,
+      "tag": "0006_furry_mimic",
+      "breakpoints": true
     }
   ]
 }

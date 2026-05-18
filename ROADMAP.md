@@ -1,8 +1,21 @@
 # v1.0 Launch Roadmap
 
-**Last Updated:** 2026-05-17  
-**Status:** Phase 9 Complete — Working on Phase 10  
-**Execution Order:** Phase 10 → Phase 11 → Phase 12 → Phase 13
+**Last Updated:** 2026-05-18  
+**Status:** Phase 10 Complete — Next: Phase 11 (Approval Queue)  
+**Execution Order:** Phase 11 → Phase 12 → Phase 13
+
+---
+
+## Phase 10 ✅ — Search & Discovery + UI Polish
+
+All complete. 10 commits total covering:
+- Search by poster with `author:` filter syntax
+- Forum statistics widget (posts, threads, members, monthly activity)
+- Timezone support (per-user storage + browser auto-detection)
+- Centralized datetime formatting across all pages
+- Table layout improvements for thread listing
+- Shared component library (AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead)
+- UI polish (unread indicator color, thread list readability)
 
 ---
 
@@ -16,39 +29,6 @@ All complete. 11 commits total covering:
 - Inline mod tools (lock/unlock thread on first post, hide/restore/edit/move in dropdown)
 - Bulk moderation for posts (checkboxes, select-all, hide/restore bulk actions with confirmation modal)
 - Bulk moderation for threads (checkboxes, select-all, lock/unlock bulk actions)
-
----
-
-## Phase 10 ⭕ — Search & Discovery
-
-**Goal:** Help users find content and authors.
-
-### 10.1 ⭕ Search by Poster
-
-- Search page: `author:handle` filter syntax (e.g., `author:alice.bsky.social`)
-- Author-only search (no content term): return all posts by author sorted by date
-- Combined: `author:handle keyword` — posts by that author containing keyword
-- Author handles on search results are clickable links: `?q=author:handle`
-- User profile: paginated "Posts" tab (25/page) replacing the current 20-post limit
-
-**Acceptance Criteria:**
-- [ ] `author:` filter syntax works on search page
-- [ ] Author-only search returns posts sorted by date
-- [ ] Combined author+content search works
-- [ ] Author names on result cards are links to `?q=author:handle`
-- [ ] User profile posts tab is paginated (25/page) with Prev/Next
-
----
-
-### 10.2 ⭕ Forum Statistics
-
-- Stats widget on each forum page: total posts, total threads, active members, posts this month
-- Computed on-demand (no caching needed at this scale)
-
-**Acceptance Criteria:**
-- [ ] Stats widget renders on forum view
-- [ ] Counts are accurate after new posts/threads
-- [ ] Styled for light/dark mode
 
 ---
 

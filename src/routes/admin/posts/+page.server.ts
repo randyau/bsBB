@@ -1,11 +1,16 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, users, modLog, forums } from '$lib/db/schema';
-import { eq, desc, ilike, and, or, inArray } from 'drizzle-orm';
+import { eq, desc, ilike, and, or, inArray, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+
+const PAGE_SIZE = 50;
 
 export const load: PageServerLoad = async ({ url }) => {
 	const q = url.searchParams.get('q') ?? '';
+	const pageParam = url.searchParams.get('page');
+	const page = pageParam ? Math.max(1, parseInt(pageParam)) : 1;
+	const offset = (page - 1) * PAGE_SIZE;
 
 	const conditions = [];
 	if (q.trim()) {
@@ -17,6 +22,15 @@ export const load: PageServerLoad = async ({ url }) => {
 		);
 	}
 	const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+	// Get total count
+	const [{ count: totalPosts }] = await db
+		.select({ count: count() })
+		.from(posts)
+		.innerJoin(threads, eq(posts.threadId, threads.id))
+		.innerJoin(forums, eq(threads.forumId, forums.id))
+		.innerJoin(users, eq(posts.authorDid, users.did))
+		.where(where);
 
 	const postList = await db
 		.select({
@@ -38,7 +52,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		.innerJoin(users, eq(posts.authorDid, users.did))
 		.where(where)
 		.orderBy(desc(posts.createdAt))
-		.limit(200);
+		.limit(PAGE_SIZE)
+		.offset(offset);
 
 	// Get list of all threads for move destination
 	const threadList = await db
@@ -47,10 +62,16 @@ export const load: PageServerLoad = async ({ url }) => {
 		.innerJoin(forums, eq(threads.forumId, forums.id))
 		.orderBy(threads.title);
 
+	const totalPages = Math.ceil(totalPosts / PAGE_SIZE);
+
 	return {
 		posts: postList,
 		threads: threadList,
-		q
+		q,
+		page,
+		pageSize: PAGE_SIZE,
+		total: totalPosts,
+		totalPages
 	};
 };
 

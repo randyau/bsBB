@@ -8,6 +8,24 @@
 	const { user } = $derived(data);
 
 	let searchQuery = $state('');
+	let timezoneDetected = $state(false);
+
+	$effect(() => {
+		// Auto-detect and set browser timezone on first load if user is logged in and has default timezone
+		if (!timezoneDetected && user && user.timezone === 'America/New_York') {
+			timezoneDetected = true;
+			const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+			if (browserTimezone && browserTimezone !== 'America/New_York') {
+				fetch('/api/user/timezone', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ timezone: browserTimezone })
+				}).catch(() => {
+					// Silently fail — timezone detection is a nice-to-have
+				});
+			}
+		}
+	});
 
 	function handleSearch(e: Event) {
 		e.preventDefault();

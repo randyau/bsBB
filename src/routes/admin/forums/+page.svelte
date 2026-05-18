@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
+	import AdminPageShell from '$components/AdminPageShell.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 	let modUserId = $state('');
@@ -37,27 +38,15 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<h1 class="page-title">Forum Management</h1>
-
-	{#if form?.error}
-		<div class="card-secondary text-error" role="alert">
-			{form.error}
-		</div>
-	{/if}
-
-	{#if form?.success}
-		<div class="card-secondary text-success" role="alert">
-			✓ Action completed: {form.action}
-		</div>
-	{/if}
+<AdminPageShell title="Forum Management" {form}>
 
 	<!-- Forums List -->
-	<div class="space-y-2">
-		<h2 class="section-title mb-4">Forums</h2>
-		<div class="card-secondary">
-			<table class="w-full text-sm">
-				<thead class="border-b">
+	<div class="space-y-6">
+		<div class="space-y-2">
+			<h2 class="section-title mb-4">Forums</h2>
+			<div class="box-secondary">
+				<table class="w-full text-sm">
+					<thead class="table-thead">
 					<tr>
 						<th class="px-4 py-3 text-left font-semibold">Name</th>
 						<th class="px-4 py-3 text-left font-semibold">Parent</th>
@@ -305,4 +294,5 @@
 			</div>
 		</div>
 	{/if}
-</div>
+	</div>
+</AdminPageShell>

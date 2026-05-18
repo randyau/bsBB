@@ -372,6 +372,12 @@ input[type="radio"]:disabled {
 	overflow-x: auto;
 }
 
+/* Table header row */
+.table-thead {
+	background-color: rgb(var(--color-bg-tertiary));
+	border-bottom: 1px solid rgb(var(--color-border));
+}
+
 /* Alerts and messages */
 .alert {
 	border-radius: 0.5rem;
@@ -963,7 +969,7 @@ input[type="radio"]:disabled {
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
-	background-color: rgb(var(--color-primary));
+	background-color: #10b981; /* emerald/teal — colorblind-friendly, distinct from primary blue */
 	flex-shrink: 0;
 }
 

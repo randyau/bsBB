@@ -1,12 +1,222 @@
-# Code Patterns & Snippets
+# Code Patterns, Style Guide & Snippets
 
-Reusable patterns to copy-paste and adapt. See actual implementations in code references.
+Reusable patterns, code snippets, and style conventions. This is the authoritative reference for code style, design, and development practices across the forum codebase.
+
+**For development workflow and script documentation, see [SCRIPTS.md](SCRIPTS.md).**
+
+---
+
+## Datetime Formatting
+
+**All dates and times must use the centralized formatting functions in `src/lib/utils/time.ts`.**
+
+### When to Use Each Format
+
+| Function | Output | Use Case | Example |
+|---|---|---|---|
+| `formatTime()` | Relative only | Posts lists, activity feeds, limited space | `"2h ago"`, `"5m ago"` |
+| `formatDate()` | Date only (YYYY-MM-DD) | Date-only contexts | `"2026-05-18"` |
+| `formatAbsoluteTime()` | Datetime (YYYY-MM-DD HH:MM) | Audit trails, mod log | `"2026-05-18 14:30"` |
+| `formatTimeDisplay()` | Both (absolute + relative) | **Default choice** — post timestamps, edits, precise references | `"2026-05-18 14:30 (2h ago)"` |
+
+### Import and Usage
+
+```typescript
+import { formatTime, formatDate, formatAbsoluteTime, formatTimeDisplay } from '$lib/utils/time';
+
+// Default: show both absolute and relative
+const created = formatTimeDisplay(post.createdAt);  // "2026-05-18 14:30 (2h ago)"
+
+// Date only
+const dated = formatDate(post.createdAt);  // "2026-05-18"
+
+// Absolute datetime only
+const absolute = formatAbsoluteTime(post.createdAt);  // "2026-05-18 14:30"
+
+// Relative only
+const relative = formatTime(post.createdAt);  // "2h ago"
+```
+
+**Decision Tree:**
+1. Need both absolute + relative? → `formatTimeDisplay()`
+2. Just date, no time? → `formatDate()`
+3. Just absolute datetime? → `formatAbsoluteTime()`
+4. Just relative ("2h ago")? → `formatTime()`
+
+**Default:** Prefer `formatTimeDisplay()` for user-visible timestamps.
+
+---
+
+## CSS and Theming
+
+### CSS Variables and Semantic Classes
+
+The design system uses Tailwind CSS v4 with semantic CSS custom properties for light/dark mode.
+
+**Never hardcode colors.** Always use CSS variables or semantic classes:
+
+```svelte
+<!-- ✗ Bad: hardcoded color -->
+<div style="color: #1f2937; background: #ffffff;">...</div>
+
+<!-- ✓ Good: CSS variable -->
+<div style="color: rgb(var(--color-text-primary)); background: rgb(var(--color-bg-primary));">...</div>
+
+<!-- ✓ Better: semantic class -->
+<div class="box">...</div>
+```
+
+### Semantic Classes
+
+| Class | Purpose |
+|---|---|
+| `.page-title` | Main page heading (apply to every route's `<h1>`) |
+| `.section-title` | Section header (`<h2>`) |
+| `.subsection-title` | Subsection header (`<h3>`) |
+| `.meta-text` | Secondary metadata text |
+| `.box` | Card/panel wrapper |
+| `.box-secondary` | Secondary card (admin UI) |
+| `.alert-error` | Error message (red) |
+| `.alert-success` | Success message (green) |
+| `.alert-warning` | Warning message (amber) |
+| `.table-container` | Table wrapper (borderless, scrollable) |
+| `.btn-primary` | Primary button |
+| `.btn-secondary` | Secondary button |
+| `.btn-danger` | Destructive button (red) |
+| `.form-control` | Input/textarea/select |
+| `.form-group` | Field wrapper |
+| `.form-label` | Field label |
+| `.form-error` | Inline error text |
+| `.form-success` | Inline success text |
+| `.post` | Thread post wrapper |
+| `.thread-item` | Thread list item |
+| `.link` | Text link |
+
+**Usage example:**
+
+```svelte
+<article class="box">
+  <h2 class="section-title">Recent Posts</h2>
+  {#each posts as post (post.id)}
+    <div class="thread-item">
+      <h3 class="subsection-title">{post.title}</h3>
+      <p class="meta-text">{formatTimeDisplay(post.createdAt)}</p>
+    </div>
+  {/each}
+</article>
+
+<div class="form-group">
+  <label class="form-label" for="email">Email</label>
+  <input type="email" id="email" class="form-control" />
+</div>
+
+<button class="btn-primary">Save</button>
+<button class="btn-danger">Delete</button>
+```
+
+### Light/Dark Mode
+
+- Light mode is default for new users
+- Dark mode respects `prefers-color-scheme: dark` system preference
+- Theme toggle in header allows manual override
+- State persisted to localStorage
+
+**Test both modes before committing.**
+
+---
+
+## Markdown Rendering
+
+### Editor Preview
+
+The new thread/reply form shows a **live preview** that updates on every keystroke:
+
+```svelte
+<script lang="ts">
+  import { renderMarkdownClient } from '$lib/markdown/client';
+
+  let bodyValue: string = $state('');
+  let previewHtml: string = $state('');
+
+  $effect(() => {
+    previewHtml = renderMarkdownClient(bodyValue);
+  });
+</script>
+
+<textarea bind:value={bodyValue} placeholder="Write in Markdown..." />
+<div>{@html previewHtml}</div>
+```
+
+**Key points:**
+- Preview updates in real-time using `markdown-it` on the client
+- Markdown is rendered **server-side** for final storage (via `renderMarkdown()` in `src/lib/markdown/index.ts`)
+- Client preview uses DOMPurify to prevent XSS
+- Use `renderMarkdownClient()` for live previews; use `renderMarkdown()` server-side only
+
+### Server-Side Markdown Processing
+
+Always sanitize markdown **before storage** using `renderMarkdown()`:
+
+```typescript
+import { renderMarkdown } from '$lib/markdown';
+
+const sanitizedHtml = renderMarkdown(userProvidedMarkdown);
+await db.insert(posts).values({
+  content_markdown: userProvidedMarkdown,
+  content_html: sanitizedHtml,
+});
+```
+
+**Pipeline:**
+1. User writes markdown in textarea
+2. Submit → server receives raw markdown
+3. Server calls `renderMarkdown()` → sanitized HTML
+4. Store both: raw markdown + sanitized HTML
+5. Display: use the pre-rendered HTML (no re-rendering at read time)
+
+---
+
+## Component Structure
+
+### Props and Type Safety
+
+All component props must be typed explicitly:
+
+```svelte
+<script lang="ts">
+  import type { Post, User } from '$lib/db/schema';
+
+  interface Props {
+    post: Post;
+    author: User;
+    isEditable: boolean;
+  }
+
+  let { post, author, isEditable }: Props = $props();
+</script>
+```
+
+### State Management
+
+Use `$state` rune for reactive variables:
+
+```svelte
+<script lang="ts">
+  let count: number = $state(0);
+  let isOpen: boolean = $state(false);
+
+  function increment() {
+    count++;  // Automatically triggers updates
+  }
+</script>
+```
 
 ---
 
 ## Session Management
 
 ### Create a new session
+
 ```typescript
 import { createSession, setSessionCookie } from '$lib/auth/session';
 
@@ -15,21 +225,19 @@ setSessionCookie(event, token);
 ```
 
 ### Validate session from request
+
 ```typescript
 import { getSessionToken, validateSession } from '$lib/auth/session';
 
-export async function handle({ event, resolve }) {
-  const token = getSessionToken(event);
-  if (token) {
-    const session = await validateSession(token);
-    event.locals.user = session?.user || null;
-    event.locals.sessionId = session?.id || null;
-  }
-  return resolve(event);
+const token = getSessionToken(event);
+if (token) {
+  const session = await validateSession(token);
+  event.locals.user = session?.user || null;
 }
 ```
 
 ### Delete session
+
 ```typescript
 import { invalidateSession, deleteSessionCookie } from '$lib/auth/session';
 
@@ -41,525 +249,182 @@ deleteSessionCookie(event);
 
 ## User Management
 
-### Upsert user on login (create or update profile cache)
+### Upsert user on login
+
 ```typescript
 import { upsertUser } from '$lib/auth/user';
 
-const user = await upsertUser(did, handle, displayName, avatarUrl);
+const user = await upsertUser(did, session);
 ```
 
-### Claim first admin (idempotent, safe to call multiple times)
+### Claim first admin (idempotent)
+
 ```typescript
 import { claimFirstAdmin } from '$lib/auth/user';
 
-const wasPromoted = await claimFirstAdmin(did);
-if (wasPromoted) {
-  // Show one-time banner, write mod_log entry, etc.
-}
-```
-
-### Lazy profile sync (fire-and-forget background task)
-```typescript
-import { maybeSyncProfile } from '$lib/auth/profile-sync';
-
-// Fetches from PLC + bsky.app if > 24h old, updates cache
-maybeSyncProfile(did, lastProfileSync).catch(err => {
-  console.error('profile sync failed:', err);
-});
+const isFirstAdmin = await claimFirstAdmin(did);
 ```
 
 ---
 
-## Permissions
+## Forms and Validation
 
-### Check if user can read a forum
+### Confirmation Dialogs for Destructive Actions
+
+**All irreversible operations must have a confirmation dialog:**
+
 ```typescript
-import { db } from '$lib/db';
-import { canRead } from '$lib/permissions';
-
-// Returns true/false
-const allowed = await canRead(db, forumId, locals.user);
-
-// In a route handler:
-if (!allowed) {
-  throw error(403, 'Access denied');
+function confirmDelete(): boolean {
+  return confirm(
+    'Permanently delete this post?\n\n' +
+    'This will irreversibly clear all content. The post stub will remain ' +
+    'for quotes/links, but content cannot be recovered.\n\n' +
+    'This action cannot be undone.'
+  );
 }
 ```
 
-### Check if user can post in a forum
-```typescript
-import { db } from '$lib/db';
-import { canPost } from '$lib/permissions';
+Then in the form:
 
-// Returns true/false; false for banned users or guests
-const allowed = await canPost(db, forumId, locals.user);
-
-if (!allowed) {
-  return fail(403, { error: 'You cannot post in this forum' });
-}
+```svelte
+<form method="POST" action="?/delete" onsubmit={confirmDelete}>
+  <input type="hidden" name="postId" value={post.id} />
+  <button class="btn-danger" type="submit">Delete Post</button>
+</form>
 ```
 
-### Custom roles (admin-defined)
-```typescript
-import { db } from '$lib/db';
-import { roles, userRoles } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+**Message guidelines:**
+- Be specific about what happens and whether it's reversible
+- Use "irreversible" / "cannot be undone" for permanent operations
+- Use "removed from view" / "can be restored" for soft-delete
+- Keep it 2-3 sentences max
 
-// Create a custom role
-await db.insert(roles).values({
-  name: 'Moderator',
-  description: 'Community moderators',
-  color: '#e11d48',  // hex color for badge
-});
+### Button Styling
 
-// Assign role to user
-await db.insert(userRoles).values({
-  userDid: targetDid,
-  roleId: roleId,
-  assignedBy: locals.user.did,
-});
+- **Destructive:** Always use `.btn-danger` (red)
+- **Primary:** Use `.btn-primary` for main CTA
+- **Secondary:** Use `.btn-secondary` for alternatives
+- **Disabled:** All support `:disabled` styling
 
-// Query user's custom roles
-const userCustomRoles = await db.query.userRoles.findMany({
-  where: eq(userRoles.userDid, userDid),
-  with: { role: true },  // join to get role name/color
-});
+---
 
-// Remove custom role
-await db.delete(userRoles)
-  .where(and(
-    eq(userRoles.userDid, userDid),
-    eq(userRoles.roleId, roleId)
-  ));
+## Accessibility
+
+### Dialog Accessibility
+
+All modals must include ARIA attributes:
+
+```svelte
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+  <h2 id="dialog-title">Move Thread to Forum</h2>
+  <!-- form content -->
+</div>
 ```
+
+### Keyboard Navigation
+
+- All interactive elements keyboard-accessible (`Tab`, `Enter`, `Escape`)
+- Dialog `Escape` key closes modal
+- Focus never trapped; always provide a way out
+- Move focus on open; return on close
+
+### Color Contrast
+
+- WCAG AA: 4.5:1 for normal text, 3:1 for large text
+- Do not rely on color alone; use icons + text
+- Test in both light/dark modes
+
+---
+
+## Markdown
+
+### Rendering
+
+All markdown rendered server-side using `unified` + `remark`:
+
+```typescript
+import { renderMarkdownServer } from '$lib/markdown/server';
+
+const html = await renderMarkdownServer(markdownText);
+// Automatically sanitized via rehype-sanitize before storage
+```
+
+### Editor UX
+
+- Plain `<textarea>` for editing
+- Preview toggled via button, rendered server-side via `POST /api/preview`
+- No client-side markdown dependency; preview always authoritative
 
 ---
 
 ## Database Queries
 
-### Insert with Drizzle (parameterized)
-```typescript
-import { db } from '$lib/db';
-import { users } from '$lib/db/schema';
+### General Rules
 
-await db.insert(users).values({
-  did,
-  handle,
-  display_name: displayName,
-  avatar_url: avatarUrl,
-  global_role: 'member',
-  created_at: new Date(),
-}).onConflictDoUpdate({
-  target: users.did,
-  set: {
-    handle,
-    display_name: displayName,
-    avatar_url: avatarUrl,
-    last_profile_sync: new Date(),
-  },
-});
-```
+- Always use Drizzle ORM with parameterized queries
+- Never raw SQL concatenation
+- Use explicit column selection (avoid `SELECT *`)
+- Add `.limit()` and `.offset()` for pagination
+- Use indexed columns in `WHERE` clauses
 
-### Select with WHERE
-```typescript
-import { db } from '$lib/db';
-import { users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+### Pagination
 
-const user = await db.query.users.findFirst({
-  where: eq(users.did, did),
-});
-```
-
-### Select multiple with WHERE
-```typescript
-import { db } from '$lib/db';
-import { users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-const admins = await db.query.users.findMany({
-  where: eq(users.global_role, 'admin'),
-});
-```
-
-### Update
-```typescript
-import { db } from '$lib/db';
-import { users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-await db.update(users)
-  .set({ global_role: 'banned' })
-  .where(eq(users.did, did));
-```
-
-### Update post status (not is_deleted)
-```typescript
-import { db } from '$lib/db';
-import { posts } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-// Use status column instead of is_deleted
-// Status values: 'active' | 'hidden' | 'archived' | 'deleted'
-await db.update(posts)
-  .set({ status: 'hidden' })  // User or mod hides post
-  .where(eq(posts.id, postId));
-
-await db.update(posts)
-  .set({ status: 'deleted' }) // Content removed, stub preserved
-  .where(eq(posts.id, postId));
-
-// Query posts by status
-const activePostsInThread = await db.query.posts.findMany({
-  where: and(
-    eq(posts.threadId, threadId),
-    eq(posts.status, 'active')
-  ),
-});
-```
-
-### Log moderation actions (append-only audit trail)
-```typescript
-import { db } from '$lib/db';
-import { modLog } from '$lib/db/schema';
-
-// Always log mod actions — never modify/delete mod_log
-await db.insert(modLog).values({
-  moderatorDid: locals.user.did,
-  action: 'hide_post',  // or 'hide_own_post', 'delete_post', 'ban', etc.
-  targetPostId: postId,
-  targetDid: post.authorDid,
-  reason: 'Spam',  // optional context
-});
-
-// Check if post was hidden by author or mod
-const hideAction = await db.query.modLog.findFirst({
-  where: and(
-    or(
-      eq(modLog.action, 'hide_own_post'),
-      eq(modLog.action, 'hide_post')
-    ),
-    eq(modLog.targetPostId, postId)
-  ),
-  orderBy: desc(modLog.createdAt),
-});
-
-const isUserHidden = hideAction?.action === 'hide_own_post';
-const isModHidden = hideAction?.action === 'hide_post';
-```
+- Posts: 25 items/page (default)
+- Users: 50 items/page (default)
+- Show current page + total to user
+- Disable "Previous" / "Next" at boundaries
 
 ---
 
-## Markdown & HTML
+## Git and Commits
 
-### Server-side sanitize before storage
-```typescript
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import rehypeSanitize from 'rehype-sanitize';
-import rehypeStringify from 'rehype-stringify';
+### Commit Messages
 
-async function markdownToHtml(markdown: string): Promise<string> {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkRehype)
-    .use(rehypeSanitize)
-    .use(rehypeStringify);
-  
-  const result = await processor.process(markdown);
-  return result.toString();
-}
+- Imperative mood: "Add feature" not "Added feature"
+- First line ≤ 50 characters
+- Reference issue/task if applicable
+- Include reasoning in body if non-obvious
+
+Example:
+
+```
+Add datetime formatting style guide
+
+Document formatTime/formatDate/formatAbsoluteTime usage.
+Add formatDate() for date-only use cases.
+Updated imports across codebase.
+
+Resolves: design consistency in datetime rendering
 ```
 
-Use the imported `renderMarkdown` from `src/lib/markdown/index.ts` instead:
-```typescript
-import { renderMarkdown } from '$lib/markdown';
+### Code Review
 
-const bodyHtml = await renderMarkdown(markdown);
-```
-
-### Extract OG metadata from bare-line URL
-```typescript
-import { fetchLinkMetadata } from '$lib/markdown/og';
-
-// Extracts first bare-line URL from markdown
-// Returns { url, title, description, imageUrl } or null on error/timeout
-const metadata = await fetchLinkMetadata(markdown);
-
-// Errors are graceful: 5s timeout, network failures, etc. silently return null
-// Never blocks post submission
-if (metadata) {
-  // Store in post: { url, title, description, imageUrl }
-}
-```
+- All PRs require review
+- CI must pass (tests, type check)
+- Accessibility and theme-safety checks encouraged
 
 ---
 
-## Routes & Server Actions
+## File Size Guidelines
 
-### Basic `+page.server.ts` (load + action)
-```typescript
-import type { PageServerLoad, Actions } from './$types';
+| Item | Limit | Action |
+|---|---|---|
+| Source file | 300 lines | Propose split |
+| Function | 40 lines | Extract helper |
+| Test file | 400 lines | Split by scenario |
+| Nesting depth | 4 levels | Extract function |
+| Function parameters | 5 | Use options object |
 
-export const load: PageServerLoad = async ({ locals }) => {
-  if (!locals.user) {
-    throw error(401, 'Unauthorized');
-  }
-  
-  return {
-    user: locals.user,
-    // fetch data
-  };
-};
-
-export const actions: Actions = {
-  default: async ({ request, locals }) => {
-    if (!locals.user) {
-      throw error(401, 'Unauthorized');
-    }
-    
-    const formData = await request.formData();
-    const title = formData.get('title');
-    
-    // validate, insert, return result
-    return { success: true };
-  },
-};
-```
-
-### OAuth callback route (`+server.ts`)
-```typescript
-import { getAtprotoClient } from '$lib/auth/atproto';
-import { upsertUser, claimFirstAdmin } from '$lib/auth/user';
-import { createSession, setSessionCookie } from '$lib/auth/session';
-
-export const GET: RequestHandler = async ({ url, event }) => {
-  const atproto = getAtprotoClient();
-  
-  // Handle OAuth callback
-  const session = await atproto.callback(url.toString());
-  
-  // Extract DID from token
-  const did = session.info.sub;
-  
-  // Upsert user in DB
-  const user = await upsertUser(did, '', '', null);
-  
-  // Claim first admin if applicable
-  await claimFirstAdmin(did);
-  
-  // Create local session
-  const token = await createSession(did);
-  setSessionCookie(event, token);
-  
-  return new Response(null, {
-    status: 302,
-    headers: { Location: '/' },
-  });
-};
-```
-
-### Redirect banned users (in `hooks.server.ts`)
-```typescript
-import { redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit';
-
-export const handle: Handle = async ({ event, resolve }) => {
-  // ... session setup ...
-  
-  if (event.locals.user?.global_role === 'banned') {
-    if (event.url.pathname !== '/banned' && event.url.pathname !== '/logout') {
-      throw redirect(302, '/banned');
-    }
-  }
-  
-  return resolve(event);
-};
-```
+When approaching a limit, propose a split before continuing.
 
 ---
 
-## Testing
+## Resources
 
-### Session test pattern
-```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createSession, validateSession, invalidateSession } from '$lib/auth/session';
-
-describe('session', () => {
-  let sessionId: string;
-  const testDid = 'did:plc:test123';
-  
-  beforeEach(async () => {
-    sessionId = await createSession(testDid);
-  });
-  
-  afterEach(async () => {
-    await invalidateSession(sessionId);
-  });
-  
-  it('validates a fresh session', async () => {
-    const session = await validateSession(sessionId);
-    expect(session).toBeDefined();
-    expect(session?.user.did).toBe(testDid);
-  });
-  
-  it('rejects an invalid token', async () => {
-    const session = await validateSession('invalid_token');
-    expect(session).toBeNull();
-  });
-});
-```
-
-### DB test pattern (use real dev DB)
-```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { db } from '$lib/db';
-import { users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-describe('users table', () => {
-  const testDid = `did:plc:test_${Date.now()}`;
-  
-  beforeEach(async () => {
-    // Clean up test data
-    await db.delete(users).where(eq(users.did, testDid));
-  });
-  
-  it('inserts a user', async () => {
-    await db.insert(users).values({
-      did: testDid,
-      handle: 'test.bsky.social',
-      created_at: new Date(),
-    });
-    
-    const user = await db.query.users.findFirst({
-      where: eq(users.did, testDid),
-    });
-    
-    expect(user?.handle).toBe('test.bsky.social');
-  });
-});
-```
-
----
-
-## Type Patterns
-
-### App.Locals (authenticated user context)
-```typescript
-// In src/app.d.ts
-declare global {
-  namespace App {
-    interface Locals {
-      user: SessionUser | null;
-      sessionId: string | null;
-    }
-  }
-}
-
-interface SessionUser {
-  did: string;
-  handle: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  global_role: 'admin' | 'member' | 'banned';
-  notifyViaBluesky: boolean;  // opt-in DM notifications flag
-  lastProfileSync: Date;      // when profile was last synced from PDS
-  createdAt: Date;            // account creation timestamp
-}
-```
-
-### Result type (success/error)
-```typescript
-type Result<T, E = string> = 
-  | { ok: true; data: T }
-  | { ok: false; error: E };
-
-// Usage
-const result: Result<User> = ok 
-  ? { ok: true, data: user }
-  : { ok: false, error: 'Not found' };
-
-if (result.ok) {
-  console.log(result.data);
-} else {
-  console.error(result.error);
-}
-```
-
----
-
-## Error Handling
-
-### HTTP errors in routes
-```typescript
-import { error } from '@sveltejs/kit';
-
-if (!locals.user) {
-  throw error(401, 'Unauthorized');
-}
-
-if (!post) {
-  throw error(404, 'Post not found');
-}
-
-if (isInvalid) {
-  throw error(400, 'Invalid request');
-}
-```
-
-### Try-catch in server actions
-```typescript
-export const actions: Actions = {
-  default: async ({ request, locals }) => {
-    try {
-      // ... do work ...
-      return { success: true };
-    } catch (err) {
-      console.error(err);
-      return { success: false, error: 'Something went wrong' };
-    }
-  },
-};
-```
-
----
-
-## Slugs & URL Generation
-
-### Generate slug from title
-```typescript
-import { generateSlug } from '$lib/markdown/slug';
-
-const threadSlug = generateSlug(title);
-// "My Cool Thread" → "my-cool-thread"
-```
-
-### Thread URL pattern
-```
-/f/[forum_slug]/t/[thread_id]/[thread_slug]
-```
-- `[forum_slug]` — cosmetic, for SEO
-- `[thread_id]` — authoritative (UUID), links never break
-- `[thread_slug]` — cosmetic, derived from title
-- 301 redirect if slug mismatches
-
----
-
-## Common Gotchas
-
-1. **Drizzle migrations are file-only** — Never use `drizzle-kit push` in any environment. Always hand-craft or generate-then-review.
-2. **Sessions in DB, not memory** — Survives server restarts. Token is SHA-256 hashed in DB, raw token in cookie.
-3. **DIDs not handles** — Handles are mutable; use DIDs as all user FKs.
-4. **Markdown sanitized before storage** — Not at render time. Prevents XSS.
-5. **Lazy profile sync** — Fire-and-forget, catches errors internally. Don't await in hot paths.
-6. **First admin is idempotent** — Safe to call multiple times; gated by `instance_settings.first_admin_claimed`.
-7. **Banned users get redirected** — In `hooks.server.ts` before route load. Except `/banned` and `/logout`.
-8. **Custom sessions (no external library)** — Proven simple and secure (32-byte token + SHA-256 hash). See `src/lib/auth/session.ts`. Don't replace with Lucia or similar.
-9. **Use post.status, not post.is_deleted** — `status` column replaces `is_deleted` boolean. Values: `'active'` | `'hidden'` | `'archived'` | `'deleted'`.
-10. **Check mod_log to distinguish user vs mod action** — `hide_own_post` vs `hide_post`, `delete_own_post` vs `delete_post`. Display accordingly.
-11. **Custom roles are global** — Assigned via `user_roles` (many-to-many). Distinguished from per-forum moderator assignments in `user_forum_roles`.
-12. **Mod_log is append-only** — No delete or update routes. Provides permanent audit trail. Check this table for action history.
-
+- **CLAUDE.md** — Full specification and architecture
+- **ARCHITECTURE.md** — Database schema and tech decisions
+- **README.md** — Entry point and getting started
+- **DEPLOYMENT.md** — Deploy guide
+- **GUARDRAILS.md** — AI engineering operational rules
+- **src/lib/utils/time.ts** — Datetime formatting functions
+- **src/app.css** — Design system variables and classes

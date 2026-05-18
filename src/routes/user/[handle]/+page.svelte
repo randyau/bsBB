@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { formatTimeDisplay } from '$lib/utils/time';
+	import Pagination from '$components/Pagination.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -136,7 +139,7 @@
 					>
 						<p class="font-semibold mb-1">{post.threadTitle}</p>
 						<p class="text-xs text-[rgb(var(--color-text-muted))] mb-2">
-							in <span class="font-mono">{post.forumName}</span> · {new Date(post.createdAt).toLocaleDateString()}
+							in <span class="font-mono">{post.forumName}</span> · <span>{formatTimeDisplay(post.createdAt)}</span>
 						</p>
 						<p class="text-sm line-clamp-2 text-[rgb(var(--color-text-secondary))]">
 							{post.bodyPreview}
@@ -144,21 +147,12 @@
 					</a>
 				{/each}
 			</div>
-			{#if totalPostPages > 1}
-				<div class="flex items-center gap-3 mt-4 text-sm">
-					{#if data.userPostsPage > 1}
-						<a href="?postsPage={data.userPostsPage - 1}" class="btn btn-sm btn-secondary">← Prev</a>
-					{:else}
-						<span class="btn btn-sm btn-secondary opacity-40 cursor-not-allowed">← Prev</span>
-					{/if}
-					<span class="text-muted">Page {data.userPostsPage} of {totalPostPages}</span>
-					{#if data.userPostsPage < totalPostPages}
-						<a href="?postsPage={data.userPostsPage + 1}" class="btn btn-sm btn-secondary">Next →</a>
-					{:else}
-						<span class="btn btn-sm btn-secondary opacity-40 cursor-not-allowed">Next →</span>
-					{/if}
-				</div>
-			{/if}
+			<Pagination
+				page={data.userPostsPage}
+				totalPages={totalPostPages}
+				total={data.userPostsTotal}
+				buildUrl={(p) => `?postsPage=${p}`}
+			/>
 		</div>
 	{/if}
 

@@ -2,7 +2,7 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts—everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** ✅ PHASES 1–9 COMPLETE (70+ commits, production-ready) — Full feature set with custom roles, user post management, notification preferences, unread tracking, thread subscriptions, post/thread moving, and comprehensive design system
+**Status:** ✅ PHASES 1–10 COMPLETE (80+ commits, production-ready) — Full feature set with search by poster, forum statistics, timezone support, custom roles, user post management, notification preferences, unread tracking, thread subscriptions, post/thread moving, and comprehensive design system
 
 ## Why bsBB?
 
@@ -160,9 +160,12 @@ bsBB/
 │   └── seed-dev-users.ts       # Seed fake users for dev login bypass
 ├── vite.config.ts
 ├── drizzle.config.ts
-├── CLAUDE.md                   # Full specification and architecture
-├── ARCHITECTURE.md             # Technical design decisions
-└── STATUS.md                   # Implementation status for all phases
+├── CLAUDE.md                   # Full specification, architecture, and project status
+├── PATTERNS.md                 # Code patterns, style guide, and conventions
+├── ARCHITECTURE.md             # Technical design decisions and schema
+├── DEPLOYMENT.md               # Production deployment guide
+├── ROADMAP.md                  # v1.0 launch roadmap and phase status
+└── GUARDRAILS.md               # AI engineering operational rules
 ```
 
 ### Running Tests
@@ -330,6 +333,14 @@ We welcome contributions! Here's how:
 
 ### Code Style
 
+**See PATTERNS.md for comprehensive conventions on:**
+- Datetime formatting (`formatTime()`, `formatDate()`, `formatAbsoluteTime()`, `formatTimeDisplay()`)
+- CSS and theming (semantic classes, CSS custom properties, light/dark mode)
+- Forms and validation (confirmation dialogs, button styling)
+- Accessibility (ARIA, keyboard navigation)
+- Component patterns (props typing, state management)
+
+**Core rules:**
 - TypeScript for all code; run `tsc --noEmit` to verify
 - Svelte 5 reactivity (`$state`, `$props`, `$derived`) for components
 - Drizzle parameterized queries (never raw SQL strings)

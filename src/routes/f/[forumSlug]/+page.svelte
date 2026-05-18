@@ -1,21 +1,10 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { formatTimeDisplay } from '$lib/utils/time';
+	import Pagination from '$components/Pagination.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
-
-	function formatTime(date: Date) {
-		const now = new Date();
-		const diffMs = now.getTime() - new Date(date).getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		if (diffMins < 1) return 'now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
-		return new Date(date).toLocaleDateString();
-	}
 </script>
 
 <div class="space-y-6 py-8">
@@ -47,25 +36,24 @@
 
 	<!-- Thread List -->
 	{#if data.threads.length === 0}
-		<div class="card-secondary text-center text-[rgb(var(--color-text-muted))] mx-4 md:mx-8">
-			<p>No threads yet.</p>
-			{#if data.user}
-				<p class="mt-2 text-sm">
+		<div class="mx-4 md:mx-8">
+			<EmptyState message="No threads yet.">
+				{#if data.user}
 					<a href="/f/{data.forum.slug}/new" class="text-[rgb(var(--color-primary))] hover:underline">Start a new discussion</a>
-				</p>
-			{/if}
+				{/if}
+			</EmptyState>
 		</div>
 	{:else}
-		<div class="space-y-2 border-t border-[rgb(var(--color-border))] px-4 md:px-8">
-			{#each data.threads as thread (thread.id)}
-				<div class="thread-item border-b border-[rgb(var(--color-border))] py-3 px-4 -mx-4">
-					<div class="flex items-start justify-between gap-4">
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 flex-wrap">
+		<table class="w-full border-t border-[rgb(var(--color-border))]">
+			<tbody>
+				{#each data.threads as thread (thread.id)}
+					<tr class="border-b border-[rgb(var(--color-border))]">
+						<td class="py-3 px-4 align-top">
+							<div class="flex items-center gap-2 flex-wrap mb-1">
 								{#if thread.hasUnread}
-										<div class="unread-dot"><span class="sr-only">Unread</span></div>
-									{/if}
-									<h3 class={thread.hasUnread ? 'font-bold' : 'font-semibold'}>
+									<div class="unread-dot"><span class="sr-only">Unread</span></div>
+								{/if}
+								<h3 class={thread.hasUnread ? 'font-bold' : 'font-semibold'}>
 									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="thread-title break-words">
 										{thread.title}
 									</a>
@@ -77,38 +65,26 @@
 									<span class="text-xs bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] px-2 py-1 rounded">locked</span>
 								{/if}
 							</div>
-							<p class="thread-meta mt-1">
-								by <strong>{thread.authorDisplayName || thread.authorHandle}</strong>
+							<p class="text-sm text-[rgb(var(--color-text-secondary))]">
+								Started by <strong>{thread.authorDisplayName || thread.authorHandle}</strong>
 							</p>
-						</div>
-						<div class="thread-stats flex-shrink-0">
-							<p><strong>{thread.postCount}</strong> post{thread.postCount !== 1 ? 's' : ''}</p>
-							<p class="text-xs">{formatTime(thread.lastPostAt)}</p>
-						</div>
-					</div>
-				</div>
-			{/each}
+						</td>
+						<td class="py-3 px-4 align-top text-right whitespace-nowrap">
+							<p class="text-sm font-semibold">{thread.postCount} post{thread.postCount !== 1 ? 's' : ''}</p>
+							<p class="text-xs text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(thread.lastPostAt)}</p>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+
+		<div class="px-4 md:px-8">
+			<Pagination
+				page={data.currentPage}
+				totalPages={data.totalPages}
+				total={data.totalThreads}
+				buildUrl={(p) => `?page=${p}`}
+			/>
 		</div>
-
-		<!-- Pagination -->
-		{#if data.totalPages > 1}
-			<div class="flex items-center justify-center gap-2 mt-6 px-4 md:px-8">
-				{#if data.currentPage > 1}
-					<a href="?page={data.currentPage - 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]" aria-label="Previous page">
-						← Previous
-					</a>
-				{/if}
-
-				<span class="text-sm text-[rgb(var(--color-text-secondary))]">
-					Page {data.currentPage} of {data.totalPages}
-				</span>
-
-				{#if data.currentPage < data.totalPages}
-					<a href="?page={data.currentPage + 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]" aria-label="Next page">
-						Next →
-					</a>
-				{/if}
-			</div>
-		{/if}
 	{/if}
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
+	import AdminPageShell from '$components/AdminPageShell.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -86,9 +87,10 @@
 	}
 </script>
 
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-	<div class="flex items-center justify-between mb-8">
-		<h1 class="page-title">Manage Custom Roles</h1>
+<AdminPageShell title="Manage Custom Roles">
+	<div class="space-y-6">
+		<div class="flex items-center justify-between">
+			<div></div>
 		{#if !editingRole}
 			<button
 				type="button"
@@ -339,4 +341,4 @@
 			<p>No roles yet. Create one above.</p>
 		</div>
 	{/if}
-</div>
+</AdminPageShell>
