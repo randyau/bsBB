@@ -1,13 +1,13 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions } from '$lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, ne } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { checkAbuse } from '$lib/abuse/index.js';
-import { enqueueProfileSync } from '$lib/notifications.js';
+import { enqueueProfileSync, enqueueDmNotification } from '$lib/notifications.js';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Find forum by slug first
@@ -44,6 +44,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			bodyHtml: posts.bodyHtml,
 			replyToPostId: posts.replyToPostId,
 			status: posts.status,
+			isApproved: posts.isApproved,
 			createdAt: posts.createdAt,
 			editedAt: posts.editedAt,
 			authorHandle: users.handle,
@@ -55,49 +56,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.where(eq(posts.threadId, thread.id))
 		.orderBy(posts.createdAt);
 
-	// For posts with reply_to_post_id, fetch the referenced post for quote preview
-	const postMap = new Map(postList.map((p) => [p.id, p]));
-
-	const enrichedPosts = await Promise.all(
-		postList.map(async (post) => {
-			let quotedPost = null;
-			let hiddenByUser = false;
-
-			if (post.replyToPostId && postMap.has(post.replyToPostId)) {
-				const quoted = postMap.get(post.replyToPostId)!;
-				if (quoted.status === 'active') {
-					quotedPost = {
-						id: quoted.id,
-						authorHandle: quoted.authorHandle,
-						bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
-					};
-				}
-			}
-
-			// Check if post was hidden by the user (author) or a moderator
-			if (post.status === 'hidden') {
-				const hideLog = await db.query.modLog.findFirst({
-					where: and(
-						eq(modLog.targetPostId, post.id),
-						eq(modLog.action, 'hide_own_post')
-					),
-				});
-				hiddenByUser = !!hideLog;
-			}
-
-			return { ...post, quotedPost, hiddenByUser };
-		})
-	);
-
-	// Get thread author info
-	const threadAuthor = await db.query.users.findFirst({
-		where: eq(users.did, thread.authorDid),
-	});
-
-	// Check if user can post
-	const userCanPost = await canPost(db, forum.id, locals.user);
-
-	// Check if user can moderate (admin or forum-level moderator)
+	// Check if user can moderate (needed before post filtering)
 	let canModerate = false;
 	if (locals.user) {
 		if (locals.user.globalRole === 'admin') {
@@ -111,6 +70,58 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			canModerate = forumRole?.role === 'moderator';
 		}
 	}
+
+	// For posts with reply_to_post_id, fetch the referenced post for quote preview
+	const postMap = new Map(postList.map((p) => [p.id, p]));
+
+	const enrichedPosts = await Promise.all(
+		postList
+			.filter((post) => {
+				// Hide unapproved posts from everyone except the author and mods
+				if (!post.isApproved) {
+					if (canModerate) return true;
+					if (locals.user && locals.user.did === post.authorDid) return true;
+					return false;
+				}
+				return true;
+			})
+			.map(async (post) => {
+				let quotedPost = null;
+				let hiddenByUser = false;
+
+				if (post.replyToPostId && postMap.has(post.replyToPostId)) {
+					const quoted = postMap.get(post.replyToPostId)!;
+					if (quoted.status === 'active') {
+						quotedPost = {
+							id: quoted.id,
+							authorHandle: quoted.authorHandle,
+							bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
+						};
+					}
+				}
+
+				// Check if post was hidden by the user (author) or a moderator
+				if (post.status === 'hidden') {
+					const hideLog = await db.query.modLog.findFirst({
+						where: and(
+							eq(modLog.targetPostId, post.id),
+							eq(modLog.action, 'hide_own_post')
+						),
+					});
+					hiddenByUser = !!hideLog;
+				}
+
+				return { ...post, quotedPost, hiddenByUser };
+			})
+	);
+
+	// Get thread author info
+	const threadAuthor = await db.query.users.findFirst({
+		where: eq(users.did, thread.authorDid),
+	});
+
+	// Check if user can post
+	const userCanPost = await canPost(db, forum.id, locals.user);
 
 	// Track thread view for logged-in users
 	if (locals.user) {
@@ -272,6 +283,20 @@ export const actions: Actions = {
 			}
 		}
 
+		// Determine if post needs approval
+		const isAdmin = locals.user.globalRole === 'admin';
+		let requiresApproval = false;
+		if (!isAdmin && forum.requireApprovalDays > 0) {
+			const author = await db.query.users.findFirst({
+				where: eq(users.did, locals.user.did),
+				columns: { createdAt: true },
+			});
+			if (author) {
+				const accountAgeDays = (Date.now() - author.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+				requiresApproval = accountAgeDays < forum.requireApprovalDays;
+			}
+		}
+
 		try {
 			const bodyHtml = await renderMarkdown(body, db);
 			const linkMetadata = await fetchLinkMetadata(body, ip);
@@ -284,15 +309,67 @@ export const actions: Actions = {
 					bodyHtml,
 					replyToPostId,
 					linkMetadata,
+					isApproved: !requiresApproval,
 				});
 
-				await tx.update(threads).set({ lastPostAt: new Date() }).where(eq(threads.id, thread.id));
+				// Only update lastPostAt for approved posts (pending posts shouldn't bump the thread)
+				if (!requiresApproval) {
+					await tx.update(threads).set({ lastPostAt: new Date() }).where(eq(threads.id, thread.id));
+				}
 			});
 		} catch (err) {
 			console.error('[reply error]', err);
 			return fail(500, { error: 'Failed to post reply' });
 		}
 
+		// Fire notifications (best-effort, don't block the response)
+		if (!requiresApproval) {
+			const actorDid = locals.user.did;
+			const notifPayload = {
+				threadId: thread.id,
+				threadTitle: thread.title,
+				threadSlug: thread.slug,
+				forumSlug: forum.slug,
+				replyAuthorHandle: locals.user.handle,
+			};
+
+			// Notify quoted post author
+			let quotedAuthorDid: string | undefined;
+			if (replyToPostId) {
+				const quotedPost = await db.query.posts.findFirst({
+					where: eq(posts.id, replyToPostId),
+					columns: { authorDid: true },
+				});
+				quotedAuthorDid = quotedPost?.authorDid;
+				if (quotedAuthorDid && quotedAuthorDid !== actorDid) {
+					enqueueDmNotification(quotedAuthorDid, 'quote', notifPayload, actorDid).catch(() => {});
+				}
+			}
+
+			// Notify thread author of a reply (skip if they were already notified as the quoted author)
+			if (thread.authorDid !== actorDid && thread.authorDid !== quotedAuthorDid) {
+				enqueueDmNotification(thread.authorDid, 'reply', notifPayload, actorDid).catch(() => {});
+			}
+
+			// Notify thread followers (excluding the poster and thread author already notified above)
+			const followers = await db
+				.select({ userDid: notificationSubscriptions.userDid })
+				.from(notificationSubscriptions)
+				.where(and(
+					eq(notificationSubscriptions.threadId, thread.id),
+					eq(notificationSubscriptions.subscriptionType, 'follow'),
+				));
+
+			for (const { userDid } of followers) {
+				if (userDid !== actorDid && userDid !== thread.authorDid) {
+					enqueueDmNotification(userDid, 'new_reply_in_thread', notifPayload, actorDid).catch(() => {});
+				}
+			}
+		}
+
+		if (requiresApproval) {
+			throw redirect(303, `/f/${forum.slug}/t/${thread.slug}?pending=1`);
+		}
 		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
 	},
 

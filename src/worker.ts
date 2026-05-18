@@ -20,8 +20,8 @@
  */
 
 import { db } from '$lib/db';
-import { notificationQueue, users } from '$lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { notificationQueue, posts, threads, users } from '$lib/db/schema';
+import { eq, and, desc, lt } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
 import { decrypt } from '$lib/crypto';
@@ -311,6 +311,37 @@ async function handleProfileSync(recipientDid: string, payload: any) {
 	}
 }
 
+/**
+ * Auto-approve posts that have been pending for more than 24 hours.
+ * Prevents queue backlog from blocking legitimate users indefinitely.
+ */
+async function autoApproveStalePosts() {
+	try {
+		const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+		// Find posts pending for > 24h
+		const stalePosts = await db
+			.select({ id: posts.id, threadId: posts.threadId })
+			.from(posts)
+			.where(and(eq(posts.isApproved, false), eq(posts.status, 'active'), lt(posts.createdAt, cutoff)));
+
+		if (stalePosts.length === 0) return;
+
+		console.log(`[worker] auto-approving ${stalePosts.length} stale pending posts`);
+
+		for (const post of stalePosts) {
+			await db.transaction(async (tx) => {
+				await tx.update(posts).set({ isApproved: true }).where(eq(posts.id, post.id));
+				await tx.update(threads).set({ lastPostAt: new Date() }).where(eq(threads.id, post.threadId));
+			});
+		}
+
+		console.log(`[worker] auto-approved ${stalePosts.length} posts`);
+	} catch (err) {
+		console.error('[worker] auto-approve error:', err);
+	}
+}
+
 async function startNotificationWorker() {
 	console.log('[worker] notification worker started');
 
@@ -318,9 +349,12 @@ async function startNotificationWorker() {
 
 	// Initial poll
 	await processNotifications();
+	await autoApproveStalePosts();
 
 	// Then poll every 60 seconds
 	setInterval(processNotifications, pollInterval);
+	// Auto-approve check every 10 minutes (precision beyond 1min unnecessary)
+	setInterval(autoApproveStalePosts, 10 * 60 * 1000);
 }
 
 async function main() {

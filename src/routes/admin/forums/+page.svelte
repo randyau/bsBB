@@ -51,6 +51,7 @@
 						<th class="px-4 py-3 text-left font-semibold">Name</th>
 						<th class="px-4 py-3 text-left font-semibold">Parent</th>
 						<th class="px-4 py-3 text-left font-semibold">Order</th>
+						<th class="px-4 py-3 text-left font-semibold">Approval (days)</th>
 						<th class="px-4 py-3 text-left font-semibold">Actions</th>
 					</tr>
 				</thead>
@@ -60,6 +61,24 @@
 							<td class="px-4 py-3 font-semibold">{forum.name}</td>
 							<td class="px-4 py-3 text-sm">{forum.parentName || '—'}</td>
 							<td class="px-4 py-3 text-sm text-muted">{forum.sortOrder}</td>
+							<td class="px-4 py-3">
+								<form method="POST" action="?/setApprovalDays" class="flex items-center gap-2">
+									<input type="hidden" name="forumId" value={forum.id} />
+									<input
+										type="number"
+										name="days"
+										value={forum.requireApprovalDays}
+										min="0"
+										max="365"
+										class="form-control w-20 text-sm py-1"
+										title="Require approval for accounts younger than this many days (0 = disabled)"
+									/>
+									<button type="submit" class="btn btn-sm btn-secondary">Set</button>
+								</form>
+								{#if forum.requireApprovalDays > 0}
+									<p class="text-xs text-muted mt-1">Accounts &lt; {forum.requireApprovalDays}d need approval</p>
+								{/if}
+							</td>
 							<td class="px-4 py-3 space-x-2 flex gap-2">
 								<form method="POST" action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
@@ -241,7 +260,20 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each ['guest', 'member', 'moderator', 'admin', ...data.roles.map(r => r.name)] as roleName}
+									<!-- System roles: always full access, not configurable -->
+									{#each ['admin', 'moderator'] as sysRole}
+										<tr class="border-b border-[rgb(var(--color-border))] opacity-50">
+											<td class="py-2 px-2 font-semibold">
+												{sysRole}
+												<span class="ml-1 text-[10px] font-normal text-[rgb(var(--color-text-muted))]">(system)</span>
+											</td>
+											<td class="text-center py-2 px-2 text-[rgb(var(--color-success))]" title="Always granted">✓</td>
+											<td class="text-center py-2 px-2 text-[rgb(var(--color-success))]" title="Always granted">✓</td>
+											<td class="text-center py-2 px-2 text-[rgb(var(--color-success))]" title="Always granted">✓</td>
+										</tr>
+									{/each}
+									<!-- Configurable roles -->
+									{#each ['guest', 'member', ...data.roles.map(r => r.name)] as roleName}
 										{@const perm = data.permissions[forum.id]?.find(p => p.role === roleName)}
 										<tr class="border-b border-[rgb(var(--color-border))]">
 											<td class="py-2 px-2 font-semibold">{roleName}</td>

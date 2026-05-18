@@ -10,6 +10,9 @@
 	<div class="w-64 bg-[rgb(var(--color-bg-secondary))] border-r border-[rgb(var(--color-border))] p-6">
 		<h2 class="text-lg font-bold mb-6 text-[rgb(var(--color-text))]">Admin Panel</h2>
 		<nav class="space-y-2" aria-label="Admin navigation">
+			<a href="/admin/approval-queue" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
+				<span aria-hidden="true">⏳</span> Approval Queue
+			</a>
 			<a href="/admin/forums" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
 				<span aria-hidden="true">🗂️</span> Forums
 			</a>
