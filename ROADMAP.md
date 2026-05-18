@@ -1,7 +1,7 @@
 # v1.0 Launch Roadmap
 
 **Last Updated:** 2026-05-18  
-**Status:** Phase 12 Complete — Next: Phase 13 (Deployment, Operations & Documentation)  
+**Status:** Phase 13 Complete — v1.0 Launch Ready  
 **Execution Order:** Phase 12 → Phase 13
 
 ---
@@ -97,7 +97,7 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 
 ---
 
-## Phase 13 ⭕ — Deployment, Operations & Documentation
+## Phase 13 ✅ — Deployment, Operations & Documentation
 
 **Goal:** Make it easy for adopters and testers to spin up, run, upgrade, and back up their instance.
 
@@ -108,9 +108,9 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - Verify `npm run dev:setup` works on Windows/Mac/Linux
 
 **Acceptance Criteria:**
-- [ ] New developer can run locally without help
-- [ ] All npm scripts documented
-- [ ] Database reset procedure is clear
+- [x] New developer can run locally without help
+- [x] All npm scripts documented
+- [x] Database reset procedure is clear
 
 ### 13.2 Production Deployment Guide
 - `DEPLOYMENT.md` — step-by-step VPS setup
@@ -119,9 +119,9 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - First-user admin promotion documented
 
 **Acceptance Criteria:**
-- [ ] Fresh VPS → running forum in under 30 minutes
-- [ ] SMTP and ATproto OAuth setup walkthroughs included
-- [ ] Rollback procedure documented
+- [x] Fresh VPS → running forum in under 30 minutes
+- [x] SMTP and ATproto OAuth setup walkthroughs included
+- [x] Rollback procedure documented
 
 ### 13.3 Backup, Restore & Disaster Recovery
 - `BACKUP.md` — backup strategies, automated script, S3/R2/B2 integration
@@ -129,9 +129,9 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - Retention policy and RTO/RPO targets documented
 
 **Acceptance Criteria:**
-- [ ] Daily backup cron works reliably
-- [ ] Restore from backup verified end-to-end
-- [ ] Recovery time documented
+- [x] Daily backup cron works reliably
+- [x] Restore from backup verified end-to-end
+- [x] Recovery time documented
 
 ### 13.4 Upgrade Guide
 - `UPGRADE.md` — how to upgrade instances between versions
@@ -139,8 +139,8 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - Rollback procedure if upgrade fails
 
 **Acceptance Criteria:**
-- [ ] Upgrade path documented and tested
-- [ ] Breaking changes flagged in release notes
+- [x] Upgrade path documented and tested
+- [x] Breaking changes flagged in release notes
 
 ### 13.5 Adopter Documentation
 - `ADMIN_GUIDE.md` — user/role management, forum setup, moderation
@@ -148,8 +148,8 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - Update `ARCHITECTURE.md` with current deployment details
 
 **Acceptance Criteria:**
-- [ ] New admin can operate forum without asking questions
-- [ ] Users understand all features
+- [x] New admin can operate forum without asking questions
+- [x] Users understand all features
 
 ---
 

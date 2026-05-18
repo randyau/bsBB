@@ -5,13 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
       - SESSION_SECRET=${SESSION_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - ATPROTO_CLIENT_ID=${ATPROTO_CLIENT_ID}
       - ATPROTO_PRIVATE_KEY=${ATPROTO_PRIVATE_KEY}
       - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
       - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
@@ -20,7 +21,8 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - SETUP_COMPLETE=${SETUP_COMPLETE:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +32,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     networks:
       - forum
 
@@ -42,6 +44,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
       - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
       - SMTP_HOST=${SMTP_HOST}
@@ -49,7 +52,7 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
     depends_on:
       db:
         condition: service_healthy
@@ -80,12 +83,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ./docker/caddy-static:/srv/static:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
       - DOMAIN=${DOMAIN}
-      - APP_HOST=app:3000
     depends_on:
       - app
     restart: unless-stopped

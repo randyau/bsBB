@@ -2,6 +2,15 @@
 
 This document lists all shell and TypeScript helper scripts in `scripts/` and when to use them.
 
+## Platform Notes
+
+All scripts are **bash scripts targeting Linux/macOS**. This includes production scripts — they are designed to run on a Linux server.
+
+- **Mac / Linux:** Run scripts directly in your terminal.
+- **Windows with WSL2:** Run scripts from inside a WSL2 terminal (Ubuntu). This project is actively developed on WSL2 — all scripts are tested in that environment. See [QUICKSTART.md](QUICKSTART.md#windows-with-wsl2) for WSL2 setup.
+- **Windows without WSL2:** Scripts won't run natively. Use Git Bash as a fallback, or use the manual commands documented below each script.
+- **Production:** Scripts run on a Linux server — no Windows tooling is involved.
+
 ---
 
 ## Development Workflows
