@@ -9,6 +9,23 @@
 	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
 	let deleteAccountHandle = $state('');
 
+	// Sync state when data prop changes
+	$effect(() => {
+		console.log('[settings $effect] syncing from data, notifyViaBluesky:', data.user.notifyViaBluesky);
+		displayName = data.user.displayName ?? '';
+		notifyViaBluesky = data.user.notifyViaBluesky ?? false;
+		notificationType = data.user.notificationType ?? 'both';
+		notificationFrequency = data.user.notificationFrequency ?? 'immediate';
+	});
+
+	// Sync state when form action completes
+	$effect(() => {
+		if (form?.success && form?.notifyViaBluesky !== undefined) {
+			console.log('[settings] form response, updating notifyViaBluesky to:', form.notifyViaBluesky);
+			notifyViaBluesky = form.notifyViaBluesky;
+		}
+	});
+
 	function confirmDeleteAllPosts(): boolean {
 		return confirm(
 			'Delete all of your posts?\n\n' +
@@ -99,13 +116,11 @@
 						<div>
 							{#if notifyViaBluesky}
 								<p class="text-sm text-green-600 font-medium mb-3">✓ Enabled</p>
-								<input type="hidden" name="enabled" value="true" />
 								<button type="submit" formaction="?/toggleNotifications" value="false" name="enabled" class="btn btn-sm btn-secondary">
 									Disable Notifications
 								</button>
 							{:else}
 								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
-								<input type="hidden" name="enabled" value="false" />
 								<button type="submit" formaction="?/toggleNotifications" value="true" name="enabled" class="btn btn-sm btn-primary">
 									Enable Notifications
 								</button>

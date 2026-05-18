@@ -26,7 +26,14 @@
 			{#if data.forum.description}
 				<p class="mt-2 text-secondary">{data.forum.description}</p>
 			{/if}
-			<p class="mt-3 text-sm text-muted">{data.totalThreads} thread{data.totalThreads !== 1 ? 's' : ''}</p>
+			<div class="mt-3 flex flex-wrap gap-4 text-sm text-muted">
+				<span>{data.stats.totalThreads} thread{data.stats.totalThreads !== 1 ? 's' : ''}</span>
+				<span>{data.stats.totalPosts} post{data.stats.totalPosts !== 1 ? 's' : ''}</span>
+				<span>{data.stats.totalMembers} contributor{data.stats.totalMembers !== 1 ? 's' : ''}</span>
+				{#if data.stats.postsThisMonth > 0}
+					<span>{data.stats.postsThisMonth} post{data.stats.postsThisMonth !== 1 ? 's' : ''} this month</span>
+				{/if}
+			</div>
 		</div>
 		{#if data.user}
 			<a

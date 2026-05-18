@@ -8,6 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
 	}
+	console.log('[settings load] returning user data, notifyViaBluesky:', locals.user.notifyViaBluesky);
 	return {
 		user: locals.user,
 	};
