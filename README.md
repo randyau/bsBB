@@ -161,6 +161,7 @@ bsBB/
 ├── vite.config.ts
 ├── drizzle.config.ts
 ├── CLAUDE.md                   # Full specification and architecture
+├── STYLEGUIDE.md               # Code style, design conventions, datetime formatting
 ├── ARCHITECTURE.md             # Technical design decisions
 └── STATUS.md                   # Implementation status for all phases
 ```
@@ -330,6 +331,14 @@ We welcome contributions! Here's how:
 
 ### Code Style
 
+**See STYLEGUIDE.md for comprehensive conventions on:**
+- Datetime formatting (`formatTime()`, `formatDate()`, `formatAbsoluteTime()`, `formatTimeDisplay()`)
+- CSS and theming (semantic classes, CSS custom properties, light/dark mode)
+- Forms and validation (confirmation dialogs, button styling)
+- Accessibility (ARIA, keyboard navigation)
+- Component patterns (props typing, state management)
+
+**Core rules:**
 - TypeScript for all code; run `tsc --noEmit` to verify
 - Svelte 5 reactivity (`$state`, `$props`, `$derived`) for components
 - Drizzle parameterized queries (never raw SQL strings)

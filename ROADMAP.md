@@ -1,8 +1,21 @@
 # v1.0 Launch Roadmap
 
-**Last Updated:** 2026-05-17  
-**Status:** Phase 9 Complete — Working on Phase 10  
-**Execution Order:** Phase 10 → Phase 11 → Phase 12 → Phase 13
+**Last Updated:** 2026-05-18  
+**Status:** Phase 10 Complete — Next: Phase 11 (Approval Queue)  
+**Execution Order:** Phase 11 → Phase 12 → Phase 13
+
+---
+
+## Phase 10 ✅ — Search & Discovery + UI Polish
+
+All complete. 10 commits total covering:
+- Search by poster with `author:` filter syntax
+- Forum statistics widget (posts, threads, members, monthly activity)
+- Timezone support (per-user storage + browser auto-detection)
+- Centralized datetime formatting across all pages
+- Table layout improvements for thread listing
+- Shared component library (AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead)
+- UI polish (unread indicator color, thread list readability)
 
 ---
 

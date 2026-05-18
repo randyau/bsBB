@@ -2,9 +2,9 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — Phases 1–9 Complete (Core + Moderation Tools) — 70+ Commits ✅
+## Status — Phases 1–10 Complete (Core + Moderation + Search & Discovery) — 80+ Commits ✅
 
-**Total Implementation:** 70+ commits, production-ready forum with all core features, design polish, and comprehensive moderation tooling complete
+**Total Implementation:** 80+ commits, production-ready forum with all core features, design polish, comprehensive moderation tooling, and search/discovery features complete
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
@@ -138,6 +138,40 @@ This file contains the full specification, architecture decisions, and design ra
   - Logs action with context: `action: 'move_post'`
   - Proper ARIA labels and keyboard support (Escape to close, click backdrop to close)
   - Accessible dialogs with `role="dialog"`, `aria-modal`, `aria-labelledby`
+
+### Phase 10 ✅ — Search & Discovery + UI Polish (10 commits total)
+- **Commit 1 ✅** — Search by Poster
+  - `author:` filter syntax on search page (e.g., `author:alice.bsky.social`)
+  - Author-only search returns all posts by author sorted by date
+  - Combined author+content search works (e.g., `author:alice hello`)
+  - Author handles on search results are clickable links
+  - User profile: paginated "Posts" tab (25/page) replacing fixed limit
+- **Commit 2 ✅** — Forum Statistics
+  - Stats widget on each forum page: total posts, threads, active members, posts this month
+  - Computed on-demand (no caching needed at this scale)
+  - Styled for light/dark mode
+- **Commit 3 ✅** — Timezone Support & Datetime Formatting Consolidation
+  - Per-user timezone storage (default: America/New_York, user-configurable in settings)
+  - Browser timezone auto-detection at first login via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  - Centralized datetime formatting across all pages: `formatTimeDisplay()` returns "2026-05-18 00:30 (21m ago)"
+  - Eliminates duplicated time formatting code across forum, search, profile, admin, and revision pages
+  - Table layout improvements for thread listing: clean two-column format (title + starter on left, post count + timestamp on right)
+  - Improved unread indicator: changed from blue (same as links) to emerald green (#10b981) for better visual distinction
+  - Created 6 shared components: AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead
+
+---
+
+## Style Guide & Code Conventions
+
+**All styling, code style, and formatting conventions are documented in PATTERNS.md.** This is the authoritative reference for:
+
+- **Datetime formatting** — centralized in `src/lib/utils/time.ts`: use `formatTimeDisplay()` which returns "2026-05-18 00:30 (21m ago)" format
+- **CSS and theming** — semantic classes (`.box`, `.btn-danger`, `.form-control`, etc.), CSS custom properties for light/dark mode, never hardcoded colors
+- **Forms and validation** — confirmation dialogs for destructive actions, proper button styling for destructive operations
+- **Accessibility** — ARIA attributes, keyboard navigation, color contrast requirements
+- **Component patterns** — props typing, state management with Svelte 5 runes, component structure
+
+**Refer to PATTERNS.md before writing any code.** All examples and patterns documented there supersede older patterns in the codebase.
 
 ---
 

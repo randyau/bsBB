@@ -2,6 +2,32 @@
 
 Reusable patterns to copy-paste and adapt. See actual implementations in code references.
 
+**For style, design, and formatting conventions, see STYLEGUIDE.md.**
+
+---
+
+## Datetime Formatting
+
+Always use centralized formatting functions from `src/lib/utils/time.ts`:
+
+```typescript
+import { formatTime, formatDate, formatAbsoluteTime, formatTimeDisplay } from '$lib/utils/time';
+
+// Default choice — shows both absolute and relative time
+const created = formatTimeDisplay(post.createdAt);  // "2026-05-18 14:30 (2h ago)"
+
+// Date only (no time component)
+const dated = formatDate(post.createdAt);  // "2026-05-18"
+
+// Absolute datetime only
+const absolute = formatAbsoluteTime(post.createdAt);  // "2026-05-18 14:30"
+
+// Relative time only
+const relative = formatTime(post.createdAt);  // "2h ago"
+```
+
+See **STYLEGUIDE.md** for when to use each variant.
+
 ---
 
 ## Session Management
