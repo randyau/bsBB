@@ -9,6 +9,8 @@
 
 	let movePostId: string | null = $state(null);
 	let moveDestThreadId: string = $state('');
+	let moveModalEl: HTMLDivElement | undefined = $state();
+	let bulkModalEl: HTMLDivElement | undefined = $state();
 
 	let selectedPostIds: Set<string> = $state(new Set());
 	let bulkActionType: string | null = $state(null);
@@ -50,6 +52,38 @@
 		bulkActionType = null;
 		bulkActionConfirming = false;
 	}
+
+	const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+	function focusFirst(el: HTMLElement | undefined) {
+		if (!el) return;
+		const first = el.querySelector<HTMLElement>(FOCUSABLE);
+		if (first) first.focus();
+		else el.focus();
+	}
+
+	function trapFocus(e: KeyboardEvent, el: HTMLElement | undefined) {
+		if (e.key !== 'Tab' || !el) return;
+		const focusable = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE));
+		if (focusable.length === 0) return;
+		const first = focusable[0];
+		const last = focusable[focusable.length - 1];
+		if (e.shiftKey && document.activeElement === first) {
+			e.preventDefault();
+			last.focus();
+		} else if (!e.shiftKey && document.activeElement === last) {
+			e.preventDefault();
+			first.focus();
+		}
+	}
+
+	$effect(() => {
+		if (movePostId && moveModalEl) focusFirst(moveModalEl);
+	});
+
+	$effect(() => {
+		if (bulkActionConfirming && bulkModalEl) focusFirst(bulkModalEl);
+	});
 
 	function executeBulkAction(action: string) {
 		const postIdList = Array.from(selectedPostIds).join(',');
@@ -130,7 +164,7 @@
 			<table class="w-full text-sm">
 				<thead class="table-thead">
 					<tr>
-						<th class="px-4 py-3 text-left">
+						<th scope="col" class="px-4 py-3 text-left">
 							<input
 								type="checkbox"
 								checked={selectedPostIds.size === data.posts.length && data.posts.length > 0}
@@ -139,12 +173,12 @@
 								aria-label="Select all posts on this page"
 							/>
 						</th>
-						<th class="px-4 py-3 text-left font-semibold">Thread</th>
-						<th class="px-4 py-3 text-left font-semibold">Author</th>
-						<th class="px-4 py-3 text-left font-semibold">Posted</th>
-						<th class="px-4 py-3 text-left font-semibold">Preview</th>
-						<th class="px-4 py-3 text-left font-semibold">Status</th>
-						<th class="px-4 py-3 text-left font-semibold">Actions</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Thread</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Author</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Posted</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Preview</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Status</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -264,15 +298,21 @@
 		<!-- Move post modal -->
 		{#if movePostId}
 			<div
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="move-post-title"
-				tabindex="-1"
 				class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
 				onclick={() => { movePostId = null; }}
 				onkeydown={(e) => { if (e.key === 'Escape') movePostId = null; }}
+				role="none"
 			>
-				<div role="none" class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+				<div
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="move-post-title"
+					tabindex="-1"
+					bind:this={moveModalEl}
+					class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]"
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => { e.stopPropagation(); trapFocus(e, moveModalEl); }}
+				>
 					<h2 id="move-post-title" class="section-title mb-4">Move Post to Thread</h2>
 					<form method="POST" action="?/movePost" onsubmit={() => { movePostId = null; }}>
 						<input type="hidden" name="postId" value={movePostId} />
@@ -314,15 +354,21 @@
 		<!-- Bulk action confirmation modal -->
 		{#if bulkActionConfirming && bulkActionType}
 			<div
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="bulk-action-title"
-				tabindex="-1"
 				class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
 				onclick={cancelBulkAction}
 				onkeydown={(e) => { if (e.key === 'Escape') cancelBulkAction(); }}
+				role="none"
 			>
-				<div role="none" class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+				<div
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="bulk-action-title"
+					tabindex="-1"
+					bind:this={bulkModalEl}
+					class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]"
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => { e.stopPropagation(); trapFocus(e, bulkModalEl); }}
+				>
 					<h2 id="bulk-action-title" class="section-title mb-4">Confirm Bulk Action</h2>
 					<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
 						{#if bulkActionType === 'hide'}

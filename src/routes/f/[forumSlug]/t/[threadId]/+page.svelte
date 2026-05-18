@@ -277,7 +277,7 @@
 
 			{#if data.canModerate}
 				<details class="relative ml-auto">
-					<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-3 py-1 rounded list-none select-none">
+					<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-3 py-1 rounded list-none select-none" aria-haspopup="menu">
 						Thread actions ▾
 					</summary>
 					<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
@@ -407,7 +407,7 @@
 
 							{#if data.canModerate}
 								<details class="relative">
-									<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-2 py-1 rounded list-none select-none">
+									<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-2 py-1 rounded list-none select-none" aria-label="Post moderation actions">
 										⋯
 									</summary>
 									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
@@ -462,7 +462,9 @@
 					<!-- Post Body -->
 					{#if editingPostId === post.id}
 						<div class="space-y-2">
+							<label for="edit-body-{post.id}" class="sr-only">Edit post</label>
 							<textarea
+								id="edit-body-{post.id}"
 								bind:value={editBody}
 								class="w-full h-32 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 								placeholder="Edit your post..."
@@ -489,12 +491,16 @@
 					{:else if modEditingPostId === post.id}
 						<div class="space-y-3 p-3 border border-[rgb(var(--color-primary))] rounded-lg bg-[rgb(var(--color-bg-secondary))]">
 							<p class="text-sm font-semibold text-[rgb(var(--color-primary))]">Edit as Moderator</p>
+							<label for="mod-edit-body-{post.id}" class="sr-only">Edit post content</label>
 							<textarea
+								id="mod-edit-body-{post.id}"
 								bind:value={modEditBody}
 								class="w-full h-32 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 								placeholder="Edit post content..."
 							></textarea>
+							<label for="mod-edit-reason-{post.id}" class="sr-only">Reason for edit (required)</label>
 							<textarea
+								id="mod-edit-reason-{post.id}"
 								bind:value={modEditReason}
 								class="w-full h-16 p-3 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
 								placeholder="Reason for edit (required)..."
@@ -555,7 +561,7 @@
 			{:else if !data.canPost}
 				<p class="text-center text-secondary">You do not have permission to post in this forum.</p>
 			{:else}
-				<h3 class="text-lg font-semibold mb-4">Reply to this thread</h3>
+				<h2 class="text-lg font-semibold mb-4">Reply to this thread</h2>
 
 				{#if form?.error}
 					<div class="alert alert-error mb-4 text-sm">

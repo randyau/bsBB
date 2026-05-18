@@ -120,13 +120,13 @@
 			<table class="w-full text-sm">
 				<thead class="table-thead">
 					<tr>
-						<th class="px-4 py-3 text-left font-semibold">Forum</th>
-						<th class="px-4 py-3 text-left font-semibold">Thread</th>
-						<th class="px-4 py-3 text-left font-semibold">Author</th>
-						<th class="px-4 py-3 text-left font-semibold">Posts</th>
-						<th class="px-4 py-3 text-left font-semibold">Last Activity</th>
-						<th class="px-4 py-3 text-left font-semibold">Status</th>
-						<th class="px-4 py-3 text-left font-semibold">Actions</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Forum</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Thread</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Author</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Posts</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Last Activity</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Status</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Actions</th>
 					</tr>
 				</thead>
 				<tbody>

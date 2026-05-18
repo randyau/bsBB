@@ -57,11 +57,11 @@
 			<table class="w-full text-sm">
 				<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 					<tr>
-						<th class="px-4 py-3 text-left font-semibold">Timestamp</th>
-						<th class="px-4 py-3 text-left font-semibold">Moderator</th>
-						<th class="px-4 py-3 text-left font-semibold">Action</th>
-						<th class="px-4 py-3 text-left font-semibold">Target</th>
-						<th class="px-4 py-3 text-left font-semibold">Reason</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Timestamp</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Moderator</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Action</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Target</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Reason</th>
 					</tr>
 				</thead>
 				<tbody>

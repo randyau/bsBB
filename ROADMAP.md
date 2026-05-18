@@ -1,7 +1,7 @@
 # v1.0 Launch Roadmap
 
 **Last Updated:** 2026-05-18  
-**Status:** Phase 11 Complete — Next: Phase 12 (Accessibility & Polish)  
+**Status:** Phase 12 Complete — Next: Phase 13 (Deployment, Operations & Documentation)  
 **Execution Order:** Phase 12 → Phase 13
 
 ---
@@ -58,7 +58,7 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 
 ---
 
-## Phase 12 ⭕ — Accessibility & Polish (Final UI Pass)
+## Phase 12 ✅ — Accessibility & Polish (Final UI Pass)
 
 **Goal:** Comprehensive accessibility audit across all built features. Done last to cover everything built.
 
@@ -85,15 +85,15 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 - Consistent styling across all pages
 
 **Acceptance Criteria:**
-- [ ] WCAG AA contrast passes for all text (light + dark)
-- [ ] Heading hierarchy correct on all pages
-- [ ] All form inputs labeled
-- [ ] Icon-only buttons have aria-label
-- [ ] Tab order logical on all pages
-- [ ] Focus indicators visible and consistent
-- [ ] Modal focus trapping works
-- [ ] Keyboard-only navigation possible throughout
-- [ ] Breadcrumbs present and correct on all pages
+- [x] WCAG AA contrast passes for all text (light + dark)
+- [x] Heading hierarchy correct on all pages
+- [x] All form inputs labeled
+- [x] Icon-only buttons have aria-label
+- [x] Tab order logical on all pages
+- [x] Focus indicators visible and consistent
+- [x] Modal focus trapping works
+- [x] Keyboard-only navigation possible throughout
+- [x] Breadcrumbs present and correct on all pages
 
 ---
 

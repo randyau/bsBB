@@ -556,6 +556,12 @@ input[type="radio"]:disabled {
 	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
 }
 
+details > summary:focus-visible {
+	outline: 3px solid rgba(59, 130, 246, 0.8);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
 .btn:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
