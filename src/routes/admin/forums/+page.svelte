@@ -41,13 +41,13 @@
 	<h1 class="page-title">Forum Management</h1>
 
 	{#if form?.error}
-		<div class="card-secondary text-error">
+		<div class="card-secondary text-error" role="alert">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="card-secondary text-success">
+		<div class="card-secondary text-success" role="alert">
 			✓ Action completed: {form.action}
 		</div>
 	{/if}
@@ -75,12 +75,12 @@
 								<form method="POST" action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="up" />
-									<button type="submit" class="btn btn-sm btn-secondary" title="Move up">↑</button>
+									<button type="submit" class="btn btn-sm btn-secondary" aria-label="Move {forum.name} up" title="Move up">↑</button>
 								</form>
 								<form method="POST" action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="down" />
-									<button type="submit" class="btn btn-sm btn-secondary" title="Move down">↓</button>
+									<button type="submit" class="btn btn-sm btn-secondary" aria-label="Move {forum.name} down" title="Move down">↓</button>
 								</form>
 							</td>
 						</tr>
