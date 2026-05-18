@@ -319,166 +319,22 @@ CREATE TABLE thread_views (
 
 ---
 
-## Phase 12 — Content Management & Moderation
-
-**Goal:** Provide tools for community self-governance and content lifecycle.
-
-### 12.1 ⭕ Approval Queue (Tier 1 — Optional)
-**Priority:** Tier 1 — High Impact (optional)  
-**Complexity:** Medium  
-**Effort:** ~2 commits
-
-**Schema Changes:**
-```sql
-ALTER TABLE posts ADD COLUMN is_approved BOOLEAN DEFAULT true;
-ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
-```
-
-**Features:**
-- Admin can enable per-forum: "New posts from users < N days old require approval"
-- New posts from young accounts go to `posts.is_approved = false`, hidden from thread
-- Moderators see dedicated approval queue page (/admin/approval-queue)
-- Quick Approve/Reject buttons on each pending post
-- Reject sends DM to user explaining removal (configurable message)
-- Posts older than X hours automatically approved (prevent queue backlog)
-- Bypass for trusted/verified accounts
-
-**Acceptance Criteria:**
-- [ ] Per-forum approval queue toggle in `/admin/forums`
-- [ ] New posts from young accounts set `is_approved = false`
-- [ ] Approval queue page shows pending posts with context
-- [ ] Approve/Reject buttons work and update mod_log
-- [ ] Reject sends DM with reason
-- [ ] Auto-approve after 24 hours if not reviewed
-- [ ] Young account definition is configurable (days old)
-
 ---
 
-### 12.2 ⭕ Thread Tags/Labels (Tier 2)
-**Priority:** Tier 2 — Nice-to-Have  
-**Complexity:** Medium  
-**Effort:** ~2 commits
+## ⚠️ Future Improvements Deferred
 
-**Schema:**
-```sql
-CREATE TABLE thread_tags (
-  id UUID PRIMARY KEY,
-  thread_id UUID FK → threads.id,
-  tag TEXT, -- 'solved', 'feedback', 'bug', 'question', 'announcement'
-  added_by TEXT FK → users.did,
-  created_at TIMESTAMPTZ
-);
-```
+The following Tier 2 features have been moved to **FUTURE_IMPROVEMENTS.md** for post-launch consideration:
 
-**Features:**
-- Predefined tags: [SOLVED], [FEEDBACK], [BUG], [QUESTION], [ANNOUNCEMENT], [OFF-TOPIC]
-- Mods can add/remove tags on thread view
-- Tags appear as badges on thread listings
-- Filter search/listing by tag
-- Color-coded per tag type
-- Users can suggest tags (optional, mod approves)
+- **Phase 12.2:** Thread Tags/Labels (Q&A polish, not essential for discussion forum)
+- **Phase 13.1:** Digest-Style Notifications (nice-to-have, immediate DMs sufficient for v1)
+- **Phase 14.1:** Quote Preview on Hover (polish only)
+- **Phase 14.2:** Favorites/Quick Nav Sidebar (convenience feature)
+- **Phase 14.3:** Share Post Button (polish only)
+- **Phase 10.3:** Advanced Search Filters (basic search sufficient for v1)
 
-**Acceptance Criteria:**
-- [ ] Tag badges appear on thread listing
-- [ ] Mods can add/remove tags on thread detail page
-- [ ] Tags are filterable on forum listing
-- [ ] Colors are theme-aware (light/dark mode)
-- [ ] Search results filterable by tag
+**Rationale:** These are valuable but not launch-blocking. Keeping v1.0 scope tight allows faster shipping and lets user feedback guide post-launch prioritization.
 
----
-
-## Phase 13 — Notifications & Community Engagement
-
-**Goal:** Keep users informed with flexible notification options.
-
-### 13.1 ⭕ Digest-Style Notifications (Tier 2)
-**Priority:** Tier 2 — Nice-to-Have  
-**Complexity:** Medium-Hard  
-**Effort:** ~3 commits
-
-**Features:**
-- User notification preference: immediate, daily digest, weekly digest, off
-- Digest generates summary of:
-  - Replies to your threads
-  - Quotes of your posts
-  - New threads in watched forums
-- Sends as single DM with summary list + links
-- Digest sent at user's preferred time (in their timezone, if available)
-- Database: add `user_notification_frequency` (immediate|daily|weekly), `notification_digest_sent_at`
-
-**Acceptance Criteria:**
-- [ ] User settings page has notification frequency choice
-- [ ] Worker batches digests by frequency
-- [ ] Digest DM is well-formatted and readable
-- [ ] Sent at correct time (or closest cron interval)
-- [ ] Links in digest navigate to correct thread/post
-
----
-
-## Phase 14 — Polish & Fine-Tuning
-
-**Goal:** Final touches for production polish.
-
-### 14.1 ⭕ Quote Preview on Hover (Tier 2)
-**Priority:** Tier 2 — Nice-to-Have  
-**Complexity:** Low  
-**Effort:** ~0.5 commits
-
-**Features:**
-- When a post has `reply_to_post_id`, hovering over the quote link shows a tooltip
-- Tooltip displays: author name, first 100 chars of quoted content, timestamp
-- Tooltip is positioned near cursor, not overlapping main content
-- Works on desktop (hover); touch devices show on click or tap-and-hold
-
-**Acceptance Criteria:**
-- [ ] Tooltip appears on hover over quote links
-- [ ] Content is readable (good contrast, proper size)
-- [ ] Doesn't interfere with thread reading
-- [ ] Mobile fallback works (click or long-press)
-
----
-
-### 14.2 ⭕ Breadcrumb Favorites/Quick Nav Sidebar (Tier 2)
-**Priority:** Tier 2 — Nice-to-Have  
-**Complexity:** Medium  
-**Effort:** ~1-2 commits
-
-**Features:**
-- Users can "favorite" forums from the forum listing
-- Favorites appear in sidebar for quick access
-- Drag-to-reorder favorites (optional, nice UX)
-- Remove favorite with X button
-- Persisted per user (in `user_settings` table or similar)
-- Optional: show unread count on favorite forums
-
-**Acceptance Criteria:**
-- [ ] Favorite button on forum cards
-- [ ] Favorites sidebar shows on all pages (except mobile?)
-- [ ] Favorites persist across sessions
-- [ ] Remove favorite works
-- [ ] Reorder works (if drag implemented)
-- [ ] Unread badges on favorites (optional)
-
----
-
-### 14.3 ⭕ "Share Post" Feature (Tier 2)
-**Priority:** Tier 2 — Nice-to-Have  
-**Complexity:** Low  
-**Effort:** ~0.5 commits
-
-**Features:**
-- "Share" button on each post (alongside Edit, etc.)
-- Opens modal with options:
-  - Copy permalink to clipboard
-  - Share to Bluesky (pre-fill post with link, open Bluesky in new tab)
-  - Generate embed code (if applicable later)
-- Copy-to-clipboard feedback ("Copied!")
-
-**Acceptance Criteria:**
-- [ ] Share button appears on each post
-- [ ] Copy permalink works
-- [ ] Bluesky share pre-fills with post link
-- [ ] "Copied!" confirmation on clipboard action
+See **FUTURE_IMPROVEMENTS.md** for detailed specs and rationale.
 
 ---
 
@@ -493,34 +349,27 @@ CREATE TABLE thread_tags (
 | 9 | Unread Indicators | ✅ | 1 | Medium |
 | 10 | Search by Poster | ⭕ | 1 | Medium |
 | 10 | Forum Statistics | ⭕ | 1 | Low |
-| 10 | Advanced Search Filters | ⭕ | 2 | Medium |
 | 11 | Accessibility Audit | ⭕ | 1 | Medium |
 | 11 | Breadcrumb Audit | ✅ | 1 | Low |
 | 12 | Approval Queue | ⭕ | 1 | Medium |
-| 12 | Thread Tags | ⭕ | 2 | Medium |
-| 13 | Digest Notifications | ⭕ | 2 | Medium-Hard |
-| 14 | Quote Preview Hover | ⭕ | 2 | Low |
-| 14 | Favorites Sidebar | ⭕ | 2 | Medium |
-| 14 | Share Post Button | ⭕ | 2 | Low |
 
-**Phase 9 Status:** 5 of 5 items complete (all core features done)  
-**Total Tier 1 Items:** 11 (5 done, 6 remaining)  
-**Total Tier 2 Items:** 5  
-**Total Effort:** ~16-20 commits across Phases 9–14
+**v1.0 Launch Status:** 6 of 10 Tier 1 items complete  
+**Remaining Tier 1:** 4 items (Search by Poster, Forum Stats, Accessibility, Approval Queue)  
+**Tier 2 Deferred:** 6 items in FUTURE_IMPROVEMENTS.md  
+**v1.0 Effort:** ~7-9 commits to complete launch scope
 
 ---
 
-## Recommended Phase 9 Start Order
+## v1.0 Remaining Work (Tier 1 Only)
 
-Focus on **Tier 1** items first. Suggested execution order for Phase 9:
+After Phase 9 core completion, remaining **launch-critical items**:
 
-1. **Unread Thread Indicators** (quick win, high impact)
-2. **Thread Follow/Mute System** (extends notification framework)
-3. **Inline Mod Tools** (forces audit of post display, high visibility)
-4. **Post/Thread Moving** (complements inline tools)
-5. **Bulk Moderation** (integrates with admin pages)
+1. **Phase 10.1:** Search by Poster (medium effort, high UX value)
+2. **Phase 10.2:** Forum Statistics (low effort, useful for admins)
+3. **Phase 11:** Accessibility Audit (medium effort, WCAG AA compliance)
+4. **Phase 12.1:** Approval Queue (medium effort, spam prevention)
 
-This order builds incrementally on the notification system and mod UI, keeping cohesive commits.
+These 4 items complete the v1.0 launch scope. All Tier 2 features are in FUTURE_IMPROVEMENTS.md.
 
 ---
 
