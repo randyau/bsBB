@@ -90,11 +90,28 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		hasUnread: !viewedThreads[thread.id] || thread.lastPostAt > viewedThreads[thread.id],
 	}));
 
+	// Forum statistics
+	const [statsResult] = await db
+		.select({
+			totalPosts: sql<number>`COUNT(${posts.id}) FILTER (WHERE ${posts.status} = 'active')`,
+			totalMembers: sql<number>`COUNT(DISTINCT ${posts.authorDid}) FILTER (WHERE ${posts.status} = 'active')`,
+			postsThisMonth: sql<number>`COUNT(${posts.id}) FILTER (WHERE ${posts.status} = 'active' AND ${posts.createdAt} >= NOW() - INTERVAL '30 days')`,
+		})
+		.from(threads)
+		.leftJoin(posts, eq(posts.threadId, threads.id))
+		.where(eq(threads.forumId, forum.id));
+
 	return {
 		forum,
 		threads: threadsWithUnread,
 		currentPage: page,
 		totalPages,
 		totalThreads,
+		stats: {
+			totalThreads: Number(totalThreads),
+			totalPosts: Number(statsResult?.totalPosts ?? 0),
+			totalMembers: Number(statsResult?.totalMembers ?? 0),
+			postsThisMonth: Number(statsResult?.postsThisMonth ?? 0),
+		},
 	};
 };
