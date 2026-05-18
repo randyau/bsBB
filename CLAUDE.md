@@ -1,163 +1,14 @@
 # CLAUDE.md — ATproto Forum Project
 
-This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
+This file contains the essential specification, architecture decisions, and design rationale needed to work on this project. For detailed implementation history, see HISTORY.md.
 
-## Status — Phases 1–10 Complete (Core + Moderation + Search & Discovery) — 80+ Commits ✅
+## Status
 
-**Total Implementation:** 80+ commits, production-ready forum with all core features, design polish, comprehensive moderation tooling, and search/discovery features complete
+✅ **Phases 1–10 Complete** — Production-ready forum with full features: auth, forums, posts, moderation, search, notifications, custom roles, user post management, unread tracking, thread subscriptions, timezone support, and comprehensive design system.
 
-### Completed Phases:
-- **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
-- **Phase 2 ✅** — Read-only forum views (forum index, thread listing, thread detail) — 1 commit
-- **Phase 3 ✅** — Post creation (new threads, replies, markdown, OG metadata) — 2 commits
-- **Phase 4 ✅** — Moderation & Admin (rate limiting, admin UI, ban/lock/delete, mod log) — 7 commits
-- **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
-- **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
-- **Phase 7 ✅** — Design, UI & Interaction Refinements (11 commits + enhancements)
-- **Phase 9 ✅** — Core Forum Experience & Moderation Tools (11 commits)
-- **Commit 1 ✅** — Theme System & Light/Dark Mode
-  - CSS custom properties for light/dark themes with semantic naming
-  - ThemeToggle component with sun/moon icons in header
-  - localStorage persistence + system preference detection
-  - Smooth 200ms color transitions
-  - Updated forum list with theme-aware colors
-- **Commit 2 ✅** — Search, Admin UI, & Dark Mode Polish
-  - Hybrid search (substring matching for short queries ≤4 chars, tsvector for longer)
-  - Admin forums management page (list, reorder, assign per-forum mods)
-  - User search/dropdown for moderator selection (queryable by handle, name, DID)
-  - Dark mode consistency across all pages with semantic CSS classes
-  - Search result cards render cleanly without hydration issues
-  - "New Thread" button displays properly in light/dark modes
-- **Commit 3 ✅** — Markdown preview, responsive layout, global CSS, dark mode defaults
-  - Fix markdown preview rendering with .prose-content CSS class
-  - Responsive container layout with max-widths per breakpoint
-  - Abstract CSS into global semantic classes (.box, .alert, .btn-*, .form-*, .post, .thread-item, etc.)
-  - Set dark mode as system default
-  - Fix theme toggle sun/moon icons
-- **Commit 4 ✅** — Custom roles & role-based forum access
-  - New `roles` table for admin-defined custom roles (name, description, color for UI)
-  - `userRoles` table for global custom role assignments (many-to-many with users)
-  - Permissions enforcement in `canRead()`/`canPost()` functions checks both per-forum roles + custom roles
-  - Admin roles page: create/edit/delete roles, assign/remove users with user search
-  - Admin forum permissions matrix: click-to-toggle read/post/moderate per role per forum
-  - Hierarchical permission inheritance: walk parent chain until first match found
-  - Audit trail: all role/permission changes logged in mod_log with granular action names
-- **Commit 5 (bugfixes)** ✅ — Admin UI details polish
-  - Fix roles page member count click to toggle expansion (Set reactivity)
-  - Add pagination to user management page (50 items/page with first/back/next/last nav)
-- **Commit 6** ✅ — Typography scale & semantic spacing
-  - CSS custom properties: --text-xs through --text-3xl, --leading-*, --space-*, --radius-*
-  - Semantic heading classes: .page-title, .section-title, .subsection-title, .meta-text
-  - Apply .page-title to all main route h1s (forum index, forum list, thread, new thread, admin pages)
-  - Wire up .thread-item family of classes on thread list (was dead code)
-  - Fix hardcoded colors (text-blue-600 → themed via CSS variables or .link class)
-  - Set body baseline: font-size/line-height via CSS variables
-  - Zero visual changes — pure maintainability layer (type scale now inspectable, updatable in one place)
-- **Commit 7** ✅ — Button & form refinement
-  - Button focus rings: 3px colored shadows for all variants (primary/secondary/danger)
-  - Button states: hover (lift effect), active (inset shadow), disabled (opacity + no focus)
-  - Form validation state classes: .form-control-error, .form-control-success, .form-control-loading
-  - Form message classes: .form-error, .form-success, .form-required for required indicators
-  - Custom checkbox and radio button styling with checked states and focus rings
-  - Updated admin forums page: buttons use .btn/.btn-primary/.btn-secondary with proper focus rings
-  - Updated admin forums page: form fields use .form-control, .form-group, .form-label
-  - Updated permission toggles with improved visual feedback (checkmark indicators)
-  - Updated new thread form to use semantic form classes throughout
-  - Section headings now use .section-title class
-- **Commit 8** ✅ — Card component refinement
-  - Add .table-container semantic class for borderless table wrapper pattern (5+ admin pages)
-  - Replace 15+ inline alert patterns with .alert-error/.alert-success across all admin pages
-  - Replace inline empty-state and card patterns with .box-secondary/.card-secondary
-  - Replace inline table wrappers with .table-container throughout admin UI (posts, users, threads, mod-log, query)
-  - Fix theme safety bugs in revisions page (hardcoded bg-white → CSS variables, hardcoded blue tones → .box-secondary)
-  - All container styling now uses semantic classes; no raw inline Tailwind patterns for cards/alerts/tables
-  - Improves maintainability by centralizing design system definitions in app.css
-- **Commit 9** ✅ — Enhanced post quoting with reference links and copy permalink
-  - Posts with `reply_to_post_id` now display as quoted replies with visual distinction
-  - Copy permalink button on each post for easy sharing
-  - Quote links render the referenced post content inline
-  - Full-text search integration for finding quoted posts
-- **Commit 10** ✅ — User profile and notification preferences management
-  - User profile page (/user/[handle]) displays Bluesky identity, DIDs, and forum activity
-  - "Edit Profile" button links to settings for display name editing
-  - "Notification Settings" button for toggling Bluesky DM notifications (opt-in)
-  - Notification preferences UI explains which events trigger notifications (replies, quotes, thread activity)
-  - `notifyViaBluesky` flag in SessionUser type ensures proper type safety
-  - Users can manage which forums notify them and notification frequency
-- **Commit 11** ✅ — Post and account management for users
-  - New `/user/[handle]/manage-posts` page with searchable, paginated post list (25 per page)
-  - Users can manage their own posts: hide, delete, restore
-  - Admins can manage any user's posts via "Manage User's Posts" button on user profile
-  - Post status badges show hidden/deleted state with visual indicators
-  - Settings danger zone for account operations:
-    - Delete all posts: permanently removes post content (stubs preserved for quote integrity)
-    - Delete account: anonymizes account (overwrites handle, displayName, avatar)
-    - Users can re-register with same Bluesky identity after account deletion
-    - Confirmation requires typing handle to prevent accidents
-    - All sessions deleted on account removal
-  - Proper mod_log entries for all irreversible actions
-- **Additional Enhancement** ✅ — Distinguish user-hidden vs moderator-hidden posts
-  - Checks mod_log to determine if post was hidden by author (`hide_own_post`) or by moderator
-  - Display "[post hidden by author]" when user hides their own post
-  - Display "[post hidden by moderator]" when mod hides a post
-  - Provides clarity on who made the visibility decision
+**Current:** Ready for Phase 11 (Approval Queue). See ROADMAP.md for next steps.
 
-### Phase 9 ✅ — Core Forum Experience & Moderation Tools (11 commits total)
-- **Commit 1 ✅** — Unread Thread Indicators
-  - New `thread_views` table tracks `user_did`, `thread_id`, `last_viewed_at`
-  - Upsert on thread load: tracks when user last visited each thread
-  - Forum listing shows unread badge/highlight for threads with new posts since last view
-  - "Mark as read" button on thread view to manually update `last_viewed_at`
-  - Theme-aware styling for unread indicators (light/dark mode)
-- **Commit 2 ✅** — Thread Follow/Mute System
-  - New `notification_subscriptions` table: `user_did`, `thread_id`, `subscription_type` ('follow'|'mute')
-  - Watch/Mute buttons on thread pages with 3-state UI: [Mute] [Default notifs] [Watch]
-  - Follow: explicitly watched thread always sends DM notifications (overrides global preference)
-  - Mute: user muted thread never sends notifications (overrides global preference)
-  - Default: inherit from user's global `notifyViaBluesky` setting
-  - "Followed Threads" card on self-profile showing subscribed threads with Remove button
-  - Subscription state loads on thread detail page and updates inline
-  - Users can manage subscriptions from both thread view and profile
-- **Commit 3 ✅** — Notification Preferences & Backend
-  - New `notificationType` column: 'both'|'replies'|'quotes' (default 'both')
-  - New `notificationFrequency` column: 'immediate'|'hourly'|'daily' (default 'immediate')
-  - Settings UI: type selector (Replies & Quotes / Replies only / Quotes only)
-  - Settings UI: frequency selector (Max once every 10 min / hour / day)
-  - Controls only visible when Bluesky DM notifications enabled, shows helpful banner otherwise
-  - Frequency-based rate limiting in worker: check last DM sent time, defer if within window
-  - Helper functions `getLastDmSentTime()` and `getFrequencyWindow()` for throttling logic
-  - Worker respects both thread-level subscriptions and global preferences
-  - Profile sync implemented: fetches fresh handle, displayName, avatarUrl from Bluesky
-  - Notification queue processing handles all preference checks before sending
-- **Commit 4 ✅** — Post/Thread Moving (Mod Tools)
-  - New `moveThread` action: move thread to different forum via `/admin/threads`
-  - Modal form to select destination forum with all available options
-  - Logs action with source/destination info: `action: 'move_thread'`
-  - New `movePost` action: move post to different thread via `/admin/posts`
-  - Modal form lists all threads by title with forum name for context
-  - Logs action with context: `action: 'move_post'`
-  - Proper ARIA labels and keyboard support (Escape to close, click backdrop to close)
-  - Accessible dialogs with `role="dialog"`, `aria-modal`, `aria-labelledby`
-
-### Phase 10 ✅ — Search & Discovery + UI Polish (10 commits total)
-- **Commit 1 ✅** — Search by Poster
-  - `author:` filter syntax on search page (e.g., `author:alice.bsky.social`)
-  - Author-only search returns all posts by author sorted by date
-  - Combined author+content search works (e.g., `author:alice hello`)
-  - Author handles on search results are clickable links
-  - User profile: paginated "Posts" tab (25/page) replacing fixed limit
-- **Commit 2 ✅** — Forum Statistics
-  - Stats widget on each forum page: total posts, threads, active members, posts this month
-  - Computed on-demand (no caching needed at this scale)
-  - Styled for light/dark mode
-- **Commit 3 ✅** — Timezone Support & Datetime Formatting Consolidation
-  - Per-user timezone storage (default: America/New_York, user-configurable in settings)
-  - Browser timezone auto-detection at first login via `Intl.DateTimeFormat().resolvedOptions().timeZone`
-  - Centralized datetime formatting across all pages: `formatTimeDisplay()` returns "2026-05-18 00:30 (21m ago)"
-  - Eliminates duplicated time formatting code across forum, search, profile, admin, and revision pages
-  - Table layout improvements for thread listing: clean two-column format (title + starter on left, post count + timestamp on right)
-  - Improved unread indicator: changed from blue (same as links) to emerald green (#10b981) for better visual distinction
-  - Created 6 shared components: AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead
+**Dev:** See "Dev Workflow" section below.
 
 ---
 
@@ -177,37 +28,33 @@ This file contains the full specification, architecture decisions, and design ra
 
 ## Dev Workflow (Local Development)
 
+**See [SCRIPTS.md](SCRIPTS.md) for complete documentation of all helper scripts.**
+
 The fastest path to a running dev environment:
 
 ```bash
 npm install
-cp .env.example .env          # then set SESSION_SECRET and uncomment DEV_AUTH_ENABLED=true
-npm run dev:setup             # starts DB, runs migrations, seeds dev users, starts server
-```
-
-Or step by step:
-
-```bash
-docker compose -f docker/docker-compose.dev.yml up -d   # PostgreSQL only (localhost:5432)
-npm run db:migrate                                       # run schema migrations
-npx tsx scripts/seed.ts                                  # seed instance_settings + General forum
-npx tsx scripts/seed-dev-users.ts                        # seed dev login users (first time)
-npm run dev                                              # SvelteKit on http://localhost:5173
+cp .env.example .env
+npm run dev:setup             # One command: starts DB, runs migrations, seeds users, starts dev server
 ```
 
 Dev login (no ATproto OAuth needed): `http://localhost:5173/dev/login`
-Requires `DEV_AUTH_ENABLED=true` in `.env`. Only shows users with `did:example:*` DIDs.
+Requires `DEV_AUTH_ENABLED=true` (set automatically by `npm run dev:setup`). Only shows users with `did:example:*` DIDs.
 
-**Key npm scripts:**
+**Quick reference — use these npm scripts:**
 
-| Script | What it does |
-|---|---|
-| `npm run dev:setup` | One-command dev startup (DB + migrate + seed + server) |
-| `npm run dev` | Start SvelteKit dev server only (DB must already be running) |
-| `npm test` | Run all unit tests |
-| `npm run db:migrate` | Apply pending Drizzle migrations |
-| `npm run db:generate` | Generate a new migration from schema changes |
-| `npm run check` | TypeScript + Svelte type check |
+| Script | Purpose | See SCRIPTS.md |
+|---|---|---|
+| `npm run dev:setup` | One-command startup (DB + migrate + seed + server) | [scripts/dev.sh](#) |
+| `npm run dev` | Dev server only (DB must already be running) | [scripts/dev.sh](#) |
+| `npm test` | Run all unit tests | [Vitest](#) |
+| `npm run db:migrate` | Apply pending migrations | [scripts/migrate.sh](#) |
+| `npm run db:generate` | Generate new migration from schema changes | [Drizzle](#) |
+| `npm run check` | TypeScript + Svelte type check | [svelte-kit sync](#) |
+| `npm run build` | Build production bundle | [SvelteKit](#) |
+| `npm run worker` | Run notification worker (if testing separately) | [src/worker.ts](#) |
+
+For detailed explanations and step-by-step guides, see **[SCRIPTS.md](SCRIPTS.md)**.
 
 ---
 
@@ -243,8 +90,8 @@ The forum is intended to be open sourced so that others can self-host it. All se
 ### Content
 
 - **Markdown only** — no WYSIWYG editor
-- Plain `<textarea>` with a button-toggled preview pane (server-rendered via `POST /api/preview`)
-- Markdown rendered server-side via `unified`/`remark` pipeline
+- Plain `<textarea>` with **live client-side preview** (rendered via `markdown-it` on every keystroke)
+- Markdown pipeline server-side via `unified`/`remark` for stored content
 - HTML output sanitized with `rehype-sanitize` **before storage**, not just at render time
 - Embedded media via server-side oEmbed/OpenGraph resolution — **no local media storage**
   - When a post is submitted, backend fetches OpenGraph metadata (title, description, image URL) once
@@ -256,6 +103,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 - PostgreSQL `tsvector` full-text search across post content
 - `pg_trgm` for fuzzy matching if needed
 - No external search service (Elasticsearch, Meilisearch, etc.) — not needed at this scale
+- Author filter: `author:handle` syntax on search page
 
 ### Access Control
 
@@ -265,15 +113,16 @@ The forum is intended to be open sourced so that others can self-host it. All se
 - **Simple explicit permissions model** — a `forum_permissions` table with explicit rows per role per forum
 - Hierarchical permission inheritance: mod in parent forum has mod rights in child forums unless explicitly overridden
 - Do NOT use bitmask permissions — overkill for this scale, harder to debug
+- Custom admin-defined roles with global assignments
 
 ### Moderation & Administration
 
 - Ban/suspend by DID
-- Post deletion, thread locking
-- Content flagging/reporting queue
-- Moderation action log (audit trail)
+- Post deletion (soft + hard), thread locking, pinning
+- Post/thread moving between locations (mod tool)
+- Comprehensive moderation action log (audit trail)
 - Anti-spam: rate limiting by DID (post-auth) and by IP (pre-auth)
-- Standard admin tooling
+- Standard admin tooling (manage forums, users, threads, posts, roles, custom roles, mod-log)
 
 ### Explicitly Out of Scope (v1)
 
@@ -307,7 +156,8 @@ The forum is intended to be open sourced so that others can self-host it. All se
 
 - SvelteKit (same codebase as backend via server actions)
 - CSS: Tailwind CSS v4 with CSS custom properties for light/dark theming
-- Markdown editor: Plain `<textarea>` with button-toggled preview via `POST /api/preview` (server-rendered — no client-side markdown library)
+- Markdown editor: Plain `<textarea>` with live client-side preview via `markdown-it` (no CodeMirror or rich editor)
+- Shared components: AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead, ThemeToggle
 
 ### Infrastructure
 
@@ -321,188 +171,55 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | Reverse proxy | Caddy (also serves `client-metadata.json` as static file) |
 | Backups | Daily `pg_dump` → Cloudflare R2 or Backblaze B2 via cron, 7-day rolling |
 
-### Docker Compose Services (Production)
+### Docker Compose Services
 
-Defined in `docker-compose.prod.yml`:
+**Production** (`docker-compose.prod.yml` at project root):
 
-1. **`app`** — SvelteKit container, built from repo, internal network only
-2. **`worker`** — Same image as `app`, runs `npx tsx src/worker.ts` — notification queue processor
-3. **`db`** — PostgreSQL 17 Alpine image, data on named volume, internal network only
-4. **`caddy`** — Reverse proxy, ports 80/443 exposed, automatic HTTPS via Let's Encrypt
+1. **`app`** — SvelteKit container, built from `Dockerfile.prod`, internal network only
+2. **`worker`** — Same image, runs `npx tsx src/worker.ts` — notification queue processor
+3. **`db`** — PostgreSQL 17 Alpine, data on named volume, internal network only
+4. **`caddy`** — Reverse proxy (uses `Caddyfile.prod`), ports 80/443 exposed, automatic HTTPS via Let's Encrypt
 
-Only Caddy is exposed to the internet. All other services are unreachable from outside.
+Only Caddy is exposed to the internet. All other services on internal network only.
 
-**Dev** uses `docker/docker-compose.dev.yml` — PostgreSQL only on `localhost:5432`. The app runs locally via `npm run dev`.
+**Development** (`docker/docker-compose.dev.yml`):
+- PostgreSQL only on `localhost:5432`
+- App runs locally via `npm run dev` (not in container)
 
 ---
 
 ## Database Schema (Logical)
 
-> Full SQL-level schema with indexes is in ARCHITECTURE.md §3. This section is the logical summary.
+> Full SQL-level schema with indexes is in ARCHITECTURE.md. This section is the logical summary.
 
-### `users`
+### Core Tables
 
-| Column | Type | Notes |
-|---|---|---|
-| `did` | TEXT PRIMARY KEY | ATproto DID — never changes |
-| `handle` | TEXT | Cached, updated by background sync |
-| `display_name` | TEXT | Cached |
-| `avatar_url` | TEXT | Cached |
-| `last_profile_sync` | TIMESTAMPTZ | Triggers re-sync if > 24h on post |
-| `global_role` | TEXT | `admin`, `member`, `banned` — moderator is per-forum only |
-| `notify_via_bluesky` | BOOLEAN | Default false — opt-in DM notifications |
-| `chat_session_encrypted` | TEXT NULLABLE | Encrypted ATproto chat tokens, null until opt-in |
-| `created_at` | TIMESTAMPTZ | |
+**`users`** — ATproto identity, cached profile, role, notification preferences, timezone
+**`forums`** — Hierarchical forum structure (parent_id for sub-forums)
+**`threads`** — Discussion threads (locked/pinned status, last_post_at for sorting)
+**`posts`** — Thread posts (markdown + sanitized HTML, reply_to_post_id for quotes, status for soft-delete)
+**`post_revisions`** — Edit history (append-only snapshots)
 
-### `forums`
+### Permissions & Roles
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `parent_id` | UUID NULLABLE FK → forums | Null = top-level forum |
-| `name` | TEXT | |
-| `description` | TEXT | |
-| `slug` | TEXT UNIQUE | URL-safe identifier |
-| `sort_order` | INTEGER | |
-| `created_at` | TIMESTAMPTZ | |
+**`forum_permissions`** — Explicit read/post/moderate per role per forum (guest, member, moderator, admin)
+**`user_forum_roles`** — Per-forum moderator assignments (user_did + forum_id)
+**`roles`** — Admin-defined custom roles (name, description, color)
+**`user_roles`** — Global custom role assignments (many-to-many)
 
-### `threads`
+### Moderation & Notifications
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `forum_id` | UUID FK → forums | |
-| `author_did` | TEXT FK → users.did | |
-| `title` | TEXT | |
-| `slug` | TEXT | Generated from title; unique per forum |
-| `is_locked` | BOOLEAN | Default false |
-| `is_pinned` | BOOLEAN | Default false |
-| `created_at` | TIMESTAMPTZ | |
-| `last_post_at` | TIMESTAMPTZ | Updated on new post — for sorting |
+**`mod_log`** — Append-only audit trail (action, target_did, target_post_id, reason, timestamp)
+**`notification_queue`** — Async DM queue (pending/sent/failed status, payload JSONB)
+**`notification_subscriptions`** — Per-thread follow/mute (user_did + thread_id + type)
+**`thread_views`** — Last-viewed tracking (user_did + thread_id + last_viewed_at)
 
-### `posts`
+### Admin & Config
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `thread_id` | UUID FK → threads | |
-| `author_did` | TEXT FK → users.did | |
-| `body_markdown` | TEXT | Raw markdown as submitted |
-| `body_html` | TEXT | Sanitized HTML, generated server-side at submit |
-| `reply_to_post_id` | UUID NULLABLE FK → posts | For quote/reference links — flat model |
-| `link_metadata` | JSONB NULLABLE | OG data for first bare-line URL in post |
-| `status` | TEXT | `'active'`, `'hidden'`, `'archived'`, `'deleted'` — post visibility state |
-| `is_deleted` | BOOLEAN | DEPRECATED — use `status` column instead |
-| `created_at` | TIMESTAMPTZ | |
-| `edited_at` | TIMESTAMPTZ NULLABLE | |
-| `body_tsv` | TSVECTOR | Generated column for full-text search |
+**`sessions`** — Custom roll-your-own (token SHA-256 hash, expires_at, rolling expiry)
+**`instance_settings`** — Key-value config (setup_complete, first_admin_claimed, default_forum_visibility)
 
-### `post_revisions`
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `post_id` | UUID FK → posts | |
-| `revision_number` | INTEGER | Increments per post; unique with post_id |
-| `body_markdown` | TEXT | Full snapshot |
-| `body_html` | TEXT | Full snapshot, sanitized |
-| `edited_by_did` | TEXT FK → users.did | |
-| `created_at` | TIMESTAMPTZ | |
-
-Revisions are append-only. Current version lives in `posts`. Accessible at `/f/[forumSlug]/t/[threadId]/post/[postId]/revisions`.
-
-### `forum_permissions`
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `forum_id` | UUID FK → forums | |
-| `role` | TEXT | `guest`, `member`, `moderator`, `admin` |
-| `can_read` | BOOLEAN | |
-| `can_post` | BOOLEAN | |
-| `can_moderate` | BOOLEAN | |
-
-`guest` = unauthenticated visitors. Permission inheritance: walk up `parent_id` chain until a row is found; instance default applies if none exists. Explicit rows override inherited permissions.
-
-### `user_forum_roles`
-
-| Column | Type | Notes |
-|---|---|---|
-| `user_did` | TEXT FK → users.did | Composite PK with forum_id |
-| `forum_id` | UUID FK → forums | |
-| `role` | TEXT | Currently: `moderator` only |
-| `assigned_by` | TEXT FK → users.did | |
-| `assigned_at` | TIMESTAMPTZ | |
-
-Global `admin` and `banned` on `users.global_role` always override this table. One role per user per forum.
-
-### `roles` (admin-defined custom roles)
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `name` | TEXT UNIQUE | Role name (e.g., "Moderator", "Contributor", "VIP") |
-| `description` | TEXT NULLABLE | Role description for UI/documentation |
-| `color` | TEXT NULLABLE | Hex color code for role badge (e.g., `#e11d48`) |
-| `created_at` | TIMESTAMPTZ | |
-
-Admins can create custom roles and assign them globally to users. These supplement per-forum moderator assignments.
-
-### `user_roles` (global custom role assignments)
-
-| Column | Type | Notes |
-|---|---|---|
-| `user_did` | TEXT FK → users.did | Composite PK with role_id |
-| `role_id` | UUID FK → roles.id | Cascade delete on role removal |
-| `assigned_by` | TEXT FK → users.did | |
-| `assigned_at` | TIMESTAMPTZ | |
-
-Many-to-many relationship: users can have multiple global roles. Role badges are displayed on user profiles and in forum threads.
-
-### `notification_queue`
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `recipient_did` | TEXT FK → users.did | |
-| `type` | TEXT | `reply_to_thread`, `quote`, `new_reply_in_thread`, `mod_action` |
-| `payload` | JSONB | Notification-specific data |
-| `status` | TEXT | `pending`, `sent`, `failed` |
-| `created_at` | TIMESTAMPTZ | |
-| `sent_at` | TIMESTAMPTZ NULLABLE | |
-
-### `mod_log`
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PRIMARY KEY | |
-| `moderator_did` | TEXT FK → users.did | |
-| `action` | TEXT | Thread ops: `lock_thread`, `unlock_thread`, `pin_thread`, `unpin_thread`; Post ops: `hide_post`, `hide_own_post`, `delete_post`, `delete_own_post`, `restore_post`; User ops: `ban`, `unban`, `promote_admin`, `demote_admin`, `delete_account`, `delete_all_posts`; Role ops: `create_role`, `edit_role`, `delete_role`, `assign_custom_role`, `remove_custom_role`; Forum ops: `reorder_forum`, `assign_forum_mod`, `remove_forum_mod`, `update_forum_permission` |
-| `target_did` | TEXT NULLABLE | User acted upon, if applicable |
-| `target_post_id` | UUID NULLABLE | Post acted upon, if applicable |
-| `target_thread_id` | UUID NULLABLE | Thread acted upon, if applicable |
-| `target_forum_id` | UUID NULLABLE | Forum acted upon, if applicable |
-| `reason` | TEXT NULLABLE | Reason for action, or related data (role name, etc) |
-| `created_at` | TIMESTAMPTZ | |
-
-### `sessions` (custom, roll-your-own, self-pruning)
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | TEXT PRIMARY KEY | SHA-256 hash of the token; token itself lives only in cookie |
-| `user_did` | TEXT FK → users.did | |
-| `expires_at` | TIMESTAMPTZ | Rolling 30-day expiry; invalidated on logout or expiry |
-
-**Self-pruning maintenance:** `validateSession()` includes a 1% probabilistic `DELETE` of expired rows. Cleanup scales with traffic and requires no external cron or maintenance worker.
-
-### `instance_settings`
-
-| Column | Type | Notes |
-|---|---|---|
-| `key` | TEXT PRIMARY KEY | |
-| `value` | TEXT | |
-
-Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_complete`, `first_admin_claimed`.
+See ARCHITECTURE.md for full schema with column types and indexes.
 
 ---
 
@@ -518,27 +235,15 @@ Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_compl
 **Tier 2 — Identity + chat (opt-in notification users)**
 - Scope: `atproto transition:chat.bsky`
 - Requested lazily when user enables Bluesky DM notifications in their profile
-- Initiates a new OAuth request mid-session with expanded scopes
 - Tokens stored encrypted in `users.chat_session_encrypted`
 
 ### Client Metadata
 
-- `client-metadata.json` is served at a stable public HTTPS URL: `{PUBLIC_BASE_URL}/client-metadata.json`
-- This file is the forum's OAuth client identity on the ATproto network
-- **Constructed dynamically** from environment variables, not written to disk (eliminates filesystem coupling)
-- A SvelteKit server route (`src/routes/client-metadata.json/+server.ts`) builds and serves it on-demand
-- Contains: `client_id` (its own URL), redirect URIs, public JWK, scopes — all from `ATPROTO_PRIVATE_KEY` env var
-- Consequence: **The app is stateless** across multiple horizontally-scaled instances
-- Setup script generates the P-256 (ES256) JWK keypair and stores it in `ATPROTO_PRIVATE_KEY` env var only
-
-### Session Flow
-
-1. User initiates login → redirect to their PDS authorization server
-2. OAuth callback → `@atproto/oauth-client-node` handles token exchange
-3. DID extracted from token response `sub` field (verified)
-4. Custom session created: 32-byte random token → SHA-256 hash stored in DB, raw token in cookie (`SameSite=Strict`, `HttpOnly`, `Secure`)
-5. User record upserted in `users` table (create on first login, update profile cache)
-6. If `instance_settings.first_admin_claimed = 'false'`: promote user to `global_role = 'admin'`, set `first_admin_claimed = 'true'`, write `mod_log` entry, show one-time banner
+- `client-metadata.json` served at `{PUBLIC_BASE_URL}/client-metadata.json`
+- **Dynamically constructed** from environment variables (no filesystem coupling)
+- Generated by SvelteKit route (`src/routes/client-metadata.json/+server.ts`)
+- App is **stateless** across horizontally-scaled instances
+- Setup script generates P-256 JWK keypair, stores in `ATPROTO_PRIVATE_KEY` env var
 
 ---
 
@@ -547,59 +252,33 @@ Seed rows: `default_forum_visibility` (`public` or `members-only`), `setup_compl
 ### Email (Admin/Moderator only)
 
 - Nodemailer over SMTP — provider configured entirely via environment variables
-- No Mailgun SDK or any provider SDK in application code
-- Application code calls only `sendEmail(to, subject, body)` from `src/lib/email.ts`
-- Switching providers = changing SMTP env vars only, no code changes
+- Triggers: new moderation queue item, flagged content, admin alerts
 
-Triggers:
-- New item in moderation queue → notify moderators
-- Flagged content → notify moderators
-- Admin alerts (configurable)
+### Bluesky DM Notifications (opt-in)
 
-### Bluesky DM Notifications (opt-in, regular users)
-
-Notification triggers (only fire when user has opted in):
+**Triggers (only when user opts in):**
 - Someone replied to your thread
 - Someone quoted your post
 - Thread you started has new replies
 - Moderator action taken on your content
 
-Do NOT send:
-- View counts, engagement metrics
-- Digest/broadcast messages
-- Anything not triggered by a specific user action
+**Rate limiting:** No more than 1 DM per recipient per hour
+**Frequency preferences:** User can choose immediate, hourly, or daily batching
+**Thread overrides:** Follow (always notify) or Mute (never notify) per thread
 
 ### Notification Worker
 
-- **Separate process** from the web tier (runs `src/worker.ts` in its own container via `docker-compose.prod.yml`)
-- Polls `notification_queue` for `status = 'pending'` every 60 seconds
-- Uses PostgreSQL's `FOR UPDATE SKIP LOCKED` to safely scale across multiple worker instances without race conditions
-- Sends via `@atproto/api` chat methods using the service account credentials
-- Rate limiting check before send: no more than 1 DM per recipient per hour
-- Marks records `sent` or `failed` with timestamp
-- Unprocessed notifications survive server restarts (persisted in DB)
-- **Notification helpers** live in `src/lib/notifications.ts` (enqueue functions called by routes)
-- **Consequence:** Web tier remains stateless; can scale independently of worker tier
+- **Separate process** from web tier (`src/worker.ts` in its own container)
+- Polls `notification_queue` every 60 seconds for `status = 'pending'`
+- Uses PostgreSQL `FOR UPDATE SKIP LOCKED` for safe distributed processing
+- Sends via `@atproto/api` chat methods with service account credentials
+- Web tier remains stateless; can scale independently
 
----
+### Service Account (Forum Bot)
 
-## Service Account (Forum Bot Identity)
-
-The forum needs its own ATproto identity to send DM notifications. This is separate from user auth.
-
-### What It Is
-
-A Bluesky account created specifically for the forum instance (e.g. `notifications@yourforum.bsky.social`). It never posts publicly. Used only for sending DMs to opted-in users.
-
-### Authentication Method
-
-App Password (not full OAuth) — simpler for server-to-server, static credential, scoped and revocable from Bluesky account settings.
-
-### Setup Paths for Deployers
-
-1. **Create new bsky.app account** — common case, 5 minutes, documented in README
-2. **Use existing Bluesky account** — same setup, different credentials
-3. **Self-hosted PDS** — advanced, documented with link to ATproto PDS docs, not required
+- Bluesky account created for the forum instance (e.g., `notifications@yourforum.bsky.social`)
+- Uses App Password (not full OAuth) for DM access
+- Configured via environment variables (`ATPROTO_SERVICE_HANDLE`, `ATPROTO_SERVICE_APP_PASSWORD`)
 
 ---
 
@@ -610,7 +289,7 @@ App Password (not full OAuth) — simpler for server-to-server, static credentia
 ATPROTO_CLIENT_ID=https://yourforum.com/client-metadata.json
 ATPROTO_PRIVATE_KEY=<JWK JSON string — generated by scripts/gen-keypair.js>
 
-# ATproto Service/Notification Account (for Bluesky DM notifications)
+# ATproto Service/Notification Account
 ATPROTO_SERVICE_HANDLE=notifications.yourforum.bsky.social
 ATPROTO_SERVICE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 
@@ -644,10 +323,10 @@ SETUP_COMPLETE=true
 
 ## Security Defaults
 
-These must be in place from day one, not added later:
+These must be in place from day one:
 
 - `SameSite=Strict` on all session cookies
-- Content Security Policy headers — see details below
+- Content Security Policy headers (declared in `svelte.config.js`, NOT `hooks.server.ts`)
 - All markdown sanitized server-side via `rehype-sanitize` **before storage**
 - Drizzle parameterized queries throughout — no raw string concatenation
 - Rate limiting at HTTP layer: by DID post-auth, by IP pre-auth
@@ -658,48 +337,19 @@ These must be in place from day one, not added later:
 
 ### Content Security Policy
 
-CSP is declared in `svelte.config.js` under `kit.csp.directives` — **not** in `hooks.server.ts`. This lets SvelteKit generate a fresh per-request nonce and stamp it on every inline `<script>` it injects (hydration bootstrap, `<svelte:head>` scripts), so `'unsafe-inline'` is not needed in `script-src`.
-
-**Critical:** the `kit.csp` block is wrapped in `process.env.NODE_ENV === 'production'` and is intentionally absent in dev. Vite's HMR dev server injects its own inline scripts that SvelteKit cannot nonce — applying CSP in dev breaks hydration entirely (the toggle/any interactivity stops working with no obvious error). Do not add CSP to dev mode.
-
-`hooks.server.ts` sets the other security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) but must not set `Content-Security-Policy` manually — that would conflict with and override the nonce SvelteKit generates.
-
----
-
-## Deployment
-
-### First-Run Setup (for open source deployers)
-
-`scripts/setup.sh` (bash for early steps, offloads to Node for API validation) automates:
-
-1. Generates P-256 JWK keypair via `scripts/gen-keypair.js`
-2. Writes private key to `.env`
-3. Generates and writes `client-metadata.json` with public key + config
-4. Prompts for service notification account handle + App Password; validates via test API call
-5. Prompts for SMTP credentials; sends test email
-6. Prompts for default forum visibility (`public` or `members-only`)
-7. Writes `SETUP_COMPLETE=true` to `.env`
-8. All output also written to `logs/setup.log`
-9. On first login after setup, the first user to authenticate is auto-promoted to admin (one-time only, gated on `instance_settings.first_admin_claimed`)
-
-**Admin promotion:** The first user to log in is automatically promoted to admin (one-time, gated by `instance_settings.first_admin_claimed` flag). After that, use the `/admin/users` page to manually promote other users. All promotions are logged in `mod_log` with `action = 'promote_admin'`.
+- Declared in `svelte.config.js` under `kit.csp.directives` only
+- **NOT** in `hooks.server.ts` (would conflict with SvelteKit's nonce generation)
+- SvelteKit generates fresh per-request nonce, stamps inline `<script>` tags
+- Intentionally absent in dev (Vite HMR injects scripts SvelteKit cannot nonce)
+- `hooks.server.ts` sets other headers: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS
 
 ---
 
 ## User Safety Guardrails
 
-These guardrails prevent accidental data loss and destructive actions:
-
 ### Confirmation Dialogs for Irreversible Actions
 
-**All actions that destroy, permanently delete, or irreversibly modify data must have a confirmation dialog.** This includes:
-
-- **Permanently delete** operations (post content cleared, data unrecoverable)
-- **Ban users** (reverts to message, but high-impact)
-- **Promote/demote admins** (grants/revokes powerful permissions)
-- **Clear/overwrite content** (any operation that cannot be undone via undo/restore)
-
-**Implementation pattern:**
+**All actions that destroy, permanently delete, or irreversibly modify data must have a confirmation dialog:**
 
 ```typescript
 function confirmDelete(): boolean {
@@ -712,37 +362,45 @@ function confirmDelete(): boolean {
 }
 ```
 
-Then on the form:
-```html
-<form method="POST" action="?/delete" onsubmit={confirmDelete}>
-  <!-- form fields -->
-  <button type="submit">Delete</button>
-</form>
-```
-
-**Confirmation message guidelines:**
+**Message guidelines:**
 - Be specific: state what will happen and whether it's reversible
-- Use "irreversible" / "cannot be undone" language for permanent operations
-- Use "removed from view" / "can be restored" language for soft-delete operations
-- Keep it short (2-3 sentences max)
+- Use "irreversible" / "cannot be undone" for permanent operations
+- Use "removed from view" / "can be restored" for soft-delete
+- Keep it 2-3 sentences max
 
-**Soft-delete actions** (hide, archive, mute) where content is preserved or reversible do not strictly require confirmation but should clarify reversibility:
-- "Hide this post? It will be removed from view but can be restored."
+### Button Styling
 
-### Button Styling for Destructive Actions
+- **Destructive:** Always use `.btn-danger` (red) to signal severity
+- **Primary:** Use `.btn-primary` for main CTA
+- **Secondary:** Use `.btn-secondary` for alternatives
+- **Disabled:** All support `:disabled` styling
 
-Irreversible actions should use `.btn-danger` styling (red) to signal severity and draw attention to prevent accidental clicks.
+### Audit Trail
 
-### Audit Trail for Destructive Actions
-
-All irreversible operations must be logged in `mod_log` with:
-- The moderator/user who took the action
+All irreversible operations logged in `mod_log` with:
+- The user/moderator who took the action
 - What action was taken
-- Optional reason field (for ban, delete, etc.)
+- Optional reason field
 - Timestamp
 - Target resource (post ID, user DID, etc.)
 
-This ensures accountability and allows recovery/investigation of accidental deletions.
+---
+
+## Deployment
+
+### First-Run Setup
+
+`scripts/setup.sh` automates deployment setup:
+
+1. Generates P-256 JWK keypair via `scripts/gen-keypair.js`
+2. Writes private key to `.env`
+3. Generates `client-metadata.json` with public key + config
+4. Prompts for service account handle + App Password; validates via API
+5. Prompts for SMTP credentials; sends test email
+6. Prompts for default forum visibility (`public` or `members-only`)
+7. Writes `SETUP_COMPLETE=true` to `.env`
+8. All output logged to `logs/setup.log`
+9. First user to log in is auto-promoted to admin (one-time only)
 
 ### Deployment Workflow
 
@@ -755,10 +413,10 @@ docker compose -f docker-compose.prod.yml up -d
 
 Two-minute deploy. Rolling restart acceptable at this scale.
 
-### Backup Cron (on host, not in container)
+### Backup Strategy
 
 ```bash
-# Daily at 2am — adjust project name and bucket as needed
+# Daily at 2am — adjust project name and bucket
 0 2 * * * docker compose -f /path/to/docker-compose.prod.yml exec -T db \
   pg_dump -U forum forum | gzip | \
   rclone rcat r2:forum-backups/$(date +\%Y-\%m-\%d).sql.gz
@@ -766,58 +424,50 @@ Two-minute deploy. Rolling restart acceptable at this scale.
 
 Keep 7 days rolling. Use `rclone` configured for R2 or B2.
 
-### Full Recovery Procedure
+### Full Recovery
 
-1. Provision new Hetzner instance, point DNS
+1. Provision new instance, point DNS
 2. Clone repo
-3. Copy `.env` (from password manager) and latest backup (from R2/B2)
+3. Copy `.env` and latest backup
 4. `docker compose -f docker-compose.prod.yml up -d`
-5. Restore: `gunzip < backup.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U forum forum`
+5. `gunzip < backup.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U forum forum`
 
-Total time from bare server to running: under 30 minutes.
-
----
-
-## Open Source Considerations
-
-- All secrets in `.env` — never committed
-- `client-metadata.json` is a generated artifact — in `.gitignore`, produced by setup script
-- Setup script is the primary onboarding path — README points to it first
-- Deployer's Bluesky account becomes the first admin on first login
-- No hardcoded references to any specific domain, instance name, or account
-- PDS self-hosting is documented as advanced/optional, not required
+Total time: under 30 minutes.
 
 ---
 
-## Decisions Made and Why (Do Not Re-Litigate)
+## Key Decisions (Not Re-Litigated)
 
 | Decision | Rationale |
 |---|---|
-| Flat reply model | Nested replies degrade at scale; flat-chronological with quote links is how successful long-form forums actually work |
-| DIDs not handles as PKs | Handles are mutable; DIDs are permanent |
-| No Redis in v1 | Unnecessary at this scale; adds operational overhead; sessions in Postgres (roll-your-own) are fine |
-| No bitmask permissions | Premature optimization; explicit rows in `forum_permissions` are easier to debug and reason about |
-| SvelteKit monolith not Hono+frontend | SSR is mandatory for forum SEO; no reason for API boundary at this scale |
-| Nodemailer not provider SDK | Vendor lock-in prevention; SMTP is universal |
-| Worker as separate process, not hooks.server.ts loop | Eliminates competing loops and race conditions if web tier scales. PostgreSQL's FOR UPDATE SKIP LOCKED handles queue distribution safely. |
-| Dynamic client-metadata route, not static file | Eliminates filesystem state. App becomes stateless across instances. Setup writes to env vars only. |
-| Atomic rate-limit upserts, not read-then-write | Concurrent requests are safe via SQL `INSERT ... ON CONFLICT`. Abstraction layer unchanged if switching to Redis later. |
-| Probabilistic session cleanup, not cron job | 1% per request proportional to traffic. Eliminates external maintenance task. |
-| Notifications opt-in not opt-out | Audience is Bluesky users who are sensitive to spam; trust is more valuable than reach |
-| ATproto write-back deferred | Scope creep in v1; product decision about pushing content to users' feeds deserves its own deliberation |
-| No email to regular users | Bluesky DMs are the native channel for this audience |
-| `pg_dump` not managed backup service | Keeps infrastructure minimal; R2/B2 are cheap and reliable enough |
-| Per-forum moderator roles, not global | Global moderator is too coarse; `user_forum_roles` table allows scoped assignment |
-| `global_role` reduced to `admin\|member\|banned` | Moderator moved to per-forum; cleaner separation of concerns |
-| Custom sessions (no external library) | 32-byte random token + SHA-256 hash in Postgres `sessions` table, ~50 lines. Simple, proven, easier to reason about than external libraries |
-| Plain textarea editor | Simple and sufficient; preview via server endpoint means no client-side markdown renderer needed; CodeMirror 6 is a future option if editing UX becomes a priority |
-| Button-toggled preview, not live | Avoids client-side markdown dependency; preview is always authoritative server-rendered HTML |
-| Thread URLs: `/f/[forum]/t/[uuid]/[slug]` | UUID is authoritative (links never break); slug is cosmetic with 301 redirect on mismatch |
-| Post revisions: full snapshots | Simple to query and render; storage cost negligible at forum scale |
-| OG fetch only for bare-line URLs | Reduces noise; matches user expectation (Slack/Discord behaviour); can be disabled instance-wide |
-| Per-forum visibility tiers (`guest\|member\|moderator\|admin`) | Flexible enough for most community configurations without complex RBAC |
-| Instance-level default visibility setting | Deployers choose public or members-only at setup; individual forums can override |
-| First-admin via `instance_settings` gate | One-time, audited, survives restarts; gated on `first_admin_claimed` flag |
-| Breakglass as `docker exec` only | SSH access is the safeguard; no web surface to attack; action is always logged |
-| Seed a General forum at setup | Gives deployer something to log into immediately |
-| Tailwind CSS v4 + shadcn-svelte | Most-documented utility framework; accessible components; clean to edit for frontend newcomers |
+| Flat reply model | Nested replies degrade at scale; flat + quotes proven to scale |
+| DIDs not handles as PKs | Handles mutable; DIDs permanent |
+| No Redis in v1 | Unnecessary at scale; Postgres sessions sufficient |
+| No bitmask permissions | Explicit rows easier to debug |
+| SvelteKit monolith | SSR mandatory for SEO; no API boundary needed at this scale |
+| Nodemailer not SDK | Vendor lock-in prevention; SMTP universal |
+| Worker as separate process | Safe distributed queue via `FOR UPDATE SKIP LOCKED` |
+| Dynamic client-metadata | Stateless app across instances |
+| Notifications opt-in | Bluesky users sensitive to spam; trust > reach |
+| Plain textarea editor | Simple; preview via server endpoint eliminates client library |
+| Button-toggled preview | Authoritative server-rendered preview (no client markdown lib) |
+| `pg_dump` backups | Infrastructure minimal; R2/B2 cheap and reliable |
+| Custom sessions | 32-byte token + SHA-256, ~50 lines, simple and proven |
+
+---
+
+## Documentation Map
+
+| Document | Purpose |
+|---|---|
+| **README.md** | Entry point, getting started, quick start |
+| **CLAUDE.md** | This file — project spec, architecture decisions, core requirements |
+| **PATTERNS.md** | Code patterns, style guide, conventions (read before coding) |
+| **ARCHITECTURE.md** | Technical design, full database schema, APIs, stack decisions |
+| **SCRIPTS.md** | Helper scripts reference — when to use each script and what it does |
+| **DEPLOYMENT.md** | Production deployment guide |
+| **ROADMAP.md** | Phase roadmap (Phases 11–13) and future work |
+| **GUARDRAILS.md** | AI engineering operational rules |
+| **HISTORY.md** | Implementation history (Phases 1–10, 80+ commits) |
+
+---

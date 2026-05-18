@@ -44,21 +44,20 @@ This document translates the project specification (CLAUDE.md) and all collected
 |---|---|---|
 | Framework | SvelteKit | `adapter-node` for Docker deployment |
 | TypeScript | `strict: true` | Throughout |
-| CSS | Tailwind CSS v4 | Most-documented utility framework; clean to edit |
-| Component primitives | shadcn-svelte | Built on Tailwind; accessible; well-documented |
+| CSS | Tailwind CSS v4 | Utility-first with CSS custom properties for theming |
 | Testing | Vitest | Natural SvelteKit fit; unit + integration only in v1 |
 | E2E testing | Playwright | Deferred to post-v1 |
 | Database | PostgreSQL 17 (latest stable) | |
 | ORM | Drizzle | Migration-file workflow throughout (no `drizzle-kit push` in any env) |
 | Sessions | Custom (roll-your-own) | 32-byte random token, SHA-256 hashed in DB, Postgres-backed, no external session library. Simple, proven, and secure |
 | ATproto auth | `@atproto/oauth-client-node` | Official SDK; handles DPoP/PAR/token refresh |
-| Markdown pipeline | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side only |
-| Markdown editor | CodeMirror 6 | With markdown mode; preview is button-toggled (not live) |
-| Client-side markdown | None | Preview is server-rendered via a dedicated preview endpoint |
+| Markdown pipeline | `unified` + `remark-parse` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify` | Server-side for sanitization before storage |
+| Markdown editor | `markdown-it` + `DOMPurify` | Plain `<textarea>` with live client-side preview on keystroke |
+| Client-side markdown | `markdown-it` | Renders preview in real-time; `/api/preview` endpoint available but not used by UI |
 | OG/link metadata | `open-graph-scraper` | Server-side at post submit; triggered only for bare URLs on their own line |
 | Email | Nodemailer over SMTP | Provider-agnostic via env vars |
 | Reverse proxy | Caddy | Automatic TLS; serves `client-metadata.json` as static file |
-| Containerization | Docker Compose (3 services) | `app` + `db` + `caddy` |
+| Containerization | Docker Compose | Production: `app` + `worker` + `db` + `caddy`; Dev: `db` only |
 
 ---
 

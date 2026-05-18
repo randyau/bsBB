@@ -2,6 +2,8 @@
 
 Reusable patterns, code snippets, and style conventions. This is the authoritative reference for code style, design, and development practices across the forum codebase.
 
+**For development workflow and script documentation, see [SCRIPTS.md](SCRIPTS.md).**
+
 ---
 
 ## Datetime Formatting
@@ -120,6 +122,57 @@ The design system uses Tailwind CSS v4 with semantic CSS custom properties for l
 - State persisted to localStorage
 
 **Test both modes before committing.**
+
+---
+
+## Markdown Rendering
+
+### Editor Preview
+
+The new thread/reply form shows a **live preview** that updates on every keystroke:
+
+```svelte
+<script lang="ts">
+  import { renderMarkdownClient } from '$lib/markdown/client';
+
+  let bodyValue: string = $state('');
+  let previewHtml: string = $state('');
+
+  $effect(() => {
+    previewHtml = renderMarkdownClient(bodyValue);
+  });
+</script>
+
+<textarea bind:value={bodyValue} placeholder="Write in Markdown..." />
+<div>{@html previewHtml}</div>
+```
+
+**Key points:**
+- Preview updates in real-time using `markdown-it` on the client
+- Markdown is rendered **server-side** for final storage (via `renderMarkdown()` in `src/lib/markdown/index.ts`)
+- Client preview uses DOMPurify to prevent XSS
+- Use `renderMarkdownClient()` for live previews; use `renderMarkdown()` server-side only
+
+### Server-Side Markdown Processing
+
+Always sanitize markdown **before storage** using `renderMarkdown()`:
+
+```typescript
+import { renderMarkdown } from '$lib/markdown';
+
+const sanitizedHtml = renderMarkdown(userProvidedMarkdown);
+await db.insert(posts).values({
+  content_markdown: userProvidedMarkdown,
+  content_html: sanitizedHtml,
+});
+```
+
+**Pipeline:**
+1. User writes markdown in textarea
+2. Submit → server receives raw markdown
+3. Server calls `renderMarkdown()` → sanitized HTML
+4. Store both: raw markdown + sanitized HTML
+5. Display: use the pre-rendered HTML (no re-rendering at read time)
 
 ---
 

@@ -32,39 +32,6 @@ All complete. 11 commits total covering:
 
 ---
 
-## Phase 10 ⭕ — Search & Discovery
-
-**Goal:** Help users find content and authors.
-
-### 10.1 ⭕ Search by Poster
-
-- Search page: `author:handle` filter syntax (e.g., `author:alice.bsky.social`)
-- Author-only search (no content term): return all posts by author sorted by date
-- Combined: `author:handle keyword` — posts by that author containing keyword
-- Author handles on search results are clickable links: `?q=author:handle`
-- User profile: paginated "Posts" tab (25/page) replacing the current 20-post limit
-
-**Acceptance Criteria:**
-- [ ] `author:` filter syntax works on search page
-- [ ] Author-only search returns posts sorted by date
-- [ ] Combined author+content search works
-- [ ] Author names on result cards are links to `?q=author:handle`
-- [ ] User profile posts tab is paginated (25/page) with Prev/Next
-
----
-
-### 10.2 ⭕ Forum Statistics
-
-- Stats widget on each forum page: total posts, total threads, active members, posts this month
-- Computed on-demand (no caching needed at this scale)
-
-**Acceptance Criteria:**
-- [ ] Stats widget renders on forum view
-- [ ] Counts are accurate after new posts/threads
-- [ ] Styled for light/dark mode
-
----
-
 ## Phase 11 ⭕ — Approval Queue
 
 **Goal:** Give moderators a spam prevention lever without blocking all new users.

@@ -2,84 +2,64 @@
 
 This guide walks you through deploying bsBB to production on your own server.
 
+**For detailed script documentation, see [SCRIPTS.md](SCRIPTS.md#production-setup), especially `scripts/setup.sh`.**
+
 ## Prerequisites
 
 - Linux server (Ubuntu 22.04+ recommended)
 - Docker & Docker Compose installed
 - Domain name (for SSL/TLS)
 - Basic CLI familiarity
+- **Required files present:**
+  - `Caddyfile.prod` (at project root — reverse proxy config)
+  - `docker-compose.prod.yml` (at project root — production services)
 
 ## Quick Start (5 minutes)
 
-### 1. Clone and Configure
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/yourusername/bsBB.git
 cd bsBB
-cp .env.example .env
+npm install
 ```
 
-### 2. Generate Secrets
+### 2. Run First-Run Setup (Interactive)
 
 ```bash
-# Generate encryption key (32 bytes)
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" >> .env
-
-# Generate session secret (32+ bytes)
-node -e "console.log('SESSION_SECRET=' + require('crypto').randomBytes(32).toString('hex'))" >> .env
+bash scripts/setup.sh
 ```
 
-### 3. Edit Environment
+This script (see [SCRIPTS.md](SCRIPTS.md#scriptssetupsh--first-run-deployment-setup)):
+- Generates ATproto OAuth keypair
+- Validates ATproto service account credentials
+- Validates SMTP email configuration
+- Creates `.env` with all secrets
+- Logs everything to `logs/setup.log`
+
+**Prompts for:**
+- ATproto service handle (e.g., `notifications.yourforum.bsky.social`)
+- ATproto app password (create at https://bsky.app/settings/app-passwords)
+- SMTP host/port/user/password (Mailgun, SendGrid, etc.)
+- Default forum visibility (public or members-only)
+
+### 3. Start Production Services
 
 ```bash
-nano .env
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Required variables:
-```env
-PUBLIC_BASE_URL=https://yourforum.com
-DOMAIN=yourforum.com
+Services start:
+- `app` — SvelteKit server on :3000
+- `worker` — Notification queue processor
+- `db` — PostgreSQL 17 on internal network
+- `caddy` — Reverse proxy on ports 80/443
 
-# Database
-DB_USER=forum
-DB_PASSWORD=<generate strong password>
-DB_NAME=forum
+### 4. First User Login Becomes Admin
 
-# ATproto OAuth
-ATPROTO_PRIVATE_KEY=<from setup script or manual generation>
+Visit `https://yourforum.com`, sign in with Bluesky. First user is auto-promoted to admin (one-time).
 
-# Email (SMTP)
-SMTP_HOST=smtp.mailgun.org
-SMTP_PORT=587
-SMTP_USER=postmaster@yourdomain.com
-SMTP_PASS=<password>
-SMTP_FROM=noreply@yourforum.com
-
-# Service account (for DM notifications, optional)
-ATPROTO_SERVICE_HANDLE=notifications@yourforum.bsky.social
-ATPROTO_SERVICE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
-```
-
-### 4. Start Services
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### 5. Initialize Database
-
-```bash
-docker-compose -f docker-compose.prod.yml exec app npm run db:migrate
-docker-compose -f docker-compose.prod.yml exec app npm run db:seed
-```
-
-### 6. Create First Admin
-
-```bash
-docker-compose -f docker-compose.prod.yml exec app npm run admin-promote -- <did>
-```
-
-Done! Visit `https://yourforum.com`
+Done!
 
 ---
 
