@@ -93,6 +93,38 @@ export const actions: Actions = {
 		}
 	},
 
+	updateTimezone: async ({ locals, request }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Not logged in' });
+		}
+
+		const form = await request.formData();
+		const timezone = String(form.get('timezone') ?? 'America/New_York').trim();
+
+		// Validate timezone is a common IANA identifier
+		const validTimezones = [
+			'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Anchorage',
+			'Pacific/Honolulu', 'UTC', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+			'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Singapore', 'Australia/Sydney'
+		];
+
+		if (!validTimezones.includes(timezone)) {
+			return fail(422, { error: 'Invalid timezone' });
+		}
+
+		try {
+			await db
+				.update(users)
+				.set({ timezone })
+				.where(eq(users.did, locals.user.did));
+
+			return { success: true };
+		} catch (err) {
+			console.error('updateTimezone error:', err);
+			return fail(500, { error: 'Failed to update timezone' });
+		}
+	},
+
 	deleteAllPosts: async ({ locals, request }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'Not logged in' });

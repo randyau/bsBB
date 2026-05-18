@@ -23,6 +23,7 @@ export const users = pgTable('users', {
 	notifyViaBluesky: boolean('notify_via_bluesky').notNull().default(false),
 	notificationType: text('notification_type').notNull().default('both'), // 'replies' | 'quotes' | 'both'
 	notificationFrequency: text('notification_frequency').notNull().default('immediate'), // 'immediate' | 'hourly' | 'daily'
+	timezone: text('timezone').notNull().default('America/New_York'), // IANA timezone identifier
 	chatSessionEncrypted: text('chat_session_encrypted'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

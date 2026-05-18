@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import { formatTimeWithAbsolute, formatTimeDisplay } from '$lib/utils/time';
+	import Pagination from '$components/Pagination.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -20,20 +23,6 @@
 
 	function formatDate(date: Date): string {
 		return new Date(date).toLocaleDateString();
-	}
-
-	function formatTime(date: Date): string {
-		const now = new Date();
-		const diffMs = now.getTime() - new Date(date).getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		if (diffMins < 1) return 'now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
-		return formatDate(date);
 	}
 </script>
 
@@ -82,15 +71,23 @@
 		</div>
 	{/if}
 
+	<!-- Top pagination -->
+	{#if data.totalPages > 1}
+		<Pagination
+			page={data.currentPage}
+			totalPages={data.totalPages}
+			total={data.totalPosts}
+			buildUrl={(p) => `?page=${p}${data.search ? `&search=${encodeURIComponent(data.search)}` : ''}`}
+		/>
+	{/if}
+
 	<!-- No posts -->
 	{#if data.userPosts.length === 0}
-		<div class="box-secondary text-center py-12">
-			{#if data.search}
-				<p class="text-[rgb(var(--color-text-muted))]">No posts found matching "{data.search}"</p>
-			{:else}
-				<p class="text-[rgb(var(--color-text-muted))]">No posts yet</p>
-			{/if}
-		</div>
+		<EmptyState
+			message={data.search
+				? `No posts found matching "${data.search}"`
+				: 'No posts yet'}
+		/>
 	{:else}
 		<!-- Posts list -->
 		<div class="space-y-4 mb-8">
@@ -104,8 +101,8 @@
 									{post.threadTitle}
 								</a>
 							</h3>
-							<p class="text-xs text-[rgb(var(--color-text-muted))]">
-								in <span class="font-mono">{post.forumName}</span> • {formatTime(post.createdAt)}
+							<p class="text-xs text-[rgb(var(--color-text-muted))]" title={formatTimeWithAbsolute(post.createdAt).absolute}>
+								in <span class="font-mono">{post.forumName}</span> • {formatTimeWithAbsolute(post.createdAt).relative}
 								{#if post.editedAt}
 									• edited
 								{/if}
@@ -159,31 +156,12 @@
 
 		<!-- Pagination -->
 		{#if data.totalPages > 1}
-			<div class="flex items-center justify-between">
-				<p class="text-sm text-[rgb(var(--color-text-muted))]">
-					Page {data.currentPage} of {data.totalPages}
-				</p>
-
-				<div class="flex gap-2">
-					{#if data.currentPage > 1}
-						<a href="?page=1{data.search ? `&search=${encodeURIComponent(data.search)}` : ''}" class="btn btn-sm btn-secondary">
-							« First
-						</a>
-						<a href="?page={data.currentPage - 1}{data.search ? `&search=${encodeURIComponent(data.search)}` : ''}" class="btn btn-sm btn-secondary">
-							‹ Back
-						</a>
-					{/if}
-
-					{#if data.currentPage < data.totalPages}
-						<a href="?page={data.currentPage + 1}{data.search ? `&search=${encodeURIComponent(data.search)}` : ''}" class="btn btn-sm btn-secondary">
-							Next ›
-						</a>
-						<a href="?page={data.totalPages}{data.search ? `&search=${encodeURIComponent(data.search)}` : ''}" class="btn btn-sm btn-secondary">
-							Last »
-						</a>
-					{/if}
-				</div>
-			</div>
+			<Pagination
+				page={data.currentPage}
+				totalPages={data.totalPages}
+				total={data.totalPosts}
+				buildUrl={(p) => `?page=${p}${data.search ? `&search=${encodeURIComponent(data.search)}` : ''}`}
+			/>
 		{/if}
 	{/if}
 </div>

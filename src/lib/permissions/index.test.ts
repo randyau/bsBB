@@ -23,6 +23,7 @@ const testUser = {
 	notifyViaBluesky: false,
 	notificationType: 'both',
 	notificationFrequency: 'immediate',
+	timezone: 'America/New_York',
 };
 
 const testAdmin = {
@@ -34,6 +35,7 @@ const testAdmin = {
 	notifyViaBluesky: false,
 	notificationType: 'both',
 	notificationFrequency: 'immediate',
+	timezone: 'America/New_York',
 };
 
 describe('canRead permission resolution', () => {

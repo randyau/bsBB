@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { formatTimeDisplay } from '$lib/utils/time';
+	import Pagination from '$components/Pagination.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let searchInput = $state(data.query);
@@ -22,14 +25,6 @@
 		if (searchInput.trim()) {
 			window.location.href = `/search?q=${encodeURIComponent(searchInput)}&page=1`;
 		}
-	}
-
-	function formatDate(date: Date) {
-		return new Date(date).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
 	}
 </script>
 
@@ -59,19 +54,15 @@
 			{data.error}
 		</div>
 	{:else if !data.query}
-		<div class="card-secondary text-center text-secondary p-8">
-			<p>Enter a search term to find posts</p>
-			<p class="text-xs mt-2 text-muted">Tip: use <code class="font-mono bg-[rgb(var(--color-bg-tertiary))] px-1 rounded">author:handle</code> to find posts by a specific user</p>
-		</div>
+		<EmptyState message="Enter a search term to find posts">
+			<p class="text-xs text-muted mt-2">Tip: use <code class="font-mono bg-[rgb(var(--color-bg-tertiary))] px-1 rounded">author:handle</code> to find posts by a specific user</p>
+		</EmptyState>
 	{:else if data.results.length === 0}
-		<div class="card-secondary text-center text-secondary p-8">
-			{#if data.authorFilter}
-				No posts found by <span class="font-mono">@{data.authorFilter}</span>
-				{#if data.contentQuery}containing "{data.contentQuery}"{/if}
-			{:else}
-				No results found for "{data.contentQuery}"
-			{/if}
-		</div>
+		<EmptyState
+			message={data.authorFilter
+				? `No posts found by @${data.authorFilter}${data.contentQuery ? ` containing "${data.contentQuery}"` : ''}`
+				: `No results found for "${data.contentQuery}"`}
+		/>
 	{:else}
 		<!-- Results Header -->
 		<div class="mb-6">
@@ -122,7 +113,7 @@
 							</p>
 						</div>
 						<div class="text-right text-xs text-muted whitespace-nowrap">
-							{formatDate(result.createdAt)}
+							<span>{formatTimeDisplay(result.createdAt)}</span>
 						</div>
 					</div>
 
@@ -143,41 +134,11 @@
 			{/each}
 		</div>
 
-		<!-- Pagination -->
-		{#if data.totalPages > 1}
-			<div class="flex justify-center gap-2">
-				{#if data.page > 1}
-					<a
-						href="/search?q={encodeURIComponent(data.query)}&page={data.page - 1}"
-						class="px-4 py-2 border rounded hover:bg-tertiary"
-					>
-						← Previous
-					</a>
-				{/if}
-
-				{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
-					const startPage = Math.max(1, data.page - 2);
-					return startPage + i;
-				}) as pageNum}
-					<a
-						href="/search?q={encodeURIComponent(data.query)}&page={pageNum}"
-						class="px-4 py-2 rounded border {pageNum === data.page
-							? 'btn-primary text-white'
-							: 'hover:bg-tertiary'}"
-					>
-						{pageNum}
-					</a>
-				{/each}
-
-				{#if data.page < data.totalPages}
-					<a
-						href="/search?q={encodeURIComponent(data.query)}&page={data.page + 1}"
-						class="px-4 py-2 border rounded hover:bg-tertiary"
-					>
-						Next →
-					</a>
-				{/if}
-			</div>
-		{/if}
+		<Pagination
+			page={data.page}
+			totalPages={data.totalPages}
+			total={data.total}
+			buildUrl={(p) => `/search?q=${encodeURIComponent(data.query)}&page=${p}`}
+		/>
 	{/if}
 </div>

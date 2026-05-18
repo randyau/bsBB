@@ -12,6 +12,7 @@ export type SessionUser = {
 	notifyViaBluesky: boolean;
 	notificationType: string;
 	notificationFrequency: string;
+	timezone: string;
 };
 
 const SESSION_COOKIE = 'session';
@@ -69,6 +70,7 @@ export async function validateSession(
 			notifyViaBluesky: users.notifyViaBluesky,
 			notificationType: users.notificationType,
 			notificationFrequency: users.notificationFrequency,
+			timezone: users.timezone,
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userDid, users.did))
@@ -110,6 +112,7 @@ export async function validateSession(
 			notifyViaBluesky: row.notifyViaBluesky,
 			notificationType: row.notificationType,
 			notificationFrequency: row.notificationFrequency,
+			timezone: row.timezone,
 		},
 	};
 }

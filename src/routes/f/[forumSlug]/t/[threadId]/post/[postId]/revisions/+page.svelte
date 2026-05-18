@@ -1,20 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { formatTimeDisplay } from '$lib/utils/time';
 
 	let { data }: { data: PageData } = $props();
-
-	function formatTime(date: Date) {
-		const now = new Date();
-		const diffMs = now.getTime() - new Date(date).getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMins / 60);
-		const diffDays = Math.floor(diffHours / 24);
-
-		if (diffMins < 1) return 'just now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		return `${diffDays}d ago`;
-	}
 
 	let selectedRevisionId: string | null = $state(null);
 </script>
@@ -22,10 +10,10 @@
 <div class="max-w-4xl mx-auto py-8 px-4 space-y-6">
 	<!-- Header -->
 	<div>
-		<a href="/f/{data.forum.slug}/t/{data.thread.slug}" class="text-blue-600 hover:underline text-sm">
+		<a href="/f/{data.forum.slug}/t/{data.thread.slug}" class="link text-sm">
 			← Back to thread
 		</a>
-		<h1 class="text-3xl font-bold mt-4">{data.thread.title}</h1>
+		<h1 class="page-title">{data.thread.title}</h1>
 		<p class="text-[rgb(var(--color-text-secondary))] mt-2">
 			Edit history for post by <span class="font-semibold">@{data.post.authorHandle}</span>
 		</p>
@@ -54,9 +42,7 @@
 							<p class="font-semibold">
 								Edited by <span class="font-mono">@{revision.editorHandle}</span>
 							</p>
-							<p class="text-sm text-[rgb(var(--color-text-secondary))]">
-								{new Date(revision.createdAt).toLocaleString()} ({formatTime(revision.createdAt)})
-							</p>
+							<p class="text-sm text-[rgb(var(--color-text-secondary))]">{formatTimeDisplay(revision.createdAt)}</p>
 						</div>
 						<div class="text-[rgb(var(--color-text-muted))]">
 							{selectedRevisionId === revision.id ? '▼' : '▶'}
@@ -73,10 +59,10 @@
 									{@html revision.bodyHtml}
 								</div>
 								<details class="mt-2">
-									<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-gray-900">
+									<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-[rgb(var(--color-text))]">
 										View markdown source
 									</summary>
-									<pre class="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-xs overflow-x-auto"><code>{revision.bodyMarkdown}</code></pre>
+									<pre class="mt-2 p-3 bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] rounded text-xs overflow-x-auto"><code>{revision.bodyMarkdown}</code></pre>
 								</details>
 							</div>
 
@@ -88,10 +74,10 @@
 										{@html data.post.bodyHtml}
 									</div>
 									<details class="mt-2">
-										<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-gray-900">
+										<summary class="text-xs text-[rgb(var(--color-text-secondary))] cursor-pointer hover:text-[rgb(var(--color-text))]">
 											View markdown source
 										</summary>
-										<pre class="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-xs overflow-x-auto"><code>{data.post.bodyMarkdown}</code></pre>
+										<pre class="mt-2 p-3 bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] rounded text-xs overflow-x-auto"><code>{data.post.bodyMarkdown}</code></pre>
 									</details>
 								</div>
 							{/if}
@@ -103,13 +89,9 @@
 
 		<!-- Original Post Info -->
 		<div class="box-secondary">
-			<p class="text-sm">
-				<strong>Original post:</strong> Created {new Date(data.post.createdAt).toLocaleString()}
-			</p>
+			<p class="text-sm"><strong>Original post:</strong> Created {formatTimeDisplay(data.post.createdAt)}</p>
 			{#if data.post.editedAt}
-				<p class="text-sm mt-1">
-					<strong>Last edited:</strong> {new Date(data.post.editedAt).toLocaleString()}
-				</p>
+				<p class="text-sm mt-1"><strong>Last edited:</strong> {formatTimeDisplay(data.post.editedAt)}</p>
 			{/if}
 		</div>
 	{/if}

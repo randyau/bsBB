@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
+	import { formatTimeDisplay } from '$lib/utils/time';
+	import Breadcrumb from '$components/Breadcrumb.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -204,29 +207,13 @@
 		modEditBody = '';
 		modEditReason = '';
 	}
-
-	function formatTime(date: Date) {
-		const now = new Date();
-		const diffMs = now.getTime() - new Date(date).getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		if (diffMins < 1) return 'now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
-		return new Date(date).toLocaleDateString();
-	}
 </script>
 
 <div class="space-y-6 py-8">
 	<!-- Breadcrumb & Header -->
 	<div>
-		<div class="text-sm mb-4">
-			<a href="/" class="text-[rgb(var(--color-primary))] hover:underline">Forums</a>
-			<span class="text-[rgb(var(--color-text-muted))]"> / </span>
-			<a href="/f/{data.forum.slug}" class="text-[rgb(var(--color-primary))] hover:underline">{data.forum.name}</a>
+		<div class="mb-4">
+			<Breadcrumb crumbs={[{ label: 'Forums', href: '/' }, { label: data.forum.name, href: `/f/${data.forum.slug}` }]} />
 		</div>
 
 		<div class="flex items-center gap-2 flex-wrap">
@@ -279,8 +266,8 @@
 						</form>
 					</div>
 				{:else}
-					<p class="text-sm text-[rgb(var(--color-text-muted))]">
-						<a href="/settings#notifications" class="text-[rgb(var(--color-primary))] hover:underline">Enable notifications</a> to watch or mute threads.
+					<p class="text-xs text-[rgb(var(--color-text-muted))]">
+						<a href="/settings#notifications" class="text-[rgb(var(--color-primary))] hover:underline">Enable notifications</a> to watch/mute
 					</p>
 				{/if}
 			{/if}
@@ -326,9 +313,7 @@
 
 	<!-- Posts -->
 	{#if data.posts.length === 0}
-		<div class="box-secondary text-center">
-			<p>No posts yet.</p>
-		</div>
+		<EmptyState message="No posts yet." />
 	{:else}
 		<div class="space-y-4">
 			{#each data.posts as post, idx (post.id)}
@@ -358,13 +343,14 @@
 
 						<div class="flex flex-col items-end gap-2">
 							<div class="text-sm text-[rgb(var(--color-text-muted))] text-right">
-								<p>{formatTime(post.createdAt)}</p>
+								<p><span class="text-sm">{formatTimeDisplay(post.createdAt)}</span></p>
 								{#if post.editedAt}
+									
 									<a
 										href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
 										class="text-xs italic link"
 									>
-										edited {formatTime(post.editedAt)} (history)
+										edited {formatTimeDisplay(post.editedAt)} (history)
 									</a>
 								{/if}
 							</div>

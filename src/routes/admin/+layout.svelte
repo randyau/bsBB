@@ -40,8 +40,10 @@
 	</div>
 
 	<!-- Main Content -->
-	<main class="flex-1 p-8 bg-[rgb(var(--color-bg))]">
-		<a href="/" class="text-[rgb(var(--color-primary))] hover:underline text-sm mb-4 block">← Back to Forum</a>
+	<main class="flex-1 bg-[rgb(var(--color-bg))] overflow-y-auto">
+		<div class="sticky top-0 bg-[rgb(var(--color-bg))] border-b border-[rgb(var(--color-border))] px-8 py-4 z-10">
+			<a href="/" class="text-[rgb(var(--color-primary))] hover:underline text-sm">← Back to Forum</a>
+		</div>
 		{@render children?.()}
 	</main>
 </div>

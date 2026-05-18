@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
+	import Breadcrumb from '$components/Breadcrumb.svelte';
 
 	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
 
@@ -24,13 +25,7 @@
 
 <div class="space-y-6 py-8">
 	<!-- Breadcrumb -->
-	<div class="text-sm mb-4">
-		<a href="/" class="text-blue-600 hover:underline">Forums</a>
-		<span class="text-[rgb(var(--color-text-muted))]"> / </span>
-		<a href="/f/{data.forum.slug}" class="text-blue-600 hover:underline">{data.forum.name}</a>
-		<span class="text-[rgb(var(--color-text-muted))]"> / </span>
-		<span>New Thread</span>
-	</div>
+	<Breadcrumb crumbs={[{ label: 'Forums', href: '/' }, { label: data.forum.name, href: `/f/${data.forum.slug}` }, { label: 'New Thread' }]} />
 
 	<h1 class="page-title">Create New Thread</h1>
 

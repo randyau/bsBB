@@ -372,6 +372,12 @@ input[type="radio"]:disabled {
 	overflow-x: auto;
 }
 
+/* Table header row */
+.table-thead {
+	background-color: rgb(var(--color-bg-tertiary));
+	border-bottom: 1px solid rgb(var(--color-border));
+}
+
 /* Alerts and messages */
 .alert {
 	border-radius: 0.5rem;
