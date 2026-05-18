@@ -10,11 +10,13 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 
 ## Prerequisites
 
-- Linux server (Ubuntu 22.04+ recommended)
-- Docker and Docker Compose installed
+- **Linux server** (Ubuntu 22.04+ recommended) — all production scripts are Linux bash scripts
+- Docker and Docker Compose installed on the server
 - Domain name pointed at your server's IP
 - Bluesky account for the notification bot (optional but recommended)
 - SMTP credentials for email alerts (optional)
+
+> **Running setup from Windows?** Use a WSL2 terminal to run the bash scripts, or SSH directly into your Linux server and run them there. The scripts target Linux and are not designed for PowerShell or Command Prompt.
 
 ---
 
