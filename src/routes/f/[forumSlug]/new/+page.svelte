@@ -7,8 +7,9 @@
 
 	let { data, form }: { data: PageData; form: FormData } = $props();
 
-	let titleValue: string = $state(form?.title || '');
-	let bodyValue: string = $state(form?.body || '');
+	let titleValue: string = $state('');
+	let bodyValue: string = $state('');
+	$effect(() => { titleValue = form?.title || ''; bodyValue = form?.body || ''; });
 	let previewHtml: string = $state('');
 
 	const TITLE_MAX = 300;

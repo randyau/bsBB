@@ -9,6 +9,14 @@
 
 <AdminPageShell title="SQL Query Runner" {form}>
 	<div class="space-y-6">
+		<div class="rounded border border-[rgb(var(--color-warning))] bg-[rgb(var(--color-warning))]/10 px-4 py-3 text-sm" role="alert">
+			<p class="font-semibold text-[rgb(var(--color-warning-text,var(--color-text)))]">Security notice</p>
+			<p class="mt-1 text-[rgb(var(--color-text-secondary))]">
+				This tool executes raw SQL and returns all matching rows. Results may include sensitive data
+				including session token hashes and encrypted chat tokens. All queries are logged to the
+				moderation audit log.
+			</p>
+		</div>
 		<p class="text-[rgb(var(--color-text-secondary))] text-sm">SELECT queries only. Max 1000 rows, 5 second timeout.</p>
 
 		<form method="POST" action="?/run" class="space-y-4">

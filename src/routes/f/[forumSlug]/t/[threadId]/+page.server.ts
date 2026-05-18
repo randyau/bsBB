@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions } from '$lib/db/schema';
-import { eq, and, sql, ne } from 'drizzle-orm';
+import { eq, and, sql, ne, inArray, count } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
@@ -34,7 +34,19 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		throw error(404, 'Thread not found');
 	}
 
-	// Load all posts for this thread
+	const PAGE_SIZE = 100;
+	const currentPage = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+
+	// Count total posts for pagination (includes unapproved so mods see correct count)
+	const [{ total: totalPosts }] = await db
+		.select({ total: count() })
+		.from(posts)
+		.where(eq(posts.threadId, thread.id));
+
+	const totalPages = Math.max(1, Math.ceil(totalPosts / PAGE_SIZE));
+	const safePage = Math.min(currentPage, totalPages);
+
+	// Load one page of posts for this thread
 	const postList = await db
 		.select({
 			id: posts.id,
@@ -54,7 +66,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.from(posts)
 		.innerJoin(users, eq(posts.authorDid, users.did))
 		.where(eq(posts.threadId, thread.id))
-		.orderBy(posts.createdAt);
+		.orderBy(posts.createdAt)
+		.limit(PAGE_SIZE)
+		.offset((safePage - 1) * PAGE_SIZE);
 
 	// Check if user can moderate (needed before post filtering)
 	let canModerate = false;
@@ -74,46 +88,45 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// For posts with reply_to_post_id, fetch the referenced post for quote preview
 	const postMap = new Map(postList.map((p) => [p.id, p]));
 
-	const enrichedPosts = await Promise.all(
-		postList
-			.filter((post) => {
-				// Hide unapproved posts from everyone except the author and mods
-				if (!post.isApproved) {
-					if (canModerate) return true;
-					if (locals.user && locals.user.did === post.authorDid) return true;
-					return false;
-				}
-				return true;
-			})
-			.map(async (post) => {
-				let quotedPost = null;
-				let hiddenByUser = false;
+	// Batch-fetch all self-hidden post IDs in one query (avoids N+1 per hidden post)
+	const hiddenPostIds = postList.filter(p => p.status === 'hidden').map(p => p.id);
+	const selfHiddenIds = new Set<string>();
+	if (hiddenPostIds.length > 0) {
+		const selfHideLogs = await db
+			.select({ targetPostId: modLog.targetPostId })
+			.from(modLog)
+			.where(and(eq(modLog.action, 'hide_own_post'), inArray(modLog.targetPostId, hiddenPostIds)));
+		for (const row of selfHideLogs) {
+			if (row.targetPostId) selfHiddenIds.add(row.targetPostId);
+		}
+	}
 
-				if (post.replyToPostId && postMap.has(post.replyToPostId)) {
-					const quoted = postMap.get(post.replyToPostId)!;
-					if (quoted.status === 'active') {
-						quotedPost = {
-							id: quoted.id,
-							authorHandle: quoted.authorHandle,
-							bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
-						};
-					}
-				}
+	const enrichedPosts = postList
+		.filter((post) => {
+			// Hide unapproved posts from everyone except the author and mods
+			if (!post.isApproved) {
+				if (canModerate) return true;
+				if (locals.user && locals.user.did === post.authorDid) return true;
+				return false;
+			}
+			return true;
+		})
+		.map((post) => {
+			let quotedPost = null;
 
-				// Check if post was hidden by the user (author) or a moderator
-				if (post.status === 'hidden') {
-					const hideLog = await db.query.modLog.findFirst({
-						where: and(
-							eq(modLog.targetPostId, post.id),
-							eq(modLog.action, 'hide_own_post')
-						),
-					});
-					hiddenByUser = !!hideLog;
+			if (post.replyToPostId && postMap.has(post.replyToPostId)) {
+				const quoted = postMap.get(post.replyToPostId)!;
+				if (quoted.status === 'active') {
+					quotedPost = {
+						id: quoted.id,
+						authorHandle: quoted.authorHandle,
+						bodyPreview: quoted.bodyHtml?.substring(0, 100) ?? '...',
+					};
 				}
+			}
 
-				return { ...post, quotedPost, hiddenByUser };
-			})
-	);
+			return { ...post, quotedPost, hiddenByUser: selfHiddenIds.has(post.id) };
+		});
 
 	// Get thread author info
 	const threadAuthor = await db.query.users.findFirst({
@@ -123,40 +136,16 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Check if user can post
 	const userCanPost = await canPost(db, forum.id, locals.user);
 
-	// Track thread view for logged-in users
+	// Track thread view for logged-in users (upsert avoids TOCTOU race)
 	if (locals.user) {
 		const now = new Date();
-		// Check if view exists
-		const existing = await db
-			.select()
-			.from(threadViews)
-			.where(
-				and(
-					eq(threadViews.userDid, locals.user.did),
-					eq(threadViews.threadId, thread.id)
-				)
-			)
-			.limit(1);
-
-		if (existing.length > 0) {
-			// Update existing view
-			await db
-				.update(threadViews)
-				.set({ lastViewedAt: now })
-				.where(
-					and(
-						eq(threadViews.userDid, locals.user.did),
-						eq(threadViews.threadId, thread.id)
-					)
-				);
-		} else {
-			// Insert new view
-			await db.insert(threadViews).values({
-				userDid: locals.user.did,
-				threadId: thread.id,
-				lastViewedAt: now,
+		await db
+			.insert(threadViews)
+			.values({ userDid: locals.user.did, threadId: thread.id, lastViewedAt: now })
+			.onConflictDoUpdate({
+				target: [threadViews.userDid, threadViews.threadId],
+				set: { lastViewedAt: now },
 			});
-		}
 	}
 
 	// Load thread subscription status for logged-in users
@@ -184,6 +173,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		canModerate,
 		user: locals.user ?? null,
 		userSubscription,
+		page: safePage,
+		totalPages,
+		totalPosts,
 	};
 };
 

@@ -3,16 +3,15 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	let displayName = $state(data.user.displayName ?? '');
-	let timezone = $state(data.user.timezone ?? 'America/New_York');
-	let notifyViaBluesky = $state(data.user.notifyViaBluesky ?? false);
-	let notificationType = $state(data.user.notificationType ?? 'both');
-	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
+	let displayName = $state('');
+	let timezone = $state('');
+	let notifyViaBluesky = $state(false);
+	let notificationType = $state('');
+	let notificationFrequency = $state('');
 	let deleteAccountHandle = $state('');
 
-	// Sync state when data prop changes
+	// Populate form fields from server data (runs on mount and on data changes after form actions)
 	$effect(() => {
-		console.log('[settings $effect] syncing from data, notifyViaBluesky:', data.user.notifyViaBluesky);
 		displayName = data.user.displayName ?? '';
 		timezone = data.user.timezone ?? 'America/New_York';
 		notifyViaBluesky = data.user.notifyViaBluesky ?? false;

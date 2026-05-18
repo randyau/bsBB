@@ -4,11 +4,8 @@
 	import TableSearch from '$components/TableSearch.svelte';
 
 	let { data }: { data: PageData } = $props();
-	let selectedAction = $state(data.currentFilter || '');
-
-	$effect(() => {
-		selectedAction = data.currentFilter || '';
-	});
+	let selectedAction = $state('');
+	$effect(() => { selectedAction = data.currentFilter || ''; });
 
 	function handleActionChange() {
 		const params = new URLSearchParams();

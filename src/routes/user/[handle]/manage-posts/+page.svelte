@@ -6,7 +6,8 @@
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
-	let searchQuery = $state(data.search);
+	let searchQuery = $state('');
+	$effect(() => { searchQuery = data.search; });
 
 	function handleSearch(e: Event) {
 		const form = (e.target as HTMLFormElement).closest('form');

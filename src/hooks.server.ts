@@ -5,11 +5,14 @@ import { validateSession, getSessionToken } from '$lib/auth/session.js';
 export const handle: Handle = async ({ event, resolve }) => {
 	// Host header validation — production only to avoid blocking dev port numbers
 	if (process.env.NODE_ENV === 'production') {
+		if (!process.env.ALLOWED_HOSTS) {
+			console.error('[startup] ALLOWED_HOSTS is not set. All requests will be rejected. Set ALLOWED_HOSTS to your domain (e.g. yourforum.com).');
+		}
 		const hostHeader = event.request.headers.get('host') ?? '';
 		const hostname = hostHeader.split(':')[0];
-		const allowedHosts = (process.env.ALLOWED_HOSTS ?? 'localhost,127.0.0.1').split(',').map(h => h.trim());
+		const allowedHosts = (process.env.ALLOWED_HOSTS ?? '').split(',').map(h => h.trim()).filter(Boolean);
 
-		if (hostname && !allowedHosts.includes(hostname)) {
+		if (!allowedHosts.includes(hostname)) {
 			return new Response('Invalid host', { status: 400 });
 		}
 	}
@@ -31,13 +34,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.sessionId = null;
 	}
 
-	// Banned user redirect — except /banned and /logout
+	// Banned user block — except /banned and /logout
 	const { pathname } = event.url;
 	if (
 		event.locals.user?.globalRole === 'banned' &&
 		pathname !== '/banned' &&
 		!pathname.startsWith('/logout')
 	) {
+		if (pathname.startsWith('/api/')) {
+			return new Response(JSON.stringify({ error: 'Your account has been banned.' }), {
+				status: 403,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
 		redirect(302, '/banned');
 	}
 
