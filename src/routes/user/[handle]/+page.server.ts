@@ -12,11 +12,14 @@ import {
 	sessions,
 	notificationSubscriptions
 } from '$lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, count } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+const POSTS_PAGE_SIZE = 25;
+
+export const load: PageServerLoad = async ({ locals, params, url }) => {
+	const postsPage = Math.max(1, Number(url.searchParams.get('postsPage') ?? 1));
 	// Find user by handle
 	const profileUser = await db.query.users.findFirst({
 		where: eq(users.handle, params.handle)
@@ -38,23 +41,28 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.innerJoin(roles, eq(userRoles.roleId, roles.id))
 		.where(eq(userRoles.userDid, profileUser.did));
 
-	// Load recent posts (last 20)
-	const recentPosts = await db
-		.select({
-			id: posts.id,
-			bodyMarkdown: posts.bodyMarkdown,
-			createdAt: posts.createdAt,
-			threadTitle: threads.title,
-			threadSlug: threads.slug,
-			forumName: forums.name,
-			forumSlug: forums.slug
-		})
-		.from(posts)
-		.innerJoin(threads, eq(posts.threadId, threads.id))
-		.innerJoin(forums, eq(threads.forumId, forums.id))
-		.where(and(eq(posts.authorDid, profileUser.did), eq(posts.status, 'active')))
-		.orderBy(posts.createdAt)
-		.limit(20);
+	// Load paginated posts for profile
+	const postsWhere = and(eq(posts.authorDid, profileUser.did), eq(posts.status, 'active'));
+	const [userPosts, [{ userPostsTotal }]] = await Promise.all([
+		db
+			.select({
+				id: posts.id,
+				bodyMarkdown: posts.bodyMarkdown,
+				createdAt: posts.createdAt,
+				threadTitle: threads.title,
+				threadSlug: threads.slug,
+				forumName: forums.name,
+				forumSlug: forums.slug
+			})
+			.from(posts)
+			.innerJoin(threads, eq(posts.threadId, threads.id))
+			.innerJoin(forums, eq(threads.forumId, forums.id))
+			.where(postsWhere)
+			.orderBy(desc(posts.createdAt))
+			.limit(POSTS_PAGE_SIZE)
+			.offset((postsPage - 1) * POSTS_PAGE_SIZE),
+		db.select({ userPostsTotal: count() }).from(posts).where(postsWhere)
+	]);
 
 	// Load forum moderator assignments
 	const forumModAssignments = await db
@@ -110,10 +118,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		profileUser,
 		customRoles,
-		recentPosts: recentPosts.map((p) => ({
+		userPosts: userPosts.map((p) => ({
 			...p,
 			bodyPreview: p.bodyMarkdown.substring(0, 200)
 		})),
+		userPostsTotal: Number(userPostsTotal),
+		userPostsPage: postsPage,
+		userPostsPageSize: POSTS_PAGE_SIZE,
 		forumModAssignments,
 		allForums,
 		allRoles,

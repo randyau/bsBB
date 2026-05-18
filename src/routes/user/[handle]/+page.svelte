@@ -118,12 +118,18 @@
 		</div>
 	{/if}
 
-	<!-- Recent posts -->
-	{#if data.recentPosts.length > 0}
+	<!-- Posts -->
+	{#if data.userPostsTotal > 0}
+		{@const totalPostPages = Math.ceil(data.userPostsTotal / data.userPostsPageSize)}
 		<div class="card mb-8">
-			<h2 class="text-xl font-bold mb-4">Recent Posts</h2>
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-xl font-bold">Posts ({data.userPostsTotal})</h2>
+				{#if totalPostPages > 1}
+					<span class="text-xs text-muted">Page {data.userPostsPage} of {totalPostPages}</span>
+				{/if}
+			</div>
 			<div class="space-y-3">
-				{#each data.recentPosts as post}
+				{#each data.userPosts as post}
 					<a
 						href="/f/{post.forumSlug}/t/{post.threadSlug}"
 						class="block p-3 rounded border border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))] transition"
@@ -138,6 +144,21 @@
 					</a>
 				{/each}
 			</div>
+			{#if totalPostPages > 1}
+				<div class="flex items-center gap-3 mt-4 text-sm">
+					{#if data.userPostsPage > 1}
+						<a href="?postsPage={data.userPostsPage - 1}" class="btn btn-sm btn-secondary">← Prev</a>
+					{:else}
+						<span class="btn btn-sm btn-secondary opacity-40 cursor-not-allowed">← Prev</span>
+					{/if}
+					<span class="text-muted">Page {data.userPostsPage} of {totalPostPages}</span>
+					{#if data.userPostsPage < totalPostPages}
+						<a href="?postsPage={data.userPostsPage + 1}" class="btn btn-sm btn-secondary">Next →</a>
+					{:else}
+						<span class="btn btn-sm btn-secondary opacity-40 cursor-not-allowed">Next →</span>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/if}
 

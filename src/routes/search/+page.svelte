@@ -42,7 +42,7 @@
 				id="search-input"
 				type="text"
 				bind:value={searchInput}
-				placeholder="Search posts..."
+				placeholder="Search posts... (tip: author:handle to filter by user)"
 				class="flex-1 px-4 py-3 border rounded-lg"
 			/>
 			<button
@@ -60,19 +60,36 @@
 		</div>
 	{:else if !data.query}
 		<div class="card-secondary text-center text-secondary p-8">
-			Enter a search term to find posts
+			<p>Enter a search term to find posts</p>
+			<p class="text-xs mt-2 text-muted">Tip: use <code class="font-mono bg-[rgb(var(--color-bg-tertiary))] px-1 rounded">author:handle</code> to find posts by a specific user</p>
 		</div>
 	{:else if data.results.length === 0}
 		<div class="card-secondary text-center text-secondary p-8">
-			No results found for "{data.query}"
+			{#if data.authorFilter}
+				No posts found by <span class="font-mono">@{data.authorFilter}</span>
+				{#if data.contentQuery}containing "{data.contentQuery}"{/if}
+			{:else}
+				No results found for "{data.contentQuery}"
+			{/if}
 		</div>
 	{:else}
 		<!-- Results Header -->
 		<div class="mb-6">
-			<h1 class="text-2xl font-bold mb-2">Search Results</h1>
-			<p class="text-secondary">
-				Found {data.total} result{data.total === 1 ? '' : 's'} for "<strong>{data.query}</strong>"
-			</p>
+			<h1 class="page-title mb-2">Search Results</h1>
+			{#if data.authorFilter}
+				<p class="text-secondary">
+					{#if data.contentQuery}
+						Found {data.total} result{data.total === 1 ? '' : 's'} by <a href="/user/{data.authorFilter}" class="link font-mono">@{data.authorFilter}</a> matching "<strong>{data.contentQuery}</strong>"
+					{:else}
+						Showing all {data.total} post{data.total === 1 ? '' : 's'} by <a href="/user/{data.authorFilter}" class="link font-mono">@{data.authorFilter}</a>
+					{/if}
+					<a href="/search?q={encodeURIComponent(data.contentQuery)}" class="ml-2 text-xs text-muted hover:underline">× clear author filter</a>
+				</p>
+			{:else}
+				<p class="text-secondary">
+					Found {data.total} result{data.total === 1 ? '' : 's'} for "<strong>{data.contentQuery}</strong>"
+				</p>
+			{/if}
 		</div>
 
 		<!-- Sort Controls -->
@@ -91,14 +108,17 @@
 		<!-- Results List -->
 		<div class="space-y-4 mb-8">
 			{#each sortedResults as result (result.postId)}
-				<a href="/f/{result.forumSlug}/t/{result.threadSlug}" class="block card">
+				<div class="card">
 					<div class="flex items-start justify-between gap-4 mb-2">
 						<div>
-							<h3 class="font-semibold hover:underline text-primary">
+							<a href="/f/{result.forumSlug}/t/{result.threadSlug}" class="font-semibold hover:underline text-primary">
 								{result.threadTitle}
-							</h3>
+							</a>
 							<p class="text-sm text-secondary">
-								by <span class="font-mono">@{result.authorHandle}</span> in <span class="italic">{result.forumSlug}</span>
+								by <a
+									href="/search?q=author:{encodeURIComponent(result.authorHandle)}"
+									class="link font-mono hover:underline"
+								>@{result.authorHandle}</a> in <span class="italic">{result.forumSlug}</span>
 							</p>
 						</div>
 						<div class="text-right text-xs text-muted whitespace-nowrap">
@@ -112,14 +132,14 @@
 					</p>
 
 					<!-- Relevance Badge -->
-					{#if result.relevance > 0}
+					{#if result.relevance > 0 && !data.authorFilter}
 						<div class="mt-2 flex items-center gap-2">
 							<span class="badge badge-primary">
 								{(result.relevance * 100).toFixed(0)}% match
 							</span>
 						</div>
 					{/if}
-				</a>
+				</div>
 			{/each}
 		</div>
 

@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { threads, forums, users, posts, modLog } from '$lib/db/schema';
-import { eq, desc, sql, and, gte, count, ilike, or } from 'drizzle-orm';
+import { eq, desc, sql, and, gte, count, ilike, or, inArray } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
 const PAGE_SIZE = 25;
@@ -239,15 +239,13 @@ export const actions: Actions = {
 			const validThreads = await db
 				.select({ id: threads.id })
 				.from(threads)
-				.where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+				.where(inArray(threads.id, threadIds));
 
 			if (validThreads.length === 0) return fail(422, { error: 'No valid threads found' });
 
 			if (action === 'lock') {
-				// Lock all selected threads
-				await db.update(threads).set({ isLocked: true }).where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+				await db.update(threads).set({ isLocked: true }).where(inArray(threads.id, threadIds));
 
-				// Log each action individually for audit trail
 				for (const threadId of validThreads.map(t => t.id)) {
 					await db.insert(modLog).values({
 						moderatorDid: locals.user!.did,
@@ -256,10 +254,8 @@ export const actions: Actions = {
 					});
 				}
 			} else if (action === 'unlock') {
-				// Unlock all selected threads
-				await db.update(threads).set({ isLocked: false }).where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+				await db.update(threads).set({ isLocked: false }).where(inArray(threads.id, threadIds));
 
-				// Log each action individually
 				for (const threadId of validThreads.map(t => t.id)) {
 					await db.insert(modLog).values({
 						moderatorDid: locals.user!.did,

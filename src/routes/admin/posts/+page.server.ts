@@ -1,7 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, users, modLog, forums } from '$lib/db/schema';
-import { eq, desc, ilike, and, or } from 'drizzle-orm';
+import { eq, desc, ilike, and, or, inArray } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -238,15 +238,13 @@ export const actions: Actions = {
 			const validPosts = await db
 				.select({ id: posts.id })
 				.from(posts)
-				.where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+				.where(inArray(posts.id, postIds));
 
 			if (validPosts.length === 0) return fail(422, { error: 'No valid posts found' });
 
 			if (action === 'hide') {
-				// Hide all selected posts
-				await db.update(posts).set({ status: 'hidden' }).where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+				await db.update(posts).set({ status: 'hidden' }).where(inArray(posts.id, postIds));
 
-				// Log each action individually for audit trail
 				for (const postId of validPosts.map(p => p.id)) {
 					await db.insert(modLog).values({
 						moderatorDid: locals.user!.did,
@@ -255,10 +253,8 @@ export const actions: Actions = {
 					});
 				}
 			} else if (action === 'restore') {
-				// Restore all selected posts
-				await db.update(posts).set({ status: 'active' }).where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+				await db.update(posts).set({ status: 'active' }).where(inArray(posts.id, postIds));
 
-				// Log each action individually
 				for (const postId of validPosts.map(p => p.id)) {
 					await db.insert(modLog).values({
 						moderatorDid: locals.user!.did,
