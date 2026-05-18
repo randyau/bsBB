@@ -29,7 +29,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('filters out special characters from query', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			// Query with special chars should be cleaned
 			await searchPosts('hello! @#$% world');
@@ -40,7 +40,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 	describe('short query (≤4 chars) uses trigram', () => {
 		it('uses LIKE pattern for short queries', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('cat');
 			expect(mocked).toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('makes query case-insensitive', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('Cat');
 			expect(mocked).toHaveBeenCalled();
@@ -59,7 +59,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 	describe('long query (>4 chars) uses tsvector', () => {
 		it('uses tsvector for longer queries', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('hello world');
 			expect(mocked).toHaveBeenCalled();
@@ -68,7 +68,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('combines words with & operator', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('hello world test');
 			expect(mocked).toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 					relevance: 0.5,
 					created_at: '2024-01-01T00:00:00Z'
 				}
-			]);
+			] as any);
 
 			const results = await searchPosts('test');
 			expect(results).toHaveLength(1);
@@ -124,7 +124,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 					relevance: 0.5,
 					created_at: '2024-01-01T00:00:00Z'
 				}
-			]);
+			] as any);
 
 			const results = await searchPosts('html');
 			expect(results[0].bodyPreview).toBeDefined();
@@ -145,7 +145,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 					relevance: 0.5,
 					created_at: '2024-01-01T00:00:00Z'
 				}
-			]);
+			] as any);
 
 			const results = await searchPosts('spaces');
 			expect(results[0].bodyPreview).not.toMatch(/\s{2,}/);
@@ -155,7 +155,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 	describe('pagination', () => {
 		it('respects limit parameter', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('test', 50);
 			expect(mocked).toHaveBeenCalled();
@@ -163,7 +163,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('respects offset parameter', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('test', 20, 40);
 			expect(mocked).toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('defaults to 20 limit and 0 offset', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			await searchPosts('test');
 			expect(mocked).toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 	describe('empty results', () => {
 		it('returns empty array when no matches', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([]);
+			mocked.mockResolvedValue([] as any);
 
 			const results = await searchPosts('xyzabc');
 			expect(results).toEqual([]);
@@ -189,7 +189,7 @@ describe('searchPosts — full-text search with tsvector/trigram', () => {
 
 		it('handles null/undefined count gracefully', async () => {
 			const mocked = vi.mocked(db.execute);
-			mocked.mockResolvedValue([{ count: null }]);
+			mocked.mockResolvedValue([{ count: null }] as any);
 
 			await searchPosts('test');
 			expect(mocked).toHaveBeenCalled();
@@ -209,7 +209,7 @@ describe('searchPostsCount — result counting', () => {
 
 	it('returns count from DB', async () => {
 		const mocked = vi.mocked(db.execute);
-		mocked.mockResolvedValue([{ count: 42 }]);
+		mocked.mockResolvedValue([{ count: 42 }] as any);
 
 		const count = await searchPostsCount('hello');
 		expect(count).toBe(42);
@@ -217,7 +217,7 @@ describe('searchPostsCount — result counting', () => {
 
 	it('returns 0 when count is null', async () => {
 		const mocked = vi.mocked(db.execute);
-		mocked.mockResolvedValue([{ count: null }]);
+		mocked.mockResolvedValue([{ count: null }] as any);
 
 		const count = await searchPostsCount('test');
 		expect(count).toBe(0);
@@ -225,7 +225,7 @@ describe('searchPostsCount — result counting', () => {
 
 	it('uses short query (trigram) for ≤4 char queries', async () => {
 		const mocked = vi.mocked(db.execute);
-		mocked.mockResolvedValue([{ count: 1 }]);
+		mocked.mockResolvedValue([{ count: 1 }] as any);
 
 		await searchPostsCount('cat');
 		expect(mocked).toHaveBeenCalled();
@@ -233,7 +233,7 @@ describe('searchPostsCount — result counting', () => {
 
 	it('uses tsvector for >4 char queries', async () => {
 		const mocked = vi.mocked(db.execute);
-		mocked.mockResolvedValue([{ count: 10 }]);
+		mocked.mockResolvedValue([{ count: 10 }] as any);
 
 		await searchPostsCount('hello world');
 		expect(mocked).toHaveBeenCalled();

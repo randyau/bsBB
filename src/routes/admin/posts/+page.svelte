@@ -7,7 +7,7 @@
 	let movePostId: string | null = $state(null);
 	let moveDestThreadId: string = $state('');
 
-	let selectedPostIds = new Set<string>($state());
+	let selectedPostIds: Set<string> = $state(new Set());
 	let bulkActionType: string | null = $state(null);
 	let bulkActionConfirming = false;
 
@@ -329,7 +329,7 @@
 				<div class="flex gap-3">
 					<button
 						type="button"
-						onclick={() => executeBulkAction(bulkActionType)}
+						onclick={() => executeBulkAction(bulkActionType ?? '')}
 						class="btn btn-primary text-sm flex-1"
 					>
 						Confirm
