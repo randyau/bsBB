@@ -354,6 +354,169 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 
 ---
 
+## Phase 13 — Deployment, Operations & Documentation (Final Launch Preparation)
+
+**Goal:** Enable adopters and testers to confidently spin up, run, test, deploy, upgrade, and backup their instances.
+
+### 13.1 🔄 Development Setup & Local Testing Documentation
+
+**Effort:** ~1 commit
+
+**Deliverables:**
+- [ ] Complete `QUICKSTART.md` — get running locally in 5 minutes
+- [ ] Environment variables documented (`.env.example` with descriptions)
+- [ ] Docker setup verified and tested on Windows, Mac, Linux
+- [ ] Test user seeding working reliably (`seed-dev-users.ts`)
+- [ ] `npm run dev:setup` one-command startup verified
+- [ ] Troubleshooting guide for common dev issues
+- [ ] IDE setup instructions (VS Code, JetBrains)
+- [ ] Git workflow guide for contributors
+
+**Acceptance Criteria:**
+- [ ] New developer can start from zero and run locally without Slack help
+- [ ] All npm scripts documented (`npm run dev`, `npm test`, `npm run check`, etc.)
+- [ ] Database reset procedure clear and easy
+- [ ] Hot reload works on template and CSS changes
+
+---
+
+### 13.2 🔄 Production Deployment Guide
+
+**Effort:** ~2 commits
+
+**Deliverables:**
+- [ ] `DEPLOYMENT.md` — step-by-step prod setup on VPS
+- [ ] Infrastructure recommendations (Hetzner specs, alternatives)
+- [ ] Automated setup script (`scripts/setup.sh`) tested end-to-end
+- [ ] Docker Compose prod config (`docker-compose.prod.yml`) documented
+- [ ] Caddy HTTPS setup automated (Let's Encrypt)
+- [ ] Database migrations automated (`scripts/migrate.sh`)
+- [ ] Health check endpoints verified
+- [ ] Logging & monitoring configuration
+
+**Acceptance Criteria:**
+- [ ] Fresh VPS → running forum in under 30 minutes following docs
+- [ ] First user login auto-promotes to admin (documented one-time behavior)
+- [ ] Email/SMTP config clear with examples for common providers
+- [ ] ATproto OAuth setup walkthrough (service account, keypair generation)
+- [ ] Verification: deploy on test VPS from scratch, works first time
+- [ ] Rollback procedure documented (in case of bad deploy)
+
+---
+
+### 13.3 🔄 Backup, Restore & Disaster Recovery
+
+**Effort:** ~1 commit
+
+**Deliverables:**
+- [ ] `BACKUP.md` — backup strategies and procedures
+- [ ] Automated backup script (`scripts/backup.sh`)
+- [ ] S3/R2/B2 integration for off-site storage
+- [ ] Restore from backup procedure tested
+- [ ] Point-in-time recovery options documented
+- [ ] Data retention policy recommendations
+- [ ] Disaster recovery runbook
+
+**Acceptance Criteria:**
+- [ ] Daily backup cron job works reliably
+- [ ] Backup can be restored to fresh instance (verified)
+- [ ] Partial restore possible (restore specific user, thread, forum)
+- [ ] Backup size estimated for different data volumes
+- [ ] Example backup rotation policy (7-day rolling)
+- [ ] Recovery time documented (RTO/RPO targets)
+
+---
+
+### 13.4 🔄 Upgrade & Migration Guide
+
+**Effort:** ~1 commit
+
+**Deliverables:**
+- [ ] `UPGRADE.md` — how to upgrade from v1.0 → v1.1, etc.
+- [ ] Migration scripts for schema changes (`scripts/migrate.sh` auto-runs on deploy)
+- [ ] Backward compatibility considerations documented
+- [ ] Zero-downtime deployment strategy (if possible)
+- [ ] Rollback procedure if upgrade fails
+- [ ] Testing checklist before upgrading prod
+- [ ] Data migration for breaking changes (if any)
+
+**Acceptance Criteria:**
+- [ ] Upgrade procedure is documented and tested
+- [ ] Old database works with new code (migrations handle it)
+- [ ] Breaking changes flagged in release notes
+- [ ] Upgrade doesn't require manual SQL or data manipulation
+- [ ] Test upgrade path: v1.0 data → migrate → v1.1 code (verified)
+- [ ] Rollback is easy (git revert, db rollback script)
+
+---
+
+### 13.5 🔄 Testing Guide (Dev, Staging, Prod)
+
+**Effort:** ~1 commit
+
+**Deliverables:**
+- [ ] `TESTING.md` — unit, integration, and manual testing strategies
+- [ ] Integration test suite documented (`bash scripts/test-integration.sh`)
+- [ ] Test checklist before launch (smoke tests, happy path, edge cases)
+- [ ] Performance testing (load test on target hardware)
+- [ ] Security checklist (OWASP, rate limiting, auth, HTTPS)
+- [ ] Browser/device compatibility matrix
+- [ ] Staging environment setup (optional but recommended)
+
+**Acceptance Criteria:**
+- [ ] Unit tests run with `npm test` (existing)
+- [ ] Integration tests run against real DB (existing)
+- [ ] Manual test checklist (forum create/edit, post, reply, search, admin, etc.)
+- [ ] Pre-launch QA sign-off procedure clear
+- [ ] Load test shows forum handles N concurrent users
+- [ ] Security audit results documented
+
+---
+
+### 13.6 🔄 Documentation for Adopters
+
+**Effort:** ~2 commits
+
+**Deliverables:**
+- [ ] `ADMIN_GUIDE.md` — user/role management, forum setup, moderation
+- [ ] `USER_GUIDE.md` — posting, searching, notifications, settings
+- [ ] `API.md` (if applicable) — documented endpoints and hooks
+- [ ] `ARCHITECTURE.md` updated with deployment details
+- [ ] Architecture diagrams (data flow, service topology)
+- [ ] FAQ addressing common questions
+- [ ] Troubleshooting guide (common errors, how to debug)
+- [ ] Feature matrix (what's in v1.0 vs. what's coming)
+
+**Acceptance Criteria:**
+- [ ] New admin can fully operate the forum without asking questions
+- [ ] Users understand all features without needing support
+- [ ] Developers can extend/customize if needed
+- [ ] Performance tuning guide for different scales
+- [ ] Security hardening checklist for production
+- [ ] All documentation is searchable (in README, linked)
+
+---
+
+## v1.0 Final Launch Sequence (Updated)
+
+```
+Phase 9:  Core Features (5/5 complete) ✅
+Phase 10: Search & Discovery (2 items) ⭕
+Phase 12: Content Management (1 item) ⭕
+Phase 11: Accessibility & Polish ⭕
+Phase 13: Deployment, Operations & Docs ⭕  ← NEW FINAL PHASE
+```
+
+**Why Phase 13 Last:**
+- Docs can't be final until features/a11y are stable
+- Testing & QA happen after a11y pass
+- Deployment docs need prod-ready code
+- Backup/restore procedures tested with stable schema
+
+**Total Effort:** ~8 commits (docs + automation scripts)
+
+---
+
 ## ⚠️ Future Improvements Deferred
 
 The following Tier 2 features have been moved to **FUTURE_IMPROVEMENTS.md** for post-launch consideration:
