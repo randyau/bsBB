@@ -1,8 +1,13 @@
 <script lang="ts">
 	import type { LayoutData } from './$types';
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/stores';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+	function isActive(href: string): boolean {
+		return $page.url.pathname === href || $page.url.pathname.startsWith(href + '/');
+	}
 </script>
 
 <div class="flex min-h-screen bg-[rgb(var(--color-bg))]">
@@ -10,30 +15,26 @@
 	<div class="w-64 bg-[rgb(var(--color-bg-secondary))] border-r border-[rgb(var(--color-border))] p-6">
 		<h2 class="text-lg font-bold mb-6 text-[rgb(var(--color-text))]">Admin Panel</h2>
 		<nav class="space-y-2" aria-label="Admin navigation">
-			<a href="/admin/approval-queue" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">⏳</span> Approval Queue
-			</a>
-			<a href="/admin/forums" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">🗂️</span> Forums
-			</a>
-			<a href="/admin/users" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">👥</span> Users
-			</a>
-			<a href="/admin/roles" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">🏷️</span> Roles
-			</a>
-			<a href="/admin/threads" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">💬</span> Threads
-			</a>
-			<a href="/admin/posts" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">📝</span> Posts
-			</a>
-			<a href="/admin/mod-log" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">📋</span> Mod Log
-			</a>
-			<a href="/admin/query" class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]">
-				<span aria-hidden="true">🔍</span> SQL Queries
-			</a>
+			{#each [
+				{ href: '/admin/approval-queue', icon: '⏳', label: 'Approval Queue' },
+				{ href: '/admin/forums', icon: '🗂️', label: 'Forums' },
+				{ href: '/admin/users', icon: '👥', label: 'Users' },
+				{ href: '/admin/roles', icon: '🏷️', label: 'Roles' },
+				{ href: '/admin/threads', icon: '💬', label: 'Threads' },
+				{ href: '/admin/posts', icon: '📝', label: 'Posts' },
+				{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log' },
+				{ href: '/admin/query', icon: '🔍', label: 'SQL Queries' },
+			] as item}
+				<a
+					href={item.href}
+					class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]"
+					class:bg-[rgb(var(--color-bg-tertiary))]={isActive(item.href)}
+					class:font-semibold={isActive(item.href)}
+					aria-current={isActive(item.href) ? 'page' : undefined}
+				>
+					<span aria-hidden="true">{item.icon}</span> {item.label}
+				</a>
+			{/each}
 		</nav>
 		<div class="mt-8 pt-6 border-t border-[rgb(var(--color-border))]">
 			<p class="text-xs text-[rgb(var(--color-text-muted))]">Logged in as:</p>

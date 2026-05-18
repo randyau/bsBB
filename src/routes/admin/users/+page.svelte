@@ -29,11 +29,11 @@
 			<table class="w-full text-sm">
 				<thead class="table-thead">
 					<tr>
-						<th class="px-4 py-3 text-left font-semibold">Handle</th>
-						<th class="px-4 py-3 text-left font-semibold">Display Name</th>
-						<th class="px-4 py-3 text-left font-semibold">Role</th>
-						<th class="px-4 py-3 text-left font-semibold">Joined</th>
-						<th class="px-4 py-3 text-left font-semibold">Actions</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Handle</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Display Name</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Role</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Joined</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Actions</th>
 					</tr>
 				</thead>
 				<tbody>

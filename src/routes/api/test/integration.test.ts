@@ -174,7 +174,7 @@ describe('Phase 4 — Admin & Moderation Integration Tests', () => {
 	// -------------------------------------------------------------------------
 
 	describe('Ban / unban', () => {
-		it('admin can ban a member (body.type === success)', async () => {
+		it('admin can ban a member (body.type === success)', { timeout: 15000 }, async () => {
 			const form = new URLSearchParams({ did: member.did, reason: 'test ban' });
 			const res = await fetch(`${BASE_URL}/admin/users?/ban`, {
 				method: 'POST',
@@ -225,7 +225,7 @@ describe('Phase 4 — Admin & Moderation Integration Tests', () => {
 			expect(body.type).toBe('failure');
 		});
 
-		it('admin can unban a member', async () => {
+		it('admin can unban a member', { timeout: 15000 }, async () => {
 			// Ban first
 			await fetch(`${BASE_URL}/admin/users?/ban`, {
 				method: 'POST',

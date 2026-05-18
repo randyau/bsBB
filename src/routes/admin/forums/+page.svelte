@@ -48,11 +48,11 @@
 				<table class="w-full text-sm">
 					<thead class="table-thead">
 					<tr>
-						<th class="px-4 py-3 text-left font-semibold">Name</th>
-						<th class="px-4 py-3 text-left font-semibold">Parent</th>
-						<th class="px-4 py-3 text-left font-semibold">Order</th>
-						<th class="px-4 py-3 text-left font-semibold">Approval (days)</th>
-						<th class="px-4 py-3 text-left font-semibold">Actions</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Name</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Parent</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Order</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Approval (days)</th>
+						<th scope="col" class="px-4 py-3 text-left font-semibold">Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -64,7 +64,9 @@
 							<td class="px-4 py-3">
 								<form method="POST" action="?/setApprovalDays" class="flex items-center gap-2">
 									<input type="hidden" name="forumId" value={forum.id} />
+									<label for="approval-days-{forum.id}" class="sr-only">Approval age threshold in days for {forum.name} (0 = disabled)</label>
 									<input
+										id="approval-days-{forum.id}"
 										type="number"
 										name="days"
 										value={forum.requireApprovalDays}

@@ -5,7 +5,7 @@
 		children
 	}: {
 		title: string;
-		form?: { error?: string; success?: string; [key: string]: unknown } | null;
+		form?: { error?: string; success?: string | boolean; [key: string]: unknown } | null;
 		children: any;
 	} = $props();
 </script>
@@ -22,7 +22,7 @@
 
 		{#if form?.success}
 			<div class="alert alert-success text-sm" role="alert">
-				{form.success}
+				{typeof form.success === 'string' ? form.success : 'Action completed successfully.'}
 			</div>
 		{/if}
 
