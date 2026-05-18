@@ -100,10 +100,10 @@
 		</div>
 
 		<!-- Top pagination -->
-		{#if data.totalPages > 1}
+		{#if totalPages > 1}
 			<Pagination
 				page={data.page}
-				totalPages={data.totalPages}
+				totalPages={totalPages}
 				total={data.total}
 				buildUrl={(p) => {
 					const params = new URLSearchParams();

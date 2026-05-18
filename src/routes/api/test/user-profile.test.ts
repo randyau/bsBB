@@ -10,6 +10,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
  * - Account deletion (danger zone)
  * - Post deletion (danger zone)
  * - Session management
+ *
+ * Action names on /settings (from +page.server.ts):
+ *   updateDisplayName, toggleNotifications, updateNotificationPreferences,
+ *   updateTimezone, deleteAllPosts, deleteAccount
  */
 
 const BASE_URL = 'http://localhost:5173';
@@ -107,11 +111,12 @@ describe('User Profile and Account Management', () => {
 			expect([200, 404]).toContain(res.status);
 		});
 
+		// Action: updateDisplayName
 		it('member can update display name', async () => {
 			const formData = new FormData();
 			formData.append('displayName', 'New Display Name');
 
-			const res = await fetch(`${BASE_URL}/settings?/update-profile`, {
+			const res = await fetch(`${BASE_URL}/settings?/updateDisplayName`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -123,9 +128,9 @@ describe('User Profile and Account Management', () => {
 
 		it('display name update is validated', async () => {
 			const formData = new FormData();
-			formData.append('displayName', '');
+			formData.append('displayName', 'x'.repeat(200)); // Over 100 char limit
 
-			const res = await fetch(`${BASE_URL}/settings?/update-profile`, {
+			const res = await fetch(`${BASE_URL}/settings?/updateDisplayName`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -144,11 +149,12 @@ describe('User Profile and Account Management', () => {
 			expect([200, 404, 302]).toContain(res.status);
 		});
 
+		// Action: toggleNotifications
 		it('member can enable Bluesky DM notifications', async () => {
 			const formData = new FormData();
 			formData.append('notifyViaBluesky', 'on');
 
-			const res = await fetch(`${BASE_URL}/settings?/update-notifications`, {
+			const res = await fetch(`${BASE_URL}/settings?/toggleNotifications`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -159,9 +165,9 @@ describe('User Profile and Account Management', () => {
 
 		it('member can disable Bluesky DM notifications', async () => {
 			const formData = new FormData();
-			formData.append('notifyViaBluesky', 'off');
+			// Omitting notifyViaBluesky disables it (checkbox off)
 
-			const res = await fetch(`${BASE_URL}/settings?/update-notifications`, {
+			const res = await fetch(`${BASE_URL}/settings?/toggleNotifications`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -170,12 +176,13 @@ describe('User Profile and Account Management', () => {
 			expect(res.status).toBe(200);
 		});
 
+		// Action: updateNotificationPreferences
 		it('member can choose which forums send notifications', async () => {
 			const formData = new FormData();
-			formData.append('forumId', '00000000-0000-0000-0000-000000000001');
-			formData.append('enabled', 'on');
+			formData.append('type', 'both');
+			formData.append('frequency', 'immediate');
 
-			const res = await fetch(`${BASE_URL}/settings?/update-forum-notification`, {
+			const res = await fetch(`${BASE_URL}/settings?/updateNotificationPreferences`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -194,11 +201,12 @@ describe('User Profile and Account Management', () => {
 			expect([200, 404]).toContain(res.status);
 		});
 
+		// Action: deleteAccount
 		it('delete account requires confirmation', async () => {
 			const formData = new FormData();
 			formData.append('confirmation', 'wrong-handle');
 
-			const res = await fetch(`${BASE_URL}/settings?/delete-account`, {
+			const res = await fetch(`${BASE_URL}/settings?/deleteAccount`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData
@@ -217,7 +225,7 @@ describe('User Profile and Account Management', () => {
 			const formData = new FormData();
 			formData.append('confirmation', 'tempdelete.test');
 
-			const res = await fetch(`${BASE_URL}/settings?/delete-account`, {
+			const res = await fetch(`${BASE_URL}/settings?/deleteAccount`, {
 				method: 'POST',
 				headers: sessionHeader(temp),
 				body: formData
@@ -248,11 +256,12 @@ describe('User Profile and Account Management', () => {
 			}
 		});
 
+		// Action: deleteAllPosts
 		it('delete all posts requires confirmation', async () => {
 			const formData = new FormData();
 			formData.append('confirmation', 'DELETE');
 
-			const res = await fetch(`${BASE_URL}/settings?/delete-all-posts`, {
+			const res = await fetch(`${BASE_URL}/settings?/deleteAllPosts`, {
 				method: 'POST',
 				headers: sessionHeader(member),
 				body: formData

@@ -155,7 +155,7 @@
 			<Pagination
 				page={data.page}
 				totalPages={data.totalPages}
-				total={data.totalPosts}
+				total={data.total}
 				buildUrl={(p) => `?page=${p}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`}
 			/>
 		{/if}
