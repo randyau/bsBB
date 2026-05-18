@@ -42,13 +42,13 @@
 	<h1 class="page-title">Thread Management</h1>
 
 	{#if form?.error}
-		<div class="alert alert-error text-sm">
+		<div class="alert alert-error text-sm" role="alert">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="alert alert-success text-sm">
+		<div class="alert alert-success text-sm" role="alert">
 			✓ Thread action completed: {form.action}
 		</div>
 	{/if}
@@ -70,7 +70,9 @@
 			}}
 		/>
 
+		<label for="forumFilter" class="sr-only">Filter by forum</label>
 		<select
+			id="forumFilter"
 			bind:value={forumVal}
 			onchange={navigate}
 			class="form-control text-sm select-w-md"
@@ -81,7 +83,9 @@
 			{/each}
 		</select>
 
+		<label for="periodFilter" class="sr-only">Filter by time period</label>
 		<select
+			id="periodFilter"
 			bind:value={periodVal}
 			onchange={navigate}
 			class="form-control text-sm select-w-sm"

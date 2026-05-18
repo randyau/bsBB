@@ -240,7 +240,7 @@
 
 			{#if data.user}
 				{#if data.user.notifyViaBluesky}
-					<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden">
+					<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden" role="group" aria-label="Thread notification preferences">
 						<!-- Mute button -->
 						<form method="POST" action="?/muteThread" style="display: contents;">
 							<button

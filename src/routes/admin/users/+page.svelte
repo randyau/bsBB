@@ -17,13 +17,13 @@
 	<h1 class="page-title">User Management</h1>
 
 	{#if form?.error}
-		<div class="alert alert-error text-sm">
+		<div class="alert alert-error text-sm" role="alert">
 			{form.error}
 		</div>
 	{/if}
 
 	{#if form?.success}
-		<div class="alert alert-success text-sm">
+		<div class="alert alert-success text-sm" role="alert">
 			✓ User action completed: {form.action}
 		</div>
 	{/if}

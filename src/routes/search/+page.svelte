@@ -36,8 +36,10 @@
 <div class="max-w-4xl mx-auto py-8 px-4">
 	<!-- Search Bar -->
 	<form onsubmit={handleSearch} class="mb-8">
+		<label for="search-input" class="sr-only">Search posts</label>
 		<div class="flex gap-2">
 			<input
+				id="search-input"
 				type="text"
 				bind:value={searchInput}
 				placeholder="Search posts..."

@@ -56,7 +56,7 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
 								{#if thread.hasUnread}
-										<div class="unread-dot"></div>
+										<div class="unread-dot"><span class="sr-only">Unread</span></div>
 									{/if}
 									<h3 class={thread.hasUnread ? 'font-bold' : 'font-semibold'}>
 									<a href="/f/{data.forum.slug}/t/{thread.slug}" class="thread-title break-words">
@@ -87,7 +87,7 @@
 		{#if data.totalPages > 1}
 			<div class="flex items-center justify-center gap-2 mt-6 px-4 md:px-8">
 				{#if data.currentPage > 1}
-					<a href="?page={data.currentPage - 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]">
+					<a href="?page={data.currentPage - 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]" aria-label="Previous page">
 						← Previous
 					</a>
 				{/if}
@@ -97,7 +97,7 @@
 				</span>
 
 				{#if data.currentPage < data.totalPages}
-					<a href="?page={data.currentPage + 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]">
+					<a href="?page={data.currentPage + 1}" class="px-3 py-2 rounded border border-[rgb(var(--color-border))] text-sm hover:bg-[rgb(var(--color-bg-secondary))]" aria-label="Next page">
 						Next →
 					</a>
 				{/if}

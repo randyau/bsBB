@@ -25,12 +25,18 @@
 	</script>
 </svelte:head>
 
-<nav class="border-b px-4 py-3 flex items-center justify-between gap-4 bg-[rgb(var(--color-bg))]">
+<a href="#main-content" class="sr-only focus:not-sr-only px-4 py-2 bg-[rgb(var(--color-primary))] text-white font-semibold rounded">
+	Skip to main content
+</a>
+
+<nav class="border-b px-4 py-3 flex items-center justify-between gap-4 bg-[rgb(var(--color-bg))]" aria-label="Site navigation">
 	<a href="/" class="font-bold text-lg whitespace-nowrap">bsBB</a>
 
 	<!-- Search Bar -->
 	<form onsubmit={handleSearch} class="flex-1 max-w-md">
+		<label for="search-input" class="sr-only">Search posts</label>
 		<input
+			id="search-input"
 			type="text"
 			bind:value={searchQuery}
 			placeholder="Search posts..."
@@ -55,6 +61,6 @@
 	</div>
 </nav>
 
-<div class="container">
+<main id="main-content" class="container">
 	{@render children()}
-</div>
+</main>
