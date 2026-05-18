@@ -60,6 +60,9 @@ echo ""
 read -rp "Public base URL (e.g. https://yourforum.com): " PUBLIC_BASE_URL
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL%/}" # strip trailing slash
 
+# Extract domain from URL for Caddy and ALLOWED_HOSTS
+DOMAIN=$(echo "$PUBLIC_BASE_URL" | sed 's|https\?://||' | cut -d'/' -f1)
+
 read -rp "ATproto service handle (e.g. notifications.yourforum.bsky.social): " ATPROTO_SERVICE_HANDLE
 read -rsp "ATproto service app password (xxxx-xxxx-xxxx-xxxx): " ATPROTO_SERVICE_APP_PASSWORD
 echo ""
@@ -71,6 +74,7 @@ read -rp "SMTP user: " SMTP_USER
 read -rsp "SMTP password: " SMTP_PASS
 echo ""
 read -rp "SMTP from address: " SMTP_FROM
+read -rp "Admin email (receives moderation alerts): " ADMIN_EMAIL
 
 echo ""
 read -rp "Default forum visibility [public/members-only] (default: public): " DEFAULT_VISIBILITY
@@ -81,12 +85,14 @@ if [[ "$DEFAULT_VISIBILITY" != "public" && "$DEFAULT_VISIBILITY" != "members-onl
 fi
 
 # ---------------------------------------------------------------------------
-# Generate session secret
+# Generate secrets
 # ---------------------------------------------------------------------------
 SESSION_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+DB_PASSWORD=$(openssl rand -hex 24)
 
 # ---------------------------------------------------------------------------
-# Generate client-metadata.json
+# Generate client-metadata.json (served as static file by Caddy)
 # ---------------------------------------------------------------------------
 CLIENT_METADATA_DIR="$PROJECT_ROOT/docker/caddy-static"
 mkdir -p "$CLIENT_METADATA_DIR"
@@ -109,7 +115,7 @@ const meta = {
   application_type: 'web',
 };
 require('fs').writeFileSync('$CLIENT_METADATA_DIR/client-metadata.json', JSON.stringify(meta, null, 2));
-console.log('  client-metadata.json written.');
+console.log('  client-metadata.json written to docker/caddy-static/');
 "
 
 # ---------------------------------------------------------------------------
@@ -130,17 +136,25 @@ SMTP_PORT=${SMTP_PORT}
 SMTP_USER=${SMTP_USER}
 SMTP_PASS=${SMTP_PASS}
 SMTP_FROM=${SMTP_FROM}
+ADMIN_EMAIL=${ADMIN_EMAIL}
 
 # Database
-DATABASE_URL=postgresql://forum:forum@db:5432/forum
+DATABASE_URL=postgresql://forum:${DB_PASSWORD}@db:5432/forum
+DB_USER=forum
+DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=forum
 
-# Sessions
+# Sessions & Encryption
 SESSION_SECRET=${SESSION_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
 # App
 PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
+DOMAIN=${DOMAIN}
+ALLOWED_HOSTS=${DOMAIN}
 NODE_ENV=production
 SETUP_COMPLETE=true
+DEFAULT_FORUM_VISIBILITY=${DEFAULT_VISIBILITY}
 EOF
 
 echo ""
@@ -165,8 +179,17 @@ agent.login({ identifier: '$ATPROTO_SERVICE_HANDLE', password: '$ATPROTO_SERVICE
 echo ""
 echo "========================================"
 echo " Setup complete!"
+echo ""
 echo " Next steps:"
-echo "   1. docker compose up -d"
-echo "   2. bash scripts/migrate.sh"
-echo "   3. Log in with your Bluesky account — you'll be auto-promoted to admin."
+echo "   1. docker compose -f docker-compose.prod.yml up -d"
+echo "      (starts app, worker, database, and Caddy reverse proxy)"
+echo ""
+echo "   2. Once services are running, run migrations:"
+echo "      docker compose -f docker-compose.prod.yml exec app npm run db:migrate"
+echo ""
+echo "   3. Visit https://${DOMAIN} and sign in with Bluesky."
+echo "      The first user to log in is automatically promoted to admin."
+echo ""
+echo "   Config saved to: $ENV_FILE"
+echo "   Full setup log: $LOG_FILE"
 echo "========================================"
