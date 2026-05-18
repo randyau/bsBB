@@ -44,12 +44,12 @@
 			</EmptyState>
 		</div>
 	{:else}
-		<div class="space-y-2 border-t border-[rgb(var(--color-border))] px-4 md:px-8">
-			{#each data.threads as thread (thread.id)}
-				<div class="thread-item border-b border-[rgb(var(--color-border))] py-3 px-4 -mx-4">
-					<div class="flex items-start justify-between gap-4">
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 flex-wrap">
+		<table class="w-full border-t border-[rgb(var(--color-border))]">
+			<tbody>
+				{#each data.threads as thread (thread.id)}
+					<tr class="border-b border-[rgb(var(--color-border))]">
+						<td class="py-3 px-4 align-top">
+							<div class="flex items-center gap-2 flex-wrap mb-1">
 								{#if thread.hasUnread}
 									<div class="unread-dot"><span class="sr-only">Unread</span></div>
 								{/if}
@@ -65,18 +65,18 @@
 									<span class="text-xs bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text))] px-2 py-1 rounded">locked</span>
 								{/if}
 							</div>
-							<p class="text-sm text-[rgb(var(--color-text-secondary))] mt-1">
+							<p class="text-sm text-[rgb(var(--color-text-secondary))]">
 								Started by <strong>{thread.authorDisplayName || thread.authorHandle}</strong>
 							</p>
-						</div>
-						<div class="text-right flex-shrink-0">
+						</td>
+						<td class="py-3 px-4 align-top text-right whitespace-nowrap">
 							<p class="text-sm font-semibold">{thread.postCount} post{thread.postCount !== 1 ? 's' : ''}</p>
 							<p class="text-xs text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(thread.lastPostAt)}</p>
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 
 		<div class="px-4 md:px-8">
 			<Pagination
