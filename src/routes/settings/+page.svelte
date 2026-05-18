@@ -106,13 +106,11 @@
 						<div>
 							{#if notifyViaBluesky}
 								<p class="text-sm text-green-600 font-medium mb-3">✓ Enabled</p>
-								<input type="hidden" name="enabled" value="true" />
 								<button type="submit" formaction="?/toggleNotifications" value="false" name="enabled" class="btn btn-sm btn-secondary">
 									Disable Notifications
 								</button>
 							{:else}
 								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
-								<input type="hidden" name="enabled" value="false" />
 								<button type="submit" formaction="?/toggleNotifications" value="true" name="enabled" class="btn btn-sm btn-primary">
 									Enable Notifications
 								</button>
