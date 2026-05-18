@@ -9,11 +9,21 @@
 	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
 	let deleteAccountHandle = $state('');
 
+	// Sync state when data prop changes
 	$effect(() => {
+		console.log('[settings $effect] syncing from data, notifyViaBluesky:', data.user.notifyViaBluesky);
 		displayName = data.user.displayName ?? '';
 		notifyViaBluesky = data.user.notifyViaBluesky ?? false;
 		notificationType = data.user.notificationType ?? 'both';
 		notificationFrequency = data.user.notificationFrequency ?? 'immediate';
+	});
+
+	// Sync state when form action completes
+	$effect(() => {
+		if (form?.success && form?.notifyViaBluesky !== undefined) {
+			console.log('[settings] form response, updating notifyViaBluesky to:', form.notifyViaBluesky);
+			notifyViaBluesky = form.notifyViaBluesky;
+		}
 	});
 
 	function confirmDeleteAllPosts(): boolean {
