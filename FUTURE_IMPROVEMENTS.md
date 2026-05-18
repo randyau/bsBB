@@ -2,7 +2,7 @@
 
 This document tracks lower-priority features and nice-to-haves that are deferred from the v1 launch. These are valuable enhancements but not critical for core functionality.
 
-**Note:** This list is intentionally separate from PHASE_9_PLAN.md (launch-critical) to keep v1 scope clear and manageable.
+**Note:** This list is intentionally separate from ROADMAP.md (launch-critical) to keep v1 scope clear and manageable.
 
 ---
 
