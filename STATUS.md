@@ -427,30 +427,28 @@ All core features and design polish are complete and production-ready. The forum
 - [x] Enhanced notification backend (profile sync, frequency throttling)
 - [x] Comprehensive moderation with audit trail
 
-## Next Steps (Phase 10+)
+## Next Steps
 
-**Phase 9 (Remaining):**
-- [ ] Complete Inline Mod Tools (Lock thread button, full action set)
-- [ ] Bulk Moderation (multi-select, batch operations)
+**Phase 10 — Search & Discovery (next up):**
+1. Search by Poster & Posts by Poster (`author:` filter syntax, paginated profile posts)
+2. Forum Statistics Module (per-forum stats widget)
 
-**Phase 10 — Search & Discovery:**
-1. Search by Poster & Posts by Poster
-2. Forum Statistics Module
-3. Advanced Search Filters (Tier 2)
+**Phase 11 — Approval Queue:**
+- Per-forum toggle for requiring approval on posts from new accounts
+- `/admin/approval-queue` page with Approve/Reject actions
 
-**Phase 11 — Accessibility & Polish:**
-1. Accessibility Audit & WCAG 2.1 AA Compliance (4 commits)
-2. Breadcrumb Hierarchy Verification
+**Phase 12 — Accessibility & Polish (final UI pass):**
+- WCAG AA contrast audit, semantic HTML, keyboard navigation, screen reader testing
+- Breadcrumb audit across all pages
 
-**Phase 12+ — Content Management & Community Engagement:**
-- Approval Queue (optional moderator feature)
-- Thread Tags/Labels
-- Digest-Style Notifications
-- Quote Preview on Hover
-- Favorites Sidebar
-- Share Post Button
+**Phase 13 — Deployment, Operations & Documentation:**
+- QUICKSTART.md, DEPLOYMENT.md, BACKUP.md, UPGRADE.md, ADMIN_GUIDE.md, USER_GUIDE.md
+- Verify all scripts and Docker configs work end-to-end
 
-📄 **See [PHASE_9_PLAN.md](PHASE_9_PLAN.md) for complete roadmap with acceptance criteria and remaining work.**
+**Deferred to post-launch (FUTURE_IMPROVEMENTS.md):**
+- Thread Tags/Labels, Digest Notifications, Advanced Search Filters, Quote Preview, Favorites, Share Post
+
+📄 **See [ROADMAP.md](ROADMAP.md) for complete roadmap with acceptance criteria and remaining work.**
 
 ---
 
@@ -459,7 +457,7 @@ All core features and design polish are complete and production-ready. The forum
 - **CLAUDE.md** — Full spec and architecture rationale (✅ Updated through Phase 9)
 - **ARCHITECTURE.md** — Technical architecture (⚠️ outdated for Phases 5–9, needs update)
 - **STATUS.md** — This file (✅ Updated through Phase 9)
-- **PHASE_9_PLAN.md** — Phase 9+ detailed roadmap (✅ Updated with completions)
+- **ROADMAP.md** — v1.0 launch roadmap with acceptance criteria and remaining work
 - **DEPLOYMENT.md** — Production deployment guide
 - **README.md** — Project overview and quick start
 - **TESTING.md** — Test suite documentation

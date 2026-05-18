@@ -220,5 +220,59 @@ export const actions: Actions = {
 			console.error('moveThread error:', err);
 			return fail(500, { error: 'Failed to move thread' });
 		}
+	},
+
+	// Bulk action: lock, unlock, pin, or unpin multiple threads at once
+	bulkAction: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const action = String(form.get('action') ?? '').trim();
+		const threadIdString = String(form.get('threadIds') ?? '').trim();
+
+		if (!action || !threadIdString) return fail(422, { error: 'Action and thread IDs required' });
+
+		const threadIds = threadIdString.split(',').filter(id => id.trim());
+		if (threadIds.length === 0) return fail(422, { error: 'No threads selected' });
+
+		try {
+			// Validate all threads exist
+			const validThreads = await db
+				.select({ id: threads.id })
+				.from(threads)
+				.where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+
+			if (validThreads.length === 0) return fail(422, { error: 'No valid threads found' });
+
+			if (action === 'lock') {
+				// Lock all selected threads
+				await db.update(threads).set({ isLocked: true }).where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+
+				// Log each action individually for audit trail
+				for (const threadId of validThreads.map(t => t.id)) {
+					await db.insert(modLog).values({
+						moderatorDid: locals.user!.did,
+						action: 'lock_thread',
+						targetThreadId: threadId
+					});
+				}
+			} else if (action === 'unlock') {
+				// Unlock all selected threads
+				await db.update(threads).set({ isLocked: false }).where(db.sql`${threads.id} IN (${db.sql.join(threadIds, db.sql`, `)})`);
+
+				// Log each action individually
+				for (const threadId of validThreads.map(t => t.id)) {
+					await db.insert(modLog).values({
+						moderatorDid: locals.user!.did,
+						action: 'unlock_thread',
+						targetThreadId: threadId
+					});
+				}
+			}
+
+			return { success: true, action: `bulk_${action}`, count: validThreads.length };
+		} catch (err) {
+			console.error('bulkAction error:', err);
+			return fail(500, { error: 'Failed to perform bulk action' });
+		}
 	}
 };

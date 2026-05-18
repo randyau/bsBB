@@ -7,6 +7,10 @@
 	let movePostId: string | null = $state(null);
 	let moveDestThreadId: string = $state('');
 
+	let selectedPostIds = new Set<string>($state());
+	let bulkActionType: string | null = $state(null);
+	let bulkActionConfirming = false;
+
 	function confirmHide(): boolean {
 		return confirm('Hide this post? It will be removed from view but content is preserved and it can be restored.');
 	}
@@ -15,6 +19,56 @@
 		return confirm(
 			'Permanently delete this post?\n\nThis will irreversibly clear all content. The post stub will remain for quotes/links, but content cannot be recovered.\n\nThis action cannot be undone.'
 		);
+	}
+
+	function toggleSelectAll() {
+		if (selectedPostIds.size === data.posts.length) {
+			selectedPostIds.clear();
+		} else {
+			selectedPostIds = new Set(data.posts.map(p => p.id));
+		}
+	}
+
+	function togglePostSelection(postId: string) {
+		if (selectedPostIds.has(postId)) {
+			selectedPostIds.delete(postId);
+		} else {
+			selectedPostIds.add(postId);
+		}
+	}
+
+	function confirmBulkAction(action: string) {
+		bulkActionType = action;
+		bulkActionConfirming = true;
+	}
+
+	function cancelBulkAction() {
+		bulkActionType = null;
+		bulkActionConfirming = false;
+	}
+
+	function executeBulkAction(action: string) {
+		const postIdList = Array.from(selectedPostIds).join(',');
+		const formEl = document.createElement('form');
+		formEl.method = 'POST';
+		formEl.action = `?/bulkAction`;
+
+		const actionInput = document.createElement('input');
+		actionInput.type = 'hidden';
+		actionInput.name = 'action';
+		actionInput.value = action;
+
+		const idsInput = document.createElement('input');
+		idsInput.type = 'hidden';
+		idsInput.name = 'postIds';
+		idsInput.value = postIdList;
+
+		formEl.appendChild(actionInput);
+		formEl.appendChild(idsInput);
+		document.body.appendChild(formEl);
+		formEl.submit();
+
+		cancelBulkAction();
 	}
 </script>
 
@@ -39,10 +93,49 @@
 		clearHref="/admin/posts"
 	/>
 
+	<!-- Bulk actions bar -->
+	{#if selectedPostIds.size > 0}
+		<div class="bg-[rgb(var(--color-bg-secondary))] border border-[rgb(var(--color-border))] rounded p-4 flex items-center justify-between">
+			<span class="text-sm font-semibold">{selectedPostIds.size} post{selectedPostIds.size !== 1 ? 's' : ''} selected</span>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					onclick={() => confirmBulkAction('hide')}
+					class="btn btn-sm btn-secondary text-xs"
+				>
+					Hide selected
+				</button>
+				<button
+					type="button"
+					onclick={() => confirmBulkAction('restore')}
+					class="btn btn-sm btn-secondary text-xs"
+				>
+					Restore selected
+				</button>
+				<button
+					type="button"
+					onclick={() => selectedPostIds.clear()}
+					class="btn btn-sm btn-secondary text-xs"
+				>
+					Clear selection
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<div class="table-container">
 		<table class="w-full text-sm">
 			<thead class="bg-[rgb(var(--color-bg-tertiary))] border-b border-[rgb(var(--color-border))]">
 				<tr>
+					<th class="px-4 py-3 text-left">
+						<input
+							type="checkbox"
+							checked={selectedPostIds.size === data.posts.length && data.posts.length > 0}
+							onchange={toggleSelectAll}
+							title="Select all posts"
+							aria-label="Select all posts on this page"
+						/>
+					</th>
 					<th class="px-4 py-3 text-left font-semibold">Thread</th>
 					<th class="px-4 py-3 text-left font-semibold">Author</th>
 					<th class="px-4 py-3 text-left font-semibold">Posted</th>
@@ -56,6 +149,14 @@
 					<tr
 						class={`border-b border-[rgb(var(--color-border))] ${post.status !== 'active' ? 'bg-[rgb(var(--color-bg-tertiary))] opacity-60' : 'hover:bg-[rgb(var(--color-bg-secondary))]'}`}
 					>
+						<td class="px-4 py-3">
+							<input
+								type="checkbox"
+								checked={selectedPostIds.has(post.id)}
+								onchange={() => togglePostSelection(post.id)}
+								aria-label="Select post"
+							/>
+						</td>
 						<td class="px-4 py-3">
 							<a
 								href="/f/general/t/{post.threadId}/{post.threadSlug}"
@@ -197,6 +298,50 @@
 						</button>
 					</div>
 				</form>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Bulk action confirmation modal -->
+	{#if bulkActionConfirming && bulkActionType}
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="bulk-action-title"
+			tabindex="-1"
+			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+			onclick={cancelBulkAction}
+			onkeydown={(e) => { if (e.key === 'Escape') cancelBulkAction(); }}
+		>
+			<div class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+				<h2 id="bulk-action-title" class="section-title mb-4">Confirm Bulk Action</h2>
+				<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+					{#if bulkActionType === 'hide'}
+						Hide {selectedPostIds.size} post{selectedPostIds.size !== 1 ? 's' : ''}?
+						<br /><br />
+						Posts will be removed from view but content is preserved and can be restored.
+					{:else if bulkActionType === 'restore'}
+						Restore {selectedPostIds.size} post{selectedPostIds.size !== 1 ? 's' : ''}?
+						<br /><br />
+						Hidden posts will be made visible again.
+					{/if}
+				</p>
+				<div class="flex gap-3">
+					<button
+						type="button"
+						onclick={() => executeBulkAction(bulkActionType)}
+						class="btn btn-primary text-sm flex-1"
+					>
+						Confirm
+					</button>
+					<button
+						type="button"
+						onclick={cancelBulkAction}
+						class="btn btn-secondary text-sm flex-1"
+					>
+						Cancel
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
