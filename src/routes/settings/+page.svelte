@@ -9,6 +9,13 @@
 	let notificationFrequency = $state(data.user.notificationFrequency ?? 'immediate');
 	let deleteAccountHandle = $state('');
 
+	$effect(() => {
+		displayName = data.user.displayName ?? '';
+		notifyViaBluesky = data.user.notifyViaBluesky ?? false;
+		notificationType = data.user.notificationType ?? 'both';
+		notificationFrequency = data.user.notificationFrequency ?? 'immediate';
+	});
+
 	function confirmDeleteAllPosts(): boolean {
 		return confirm(
 			'Delete all of your posts?\n\n' +
