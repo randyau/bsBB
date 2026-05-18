@@ -42,7 +42,9 @@
 
 {#if clientMode}
 	<div class="flex gap-2 items-center">
+		<label for="table-search-client" class="sr-only">Search</label>
 		<input
+			id="table-search-client"
 			type="text"
 			{value}
 			oninput={handleInput}
@@ -64,7 +66,9 @@
 		{#each Object.entries(extraParams) as [k, v]}
 			<input type="hidden" name={k} value={v} />
 		{/each}
+		<label for="table-search-server" class="sr-only">Search</label>
 		<input
+			id="table-search-server"
 			type="text"
 			{name}
 			{value}

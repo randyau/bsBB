@@ -331,7 +331,7 @@
 		</div>
 	{:else}
 		<div class="space-y-4">
-			{#each data.posts as post (post.id)}
+			{#each data.posts as post, idx (post.id)}
 				<div class="post" id="post-{post.id}">
 					<!-- Post Header -->
 					<div class="post-header">
@@ -414,6 +414,17 @@
 											>
 												Edit as mod
 											</button>
+										{/if}
+										{#if idx === 0}
+											{#if data.thread.isLocked}
+												<form method="POST" action="?/unlockThread">
+													<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unlock thread</button>
+												</form>
+											{:else}
+												<form method="POST" action="?/lockThread">
+													<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Lock thread</button>
+												</form>
+											{/if}
 										{/if}
 										{#if post.status !== 'active'}
 											<form method="POST" action="?/restorePost">

@@ -38,7 +38,7 @@ This document captures all improvements and features identified in FORUM_DESIGN_
 
 ---
 
-### 9.2 🔄 Inline Mod Tools for Posts (Partial)
+### 9.2 ✅ Inline Mod Tools for Posts (Complete)
 **Priority:** Tier 1 — High Impact  
 **Complexity:** Medium  
 **Effort:** ~1-2 commits (Commit 3 implemented edit-as-mod; rest TBD)
@@ -46,7 +46,7 @@ This document captures all improvements and features identified in FORUM_DESIGN_
 - When viewing a thread, moderators see action buttons directly on posts:
   - [x] Edit (as mod, with reason/log entry) — COMPLETE (Commit 3)
   - [x] Delete / Restore — COMPLETE (exists in dropdown menu)
-  - [ ] Lock thread (button on first post only) — TBD
+  - [x] Lock thread (button on first post only) — COMPLETE
   - [x] Move post to another thread — COMPLETE (via admin/posts, available via form on posts)
   - [x] Hide/Show (soft delete toggle) — COMPLETE (dropdown actions)
 - Buttons only render for users with admin `globalRole`
@@ -59,7 +59,7 @@ This document captures all improvements and features identified in FORUM_DESIGN_
 - [x] Actions execute without leaving thread view
 - [x] All actions properly logged in mod_log
 - [x] Regular users see no action buttons
-- [ ] Lock thread button on first post (TBD)
+- [x] Lock thread button on first post (COMPLETE)
 
 ---
 
@@ -470,11 +470,11 @@ CREATE TABLE thread_tags (
 
 | Phase | Item | Status | Tier | Effort |
 |---|---|---|---|---|
-| 9 | Post/Thread Moving | ⭕ | 1 | Medium |
-| 9 | Inline Mod Tools | ⭕ | 1 | Medium |
+| 9 | Post/Thread Moving | ✅ | 1 | Medium |
+| 9 | Inline Mod Tools | ✅ | 1 | Medium |
 | 9 | Bulk Moderation | ⭕ | 1 | Medium-Hard |
-| 9 | Thread Follow/Mute | ⭕ | 1 | Medium |
-| 9 | Unread Indicators | ⭕ | 1 | Medium |
+| 9 | Thread Follow/Mute | ✅ | 1 | Medium |
+| 9 | Unread Indicators | ✅ | 1 | Medium |
 | 10 | Search by Poster | ⭕ | 1 | Medium |
 | 10 | Forum Statistics | ⭕ | 1 | Low |
 | 10 | Advanced Search Filters | ⭕ | 2 | Medium |
@@ -487,7 +487,8 @@ CREATE TABLE thread_tags (
 | 14 | Favorites Sidebar | ⭕ | 2 | Medium |
 | 14 | Share Post Button | ⭕ | 2 | Low |
 
-**Total Tier 1 Items:** 11 (5 already done in Phase 7, 6 remaining)  
+**Phase 9 Status:** 5 of 5 items complete (all core features done)  
+**Total Tier 1 Items:** 11 (5 done, 6 remaining)  
 **Total Tier 2 Items:** 5  
 **Total Effort:** ~16-20 commits across Phases 9–14
 

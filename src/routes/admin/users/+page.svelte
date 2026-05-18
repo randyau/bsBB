@@ -116,15 +116,15 @@
 		</p>
 		<div class="flex gap-2 items-center">
 			{#if data.page > 1}
-				<a href={`/admin/users?page=1${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary">First</a>
-				<a href={`/admin/users?page=${data.page - 1}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary">← Back</a>
+				<a href={`/admin/users?page=1${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary" aria-label="Go to first page">First</a>
+				<a href={`/admin/users?page=${data.page - 1}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary" aria-label="Go to previous page">← Back</a>
 			{/if}
 			<span class="text-xs text-[rgb(var(--color-text-muted))]">
 				Page {data.page} of {data.totalPages}
 			</span>
 			{#if data.page < data.totalPages}
-				<a href={`/admin/users?page=${data.page + 1}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary">Next →</a>
-				<a href={`/admin/users?page=${data.totalPages}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary">Last</a>
+				<a href={`/admin/users?page=${data.page + 1}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary" aria-label="Go to next page">Next →</a>
+				<a href={`/admin/users?page=${data.totalPages}${data.q ? `&q=${encodeURIComponent(data.q)}` : ''}`} class="btn btn-sm btn-secondary" aria-label="Go to last page">Last</a>
 			{/if}
 		</div>
 	</div>
