@@ -10,6 +10,8 @@ export type SessionUser = {
 	avatarUrl: string | null;
 	globalRole: 'admin' | 'member' | 'banned';
 	notifyViaBluesky: boolean;
+	notificationType: string;
+	notificationFrequency: string;
 };
 
 const SESSION_COOKIE = 'session';
@@ -65,6 +67,8 @@ export async function validateSession(
 			avatarUrl: users.avatarUrl,
 			globalRole: users.globalRole,
 			notifyViaBluesky: users.notifyViaBluesky,
+			notificationType: users.notificationType,
+			notificationFrequency: users.notificationFrequency,
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userDid, users.did))
@@ -104,6 +108,8 @@ export async function validateSession(
 			avatarUrl: row.avatarUrl,
 			globalRole: row.globalRole as 'admin' | 'member' | 'banned',
 			notifyViaBluesky: row.notifyViaBluesky,
+			notificationType: row.notificationType,
+			notificationFrequency: row.notificationFrequency,
 		},
 	};
 }

@@ -21,6 +21,8 @@ const testUser = {
 	avatarUrl: null,
 	globalRole: 'member' as const,
 	notifyViaBluesky: false,
+	notificationType: 'both',
+	notificationFrequency: 'immediate',
 };
 
 const testAdmin = {
@@ -30,6 +32,8 @@ const testAdmin = {
 	avatarUrl: null,
 	globalRole: 'admin' as const,
 	notifyViaBluesky: false,
+	notificationType: 'both',
+	notificationFrequency: 'immediate',
 };
 
 describe('canRead permission resolution', () => {

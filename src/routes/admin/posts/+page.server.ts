@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { posts, threads, users, modLog } from '$lib/db/schema';
+import { posts, threads, users, modLog, forums } from '$lib/db/schema';
 import { eq, desc, ilike, and, or } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			threadId: threads.id,
 			threadTitle: threads.title,
 			threadSlug: threads.slug,
-			forumSlug: threads.forumId,
+			forumSlug: forums.slug,
+			forumId: forums.id,
 			authorHandle: users.handle,
 			authorDid: users.did,
 			bodyMarkdown: posts.bodyMarkdown,
@@ -33,13 +34,22 @@ export const load: PageServerLoad = async ({ url }) => {
 		})
 		.from(posts)
 		.innerJoin(threads, eq(posts.threadId, threads.id))
+		.innerJoin(forums, eq(threads.forumId, forums.id))
 		.innerJoin(users, eq(posts.authorDid, users.did))
 		.where(where)
 		.orderBy(desc(posts.createdAt))
 		.limit(200);
 
+	// Get list of all threads for move destination
+	const threadList = await db
+		.select({ id: threads.id, title: threads.title, slug: threads.slug, forumId: forums.id, forumSlug: forums.slug })
+		.from(threads)
+		.innerJoin(forums, eq(threads.forumId, forums.id))
+		.orderBy(threads.title);
+
 	return {
 		posts: postList,
+		threads: threadList,
 		q
 	};
 };
@@ -150,6 +160,64 @@ export const actions: Actions = {
 			return { success: true, action: 'delete', postId };
 		} catch (err) {
 			return fail(500, { error: 'Failed to hide post' });
+		}
+	},
+
+	movePost: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const postId = String(form.get('postId') ?? '').trim();
+		const destThreadId = String(form.get('destThreadId') ?? '').trim();
+
+		if (!postId || !destThreadId) return fail(422, { error: 'Post ID and destination thread are required' });
+
+		try {
+			// Verify destination thread exists
+			const [destThread] = await db
+				.select({ id: threads.id, title: threads.title })
+				.from(threads)
+				.where(eq(threads.id, destThreadId))
+				.limit(1);
+
+			if (!destThread) {
+				return fail(422, { error: 'Destination thread not found' });
+			}
+
+			// Get current thread info for reason field
+			const [post] = await db
+				.select({ threadId: posts.threadId })
+				.from(posts)
+				.where(eq(posts.id, postId))
+				.limit(1);
+
+			if (!post) {
+				return fail(422, { error: 'Post not found' });
+			}
+
+			const [currentThread] = await db
+				.select({ title: threads.title })
+				.from(threads)
+				.where(eq(threads.id, post.threadId))
+				.limit(1);
+
+			// Move post to new thread
+			await db
+				.update(posts)
+				.set({ threadId: destThreadId })
+				.where(eq(posts.id, postId));
+
+			// Log the action with source and destination info
+			await db.insert(modLog).values({
+				moderatorDid: locals.user!.did,
+				action: 'move_post',
+				targetPostId: postId,
+				reason: `from: "${currentThread?.title || 'unknown'}", to: "${destThread.title}"`
+			});
+
+			return { success: true, action: 'movePost', postId };
+		} catch (err) {
+			console.error('movePost error:', err);
+			return fail(500, { error: 'Failed to move post' });
 		}
 	}
 };

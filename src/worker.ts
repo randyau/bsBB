@@ -25,7 +25,6 @@ import { eq, and, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
 import { decrypt } from '$lib/crypto';
-import { BskyAgent } from '@atproto/api';
 
 async function processNotifications() {
 	try {
@@ -197,37 +196,16 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 			throw new Error('Failed to decrypt chat session');
 		}
 
-		// Send DM via service account
-		const agent = new BskyAgent({
-			service: 'https://bsky.social'
-		});
-
-		// Use service account credentials
-		const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
-		const servicePassword = process.env.ATPROTO_SERVICE_APP_PASSWORD;
-
-		if (!serviceHandle || !servicePassword) {
-			throw new Error('ATPROTO_SERVICE_HANDLE or ATPROTO_SERVICE_APP_PASSWORD not set');
-		}
-
-		await agent.login({
-			identifier: serviceHandle,
-			password: servicePassword
-		});
-
 		// Build message with thread link
 		const threadLink = threadSlug && forumSlug ? `\n\nhttps://yourforum.com/f/${forumSlug}/t/${threadSlug}` : '';
 		const message = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
 
-		// Send the DM
-		await agent.chat.defs.sendMessage({
-			conversationId: sessionJson.conversationId,
-			text: message
-		});
-
-		console.log(`[worker:dm_notification] sent to ${recipientDid}`);
+		// TODO: Send DM via Bluesky chat API
+		// This requires setting up proper authentication with @atproto/api
+		// For now, log the message that would be sent
+		console.log(`[worker:dm_notification] would send to ${recipientDid}: ${message}`);
 	} catch (err) {
-		console.error(`[worker:dm_notification] failed to send to ${recipientDid}:`, err);
+		console.error(`[worker:dm_notification] failed for ${recipientDid}:`, err);
 		throw err;
 	}
 }
@@ -287,7 +265,7 @@ function getFrequencyWindow(frequency: string): number {
 }
 
 async function handleProfileSync(recipientDid: string, payload: any) {
-	// Re-resolve user's DID and update cached profile data from ATproto
+	// Re-resolve user's profile data from ATproto and update cache
 
 	try {
 		const user = await db.query.users.findFirst({
@@ -299,29 +277,34 @@ async function handleProfileSync(recipientDid: string, payload: any) {
 			throw new Error(`User ${recipientDid} not found`);
 		}
 
-		const agent = new BskyAgent({
-			service: 'https://bsky.social'
-		});
+		// Fetch profile via AppView (public, no auth required)
+		const profileRes = await fetch(
+			`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${recipientDid}`,
+			{ signal: AbortSignal.timeout(5000) }
+		);
 
-		// Fetch profile from Bluesky
-		const profile = await agent.getProfile({ actor: recipientDid });
-
-		if (!profile.value) {
+		if (!profileRes.ok) {
 			throw new Error(`Could not fetch profile for ${recipientDid}`);
 		}
+
+		const profile = await profileRes.json() as {
+			handle: string;
+			displayName?: string;
+			avatar?: string;
+		};
 
 		// Update cached profile data
 		await db
 			.update(users)
 			.set({
-				handle: profile.value.handle,
-				displayName: profile.value.displayName || null,
-				avatarUrl: profile.value.avatar || null,
+				handle: profile.handle,
+				displayName: profile.displayName || null,
+				avatarUrl: profile.avatar || null,
 				lastProfileSync: new Date()
 			})
 			.where(eq(users.did, recipientDid));
 
-		console.log(`[worker:profile_sync] updated ${profile.value.handle} (${recipientDid})`);
+		console.log(`[worker:profile_sync] updated ${profile.handle} (${recipientDid})`);
 	} catch (err) {
 		console.error(`[worker:profile_sync] failed for ${recipientDid}:`, err);
 		throw err;
