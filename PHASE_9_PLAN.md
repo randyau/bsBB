@@ -240,9 +240,42 @@ CREATE TABLE thread_views (
 
 ---
 
-## Phase 11 — Accessibility & Polish
+### 12.1 ⭕ Approval Queue (Tier 1)
 
-**Goal:** Ensure forum is usable by everyone and polished for production.
+**Priority:** Tier 1 — High Impact  
+**Complexity:** Medium  
+**Effort:** ~2 commits  
+**Why Last (Pre-A11y):** Approval queue UI and interactions should be audited for accessibility in Phase 11.
+
+**Schema Changes:**
+```sql
+ALTER TABLE posts ADD COLUMN is_approved BOOLEAN DEFAULT true;
+ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
+```
+
+**Features:**
+- Admin can enable per-forum: "New posts from users < N days old require approval"
+- New posts from young accounts go to `posts.is_approved = false`, hidden from thread
+- Moderators see dedicated approval queue page (/admin/approval-queue)
+- Quick Approve/Reject buttons on each pending post
+- Reject sends DM to user explaining removal (configurable message)
+- Posts older than X hours automatically approved (prevent queue backlog)
+- Bypass for trusted/verified accounts
+
+**Acceptance Criteria:**
+- [ ] Per-forum approval queue toggle in `/admin/forums`
+- [ ] New posts from young accounts set `is_approved = false`
+- [ ] Approval queue page shows pending posts with context
+- [ ] Approve/Reject buttons work and update mod_log
+- [ ] Reject sends DM with reason
+- [ ] Auto-approve after 24 hours if not reviewed
+- [ ] Young account definition is configurable (days old)
+
+---
+
+## Phase 11 — Accessibility & Polish (Final Launch Pass)
+
+**Goal:** Comprehensive accessibility audit and polish across all built features. Done last to ensure all UI touches are covered.
 
 ### 11.1 ⭕ Accessibility Audit & Polish (Tier 1 Priority)
 **Priority:** Tier 1 — High Impact  
@@ -349,25 +382,39 @@ See **FUTURE_IMPROVEMENTS.md** for detailed specs and rationale.
 | 9 | Unread Indicators | ✅ | 1 | Medium |
 | 10 | Search by Poster | ⭕ | 1 | Medium |
 | 10 | Forum Statistics | ⭕ | 1 | Low |
+| 12 | Approval Queue | ⭕ | 1 | Medium |
 | 11 | Accessibility Audit | ⭕ | 1 | Medium |
 | 11 | Breadcrumb Audit | ✅ | 1 | Low |
-| 12 | Approval Queue | ⭕ | 1 | Medium |
 
 **v1.0 Launch Status:** 6 of 10 Tier 1 items complete  
-**Remaining Tier 1:** 4 items (Search by Poster, Forum Stats, Accessibility, Approval Queue)  
+**Execution Order:** Phase 10 → Phase 12 → Phase 11 (A11y last, comprehensive pass)  
+**Remaining Tier 1:** 4 items (Search by Poster, Forum Stats, Approval Queue, Accessibility)  
 **Tier 2 Deferred:** 6 items in FUTURE_IMPROVEMENTS.md  
 **v1.0 Effort:** ~7-9 commits to complete launch scope
 
 ---
 
-## v1.0 Remaining Work (Tier 1 Only)
+## v1.0 Launch Execution Order
 
-After Phase 9 core completion, remaining **launch-critical items**:
+After Phase 9 core completion, build in this order:
 
-1. **Phase 10.1:** Search by Poster (medium effort, high UX value)
-2. **Phase 10.2:** Forum Statistics (low effort, useful for admins)
-3. **Phase 11:** Accessibility Audit (medium effort, WCAG AA compliance)
-4. **Phase 12.1:** Approval Queue (medium effort, spam prevention)
+1. **Phase 10:** Search & Discovery
+   - 10.1 Search by Poster (medium effort)
+   - 10.2 Forum Statistics (low effort)
+
+2. **Phase 12:** Content Management  
+   - 12.1 Approval Queue (medium effort)
+
+3. **Phase 11:** Accessibility & Polish (Final Comprehensive Pass)
+   - 11.1 WCAG AA Audit (4 commits)
+   - 11.2 Breadcrumb Verification
+
+**Why Accessibility Last:**
+Accessibility touches all UI — forms, modals, tables, buttons, navigation. Building it as the final pass ensures:
+- All feature UI is stable before auditing
+- Comprehensive coverage of newly-added components
+- No missed elements that get added later and forgotten
+- Single focused effort vs. scattered a11y work
 
 These 4 items complete the v1.0 launch scope. All Tier 2 features are in FUTURE_IMPROVEMENTS.md.
 
