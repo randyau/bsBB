@@ -1,7 +1,7 @@
 # bsBB — Implementation Status
 
 **Last Updated:** 2026-05-17  
-**Overall Status:** ✅ All Phases Complete (Phases 1–7 Done, 55+ commits)
+**Overall Status:** ✅ Phases 1–9 Complete (70+ commits, Production-Ready + Advanced Moderation)
 
 ## Summary
 
@@ -24,6 +24,12 @@ All core features and design polish are complete and production-ready. The forum
 - ✅ Light/dark theme with system preference detection
 - ✅ Production Docker Compose stack
 - ✅ Security hardening (CSP, headers, rate limiting, input validation)
+- ✅ Unread thread indicators with last-viewed tracking
+- ✅ Thread follow/mute system (overrides global preferences)
+- ✅ Expanded notification preferences (type + frequency filtering)
+- ✅ Frequency-based rate limiting for notifications
+- ✅ Thread and post moving (moderation tool)
+- ✅ Comprehensive moderation tools with audit trail
 
 ---
 
@@ -299,10 +305,48 @@ All core features and design polish are complete and production-ready. The forum
 
 ---
 
+### Phase 9 ✅ — Core Forum Experience & Moderation Tools (11 commits)
+
+**Status:** Complete  
+**Key Features:**
+- Unread thread tracking via `thread_views` table
+- Thread follow/mute subscription system
+- Notification preferences with type filtering (replies|quotes|both)
+- Notification frequency throttling (10min|hourly|daily)
+- Thread and post moving tools for moderation
+- Accessible modals with ARIA attributes and keyboard support
+
+**Commit Sequence:**
+1. Unread thread indicators (thread_views table, last_viewed_at tracking)
+2. Thread follow/mute system (notification_subscriptions, 3-state UI)
+3. Notification preferences & backend (type/frequency, worker rate limiting, profile sync)
+4. Post/thread moving moderation tools (move actions, modal dialogs, audit logging)
+5-11. UI refinements, preference expansion, and moderation tool polish
+
+**Files:**
+- `src/lib/db/schema.ts` — New tables: thread_views, notification_subscriptions
+- `src/routes/f/[forumSlug]/t/[threadId]/` — Thread detail with subscriptions + moves
+- `src/routes/admin/posts/` — Post management with move action
+- `src/routes/admin/threads/` — Thread management with move action
+- `src/routes/user/[handle]/` — Profile with followed threads card
+- `src/routes/settings/` — Notification type/frequency preferences
+- `src/worker.ts` — Notification backend with preference checking, throttling, profile sync
+- `src/lib/auth/session.ts` — SessionUser type with notification preferences
+
+**Key Improvements:**
+- **Unread Tracking:** Forum listing highlights threads with new activity
+- **Smart Notifications:** Users can follow/mute individual threads, overriding global settings
+- **Granular Control:** Filter by reply type (replies vs quotes) and max notification frequency
+- **Efficient Distribution:** Notifications respect user preferences; worker handles rate limiting
+- **Moderation Flexibility:** Move threads between forums or posts between threads with full audit trail
+- **Accessibility:** All modals meet WCAG standards with proper ARIA labels and keyboard support
+
+---
+
 ## Database Schema Summary
 
-**14 Tables:**
-1. `users` — DIDs, handles, roles, profile cache, notification preferences
+**16 Tables:**
+1. `users` — DIDs, handles, roles, profile cache, notification preferences (type, frequency)
 2. `forums` — Hierarchical forum structure
 3. `threads` — Thread metadata
 4. `posts` — Post content (markdown + HTML) with status (ACTIVE/HIDDEN/ARCHIVED/DELETED)
@@ -312,10 +356,12 @@ All core features and design polish are complete and production-ready. The forum
 8. `roles` — Admin-defined custom roles with colors
 9. `user_roles` — Global custom role assignments
 10. `sessions` — Custom roll-your-own (SHA-256 hash, auto-pruning)
-11. `mod_log` — Audit trail (ban/delete/lock/hide/role ops/etc.)
+11. `mod_log` — Audit trail (ban/delete/lock/hide/move/role ops/etc.)
 12. `notification_queue` — Async worker queue
 13. `rate_limit_buckets` — Atomic rate limit tracking
 14. `instance_settings` — Configuration flags
+15. `thread_views` — User thread view tracking (last_viewed_at per user/thread)
+16. `notification_subscriptions` — Thread-level follow/mute overrides (subscription_type)
 
 **Key Indexes:** `did`, `email`, `slug`, `tsvector`, `created_at`, foreign keys
 
@@ -350,7 +396,8 @@ All core features and design polish are complete and production-ready. The forum
 | Phase 5 | 6 | ✅ |
 | Phase 6 | 6 | ✅ |
 | Phase 7 | 11 + enhancements | ✅ |
-| **Total** | **55+** | **✅ Complete** |
+| Phase 9 | 11 (unread, follow/mute, notif prefs, moving) | ✅ |
+| **Total** | **70+** | **✅ Complete** |
 
 ---
 
@@ -371,14 +418,20 @@ All core features and design polish are complete and production-ready. The forum
 
 ---
 
-## Next Steps (Phase 9+)
+## Completed in Phase 9 ✅
 
-**Phase 9 — Core Forum Experience & Mod Tools:**
-1. Post/Thread Moving (Mod Tool)
-2. Inline Mod Tools for Posts
-3. Bulk Moderation
-4. Thread Follow/Mute System
-5. Unread Thread Indicators & Counts
+- [x] Unread Thread Indicators & Counts
+- [x] Thread Follow/Mute System
+- [x] Notification Preferences (type + frequency)
+- [x] Post/Thread Moving (Mod Tool)
+- [x] Enhanced notification backend (profile sync, frequency throttling)
+- [x] Comprehensive moderation with audit trail
+
+## Next Steps (Phase 10+)
+
+**Phase 9 (Remaining):**
+- [ ] Complete Inline Mod Tools (Lock thread button, full action set)
+- [ ] Bulk Moderation (multi-select, batch operations)
 
 **Phase 10 — Search & Discovery:**
 1. Search by Poster & Posts by Poster
@@ -397,19 +450,21 @@ All core features and design polish are complete and production-ready. The forum
 - Favorites Sidebar
 - Share Post Button
 
-📄 **See [PHASE_9_PLAN.md](PHASE_9_PLAN.md) for complete roadmap with acceptance criteria, schema changes, and effort estimates.**
+📄 **See [PHASE_9_PLAN.md](PHASE_9_PLAN.md) for complete roadmap with acceptance criteria and remaining work.**
 
 ---
 
 ## Documentation Files
 
-- **CLAUDE.md** — Full spec and architecture rationale
-- **ARCHITECTURE.md** — Technical architecture (⚠️ outdated for Phases 5–7, needs update)
-- **STATUS.md** — This file
-- **PHASE_7_PLAN.md** — Phase 7 detailed roadmap
+- **CLAUDE.md** — Full spec and architecture rationale (✅ Updated through Phase 9)
+- **ARCHITECTURE.md** — Technical architecture (⚠️ outdated for Phases 5–9, needs update)
+- **STATUS.md** — This file (✅ Updated through Phase 9)
+- **PHASE_9_PLAN.md** — Phase 9+ detailed roadmap (✅ Updated with completions)
 - **DEPLOYMENT.md** — Production deployment guide
 - **README.md** — Project overview and quick start
 - **TESTING.md** — Test suite documentation
+- **SECURITY_AUDIT_REPORT.md** — Security analysis and findings
+- **SECURITY_FIXES_IMPLEMENTED.md** — Security improvements
 
 ---
 

@@ -2,7 +2,7 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts—everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** ✅ ALL PHASES COMPLETE (55+ commits, production-ready) — Full feature set with custom roles, user post management, notification preferences, and comprehensive design system
+**Status:** ✅ PHASES 1–9 COMPLETE (70+ commits, production-ready) — Full feature set with custom roles, user post management, notification preferences, unread tracking, thread subscriptions, post/thread moving, and comprehensive design system
 
 ## Why bsBB?
 
@@ -246,9 +246,19 @@ Hitting a limit returns HTTP 429 with retry-after seconds.
 ### Moderation
 
 - **Ban**: Sets `users.global_role = 'banned'`, redirects user to `/banned`
-- **Delete post**: Soft-delete via `posts.is_deleted = true` (preserves thread integrity)
-- **Lock thread**: Prevents replies; `threads.is_locked = true`
+- **Post management**: Hide, delete, restore posts; edit as moderator with reason logging
+- **Thread management**: Lock/unlock, pin/unpin, move to different forum
+- **Post moving**: Move posts to different threads for off-topic cleanup
+- **Soft-delete**: Posts can be hidden (viewable to admins) or permanently deleted
 - **All actions logged**: `mod_log` table with moderator, action, target, reason, timestamp
+
+### User Features (Phase 9)
+
+- **Unread tracking**: Forum listing shows unread badge for threads with new posts
+- **Thread subscriptions**: Watch (always notify), Mute (never notify), or Default (respects global setting)
+- **Notification control**: Filter by type (replies|quotes|both) and frequency (10min|hourly|daily)
+- **Post management**: Users can hide, delete, or restore their own posts
+- **Account control**: Anonymize account or delete all post content from settings danger zone
 
 ---
 

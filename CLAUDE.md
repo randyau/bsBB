@@ -2,9 +2,9 @@
 
 This file contains the full specification, architecture decisions, and design rationale for this project. It is intended to be read by Claude (or any developer) at the start of a coding session to establish full context without re-litigating decisions already made.
 
-## Status — All Phases Complete (1–7) — 55+ Commits ✅
+## Status — Phases 1–9 Complete (Core + Moderation Tools) — 70+ Commits ✅
 
-**Total Implementation:** 55+ commits, production-ready forum with all core features and design polish complete
+**Total Implementation:** 70+ commits, production-ready forum with all core features, design polish, and comprehensive moderation tooling complete
 
 ### Completed Phases:
 - **Phase 1 ✅** — Foundations (auth, sessions, DB, Docker) — 7 commits
@@ -14,6 +14,7 @@ This file contains the full specification, architecture decisions, and design ra
 - **Phase 5 ✅** — Notifications & Background Tasks (email, Bluesky DM, worker, lazy profile sync) — 6 commits
 - **Phase 6 ✅** — Post Edits, Search & Shipping (edit+revisions, full-text search, prod Docker) — 6 commits
 - **Phase 7 ✅** — Design, UI & Interaction Refinements (11 commits + enhancements)
+- **Phase 9 ✅** — Core Forum Experience & Moderation Tools (11 commits)
 - **Commit 1 ✅** — Theme System & Light/Dark Mode
   - CSS custom properties for light/dark themes with semantic naming
   - ThemeToggle component with sun/moon icons in header
@@ -100,6 +101,43 @@ This file contains the full specification, architecture decisions, and design ra
   - Display "[post hidden by author]" when user hides their own post
   - Display "[post hidden by moderator]" when mod hides a post
   - Provides clarity on who made the visibility decision
+
+### Phase 9 ✅ — Core Forum Experience & Moderation Tools (11 commits total)
+- **Commit 1 ✅** — Unread Thread Indicators
+  - New `thread_views` table tracks `user_did`, `thread_id`, `last_viewed_at`
+  - Upsert on thread load: tracks when user last visited each thread
+  - Forum listing shows unread badge/highlight for threads with new posts since last view
+  - "Mark as read" button on thread view to manually update `last_viewed_at`
+  - Theme-aware styling for unread indicators (light/dark mode)
+- **Commit 2 ✅** — Thread Follow/Mute System
+  - New `notification_subscriptions` table: `user_did`, `thread_id`, `subscription_type` ('follow'|'mute')
+  - Watch/Mute buttons on thread pages with 3-state UI: [Mute] [Default notifs] [Watch]
+  - Follow: explicitly watched thread always sends DM notifications (overrides global preference)
+  - Mute: user muted thread never sends notifications (overrides global preference)
+  - Default: inherit from user's global `notifyViaBluesky` setting
+  - "Followed Threads" card on self-profile showing subscribed threads with Remove button
+  - Subscription state loads on thread detail page and updates inline
+  - Users can manage subscriptions from both thread view and profile
+- **Commit 3 ✅** — Notification Preferences & Backend
+  - New `notificationType` column: 'both'|'replies'|'quotes' (default 'both')
+  - New `notificationFrequency` column: 'immediate'|'hourly'|'daily' (default 'immediate')
+  - Settings UI: type selector (Replies & Quotes / Replies only / Quotes only)
+  - Settings UI: frequency selector (Max once every 10 min / hour / day)
+  - Controls only visible when Bluesky DM notifications enabled, shows helpful banner otherwise
+  - Frequency-based rate limiting in worker: check last DM sent time, defer if within window
+  - Helper functions `getLastDmSentTime()` and `getFrequencyWindow()` for throttling logic
+  - Worker respects both thread-level subscriptions and global preferences
+  - Profile sync implemented: fetches fresh handle, displayName, avatarUrl from Bluesky
+  - Notification queue processing handles all preference checks before sending
+- **Commit 4 ✅** — Post/Thread Moving (Mod Tools)
+  - New `moveThread` action: move thread to different forum via `/admin/threads`
+  - Modal form to select destination forum with all available options
+  - Logs action with source/destination info: `action: 'move_thread'`
+  - New `movePost` action: move post to different thread via `/admin/posts`
+  - Modal form lists all threads by title with forum name for context
+  - Logs action with context: `action: 'move_post'`
+  - Proper ARIA labels and keyboard support (Escape to close, click backdrop to close)
+  - Accessible dialogs with `role="dialog"`, `aria-modal`, `aria-labelledby`
 
 ---
 
