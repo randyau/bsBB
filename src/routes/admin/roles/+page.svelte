@@ -91,7 +91,7 @@
 	<div class="space-y-6">
 		<div class="flex items-center justify-between">
 			<div></div>
-		{#if !editingRole}
+			{#if !editingRole}
 			<button
 				type="button"
 				onclick={() => (showCreateForm = !showCreateForm)}
@@ -341,4 +341,5 @@
 			<p>No roles yet. Create one above.</p>
 		</div>
 	{/if}
+	</div>
 </AdminPageShell>

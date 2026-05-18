@@ -4,6 +4,7 @@
 	import { formatTimeDisplay } from '$lib/utils/time';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import EmptyState from '$components/EmptyState.svelte';
+	import Pagination from '$components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -550,6 +551,14 @@
 			{/each}
 		</div>
 	{/if}
+
+	<!-- Pagination -->
+	<Pagination
+		page={data.page}
+		totalPages={data.totalPages}
+		total={data.totalPosts}
+		buildUrl={(p) => `?page=${p}`}
+	/>
 
 	<!-- Reply Form -->
 	{#if !data.thread.isLocked}

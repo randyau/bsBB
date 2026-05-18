@@ -5,7 +5,8 @@
 	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
-	let searchInput = $state(data.query);
+	let searchInput = $state('');
+	$effect(() => { searchInput = data.query; });
 	let sortBy = $state('relevance');
 	let sortedResults = $derived.by(() => {
 		const results = [...data.results];

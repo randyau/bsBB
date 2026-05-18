@@ -20,18 +20,23 @@
  */
 
 import { db } from '$lib/db';
-import { notificationQueue, posts, threads, users } from '$lib/db/schema';
+import { notificationQueue, posts, threads, users, sessions, modLog } from '$lib/db/schema';
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
 import { decrypt } from '$lib/crypto';
+import { AtpAgent } from '@atproto/api';
+
+// Sentinel DID used as moderatorDid for system-initiated mod_log entries
+const SYSTEM_DID = 'did:system:worker';
 
 async function processNotifications() {
 	try {
-		// Fetch up to 10 pending notifications atomically.
-		// FOR UPDATE SKIP LOCKED must run inside a transaction to hold the row locks.
+		// Select up to 10 pending notifications and atomically mark them as 'processing'
+		// inside the same transaction that holds the FOR UPDATE SKIP LOCKED locks.
+		// This prevents a second worker instance from picking up the same rows.
 		const pending = await db.transaction(async (tx) => {
-			return tx.execute(sql`
+			const rows = await tx.execute(sql`
 				SELECT id, recipient_did, type, payload, created_at
 				FROM notification_queue
 				WHERE status = 'pending'
@@ -39,6 +44,17 @@ async function processNotifications() {
 				LIMIT 10
 				FOR UPDATE SKIP LOCKED
 			`);
+
+			if (!rows || rows.length === 0) return [];
+
+			const ids = (rows as unknown as Array<{ id: string }>).map(r => r.id);
+			await tx.execute(sql`
+				UPDATE notification_queue
+				SET status = 'processing'
+				WHERE id = ANY(${sql.raw(`ARRAY[${ids.map(id => `'${id}'`).join(',')}]::uuid[]`)})
+			`);
+
+			return rows;
 		});
 
 		if (!pending || pending.length === 0) {
@@ -56,7 +72,6 @@ async function processNotifications() {
 			const recipientDid = row.recipient_did;
 			const type = row.type;
 			const payload = row.payload;
-			const createdAt = new Date(row.created_at);
 
 			try {
 				// For DM notifications, check frequency-based rate limiting
@@ -71,11 +86,15 @@ async function processNotifications() {
 						const freqWindow = getFrequencyWindow(userPrefs.notificationFrequency);
 
 						if (lastSent && Date.now() - lastSent.getTime() < freqWindow) {
-							// Too soon — defer this notification
+							// Too soon — reset to pending so it will be retried on the next poll
 							console.log(
-								`[worker] deferred (frequency throttled): ${recipientDid} (will retry in ${Math.ceil((freqWindow - (Date.now() - lastSent.getTime())) / 1000)}s)`
+								`[worker] deferred (frequency throttled): ${recipientDid} — resetting to pending`
 							);
-							continue; // Skip to next notification, leave this as pending
+							await db
+								.update(notificationQueue)
+								.set({ status: 'pending' })
+								.where(eq(notificationQueue.id, notifId));
+							continue;
 						}
 					}
 				}
@@ -121,8 +140,6 @@ async function processNotifications() {
 async function handleModeratorAlert(recipientDid: string, payload: any) {
 	const { action, targetType, targetLabel, moderatorHandle, reason } = payload;
 
-	// Get recipient's email address
-	// For now, use handle as fallback (in production, would query user preferences)
 	const recipient = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: { handle: true }
@@ -132,7 +149,6 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 		throw new Error(`Could not find user ${recipientDid} for email`);
 	}
 
-	// Build email body
 	const subject = `[Forum Alert] ${action} — ${targetLabel}`;
 	const html = `
 		<h2>Moderation Alert</h2>
@@ -143,8 +159,6 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 		<p><small>This is an automated alert from your forum.</small></p>
 	`;
 
-	// Moderator alerts go to the configured admin email address.
-	// The forum doesn't store user emails — ADMIN_EMAIL is set during setup.
 	const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM;
 	if (!adminEmail) {
 		throw new Error('ADMIN_EMAIL or SMTP_FROM must be set to receive moderator alerts');
@@ -157,7 +171,6 @@ async function handleModeratorAlert(recipientDid: string, payload: any) {
 async function handleDmNotification(recipientDid: string, payload: any) {
 	const { notificationType, threadTitle, threadSlug, forumSlug, replyAuthorHandle } = payload;
 
-	// Get recipient's preferences and chat session
 	const recipient = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: {
@@ -169,9 +182,7 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	});
 
 	if (!recipient?.notifyViaBluesky || !recipient?.chatSessionEncrypted) {
-		console.log(
-			`[worker:dm_notification] skipped (not opted in): ${recipientDid}`
-		);
+		console.log(`[worker:dm_notification] skipped (not opted in): ${recipientDid}`);
 		return;
 	}
 
@@ -180,34 +191,46 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 		(recipient.notificationType === 'replies' && notificationType === 'quote') ||
 		(recipient.notificationType === 'quotes' && notificationType === 'reply')
 	) {
-		console.log(
-			`[worker:dm_notification] skipped (type filtered): ${recipientDid} type=${notificationType}`
-		);
+		console.log(`[worker:dm_notification] skipped (type filtered): ${recipientDid} type=${notificationType}`);
 		return;
 	}
 
+	let sessionJson: any;
 	try {
-		// Decrypt chat session
-		let sessionJson: any;
-		try {
-			sessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
-		} catch (err) {
-			console.error(`[worker:dm_notification] failed to decrypt session for ${recipientDid}`);
-			throw new Error('Failed to decrypt chat session');
-		}
-
-		// Build message with thread link
-		const threadLink = threadSlug && forumSlug ? `\n\nhttps://yourforum.com/f/${forumSlug}/t/${threadSlug}` : '';
-		const message = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
-
-		// TODO: Send DM via Bluesky chat API
-		// This requires setting up proper authentication with @atproto/api
-		// For now, log the message that would be sent
-		console.log(`[worker:dm_notification] would send to ${recipientDid}: ${message}`);
+		sessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
 	} catch (err) {
-		console.error(`[worker:dm_notification] failed for ${recipientDid}:`, err);
-		throw err;
+		console.error(`[worker:dm_notification] failed to decrypt session for ${recipientDid}`);
+		throw new Error('Failed to decrypt chat session');
 	}
+
+	const baseUrl = process.env.PUBLIC_BASE_URL ?? '';
+	const threadLink = threadSlug && forumSlug ? `\n\n${baseUrl}/f/${forumSlug}/t/${threadSlug}` : '';
+	const messageText = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
+
+	// Send DM via Bluesky chat API using the recipient's stored OAuth session
+	const agent = new AtpAgent({ service: 'https://bsky.social' });
+	await agent.resumeSession(sessionJson);
+
+	// Find or create a DM conversation with the service account (forum bot)
+	const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
+	if (!serviceHandle) {
+		throw new Error('ATPROTO_SERVICE_HANDLE must be set to send DM notifications');
+	}
+
+	// Resolve the service account DID
+	const serviceProfile = await agent.getProfile({ actor: serviceHandle });
+	const serviceDid = serviceProfile.data.did;
+
+	// Get or create the convo between the recipient and the service account
+	const convoRes = await agent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
+	const convoId = convoRes.data.convo.id;
+
+	await agent.api.chat.bsky.convo.sendMessage({
+		convoId,
+		message: { text: messageText },
+	});
+
+	console.log(`[worker:dm_notification] sent to ${recipientDid}: ${messageText.substring(0, 80)}`);
 }
 
 function buildDmMessage(
@@ -227,10 +250,6 @@ function buildDmMessage(
 	}
 }
 
-/**
- * Get the last time a DM notification was sent to a user.
- * Uses the notification_queue sentAt field for the most recent sent DM.
- */
 async function getLastDmSentTime(recipientDid: string): Promise<Date | null> {
 	const lastSent = await db
 		.select({ sentAt: notificationQueue.sentAt })
@@ -248,78 +267,59 @@ async function getLastDmSentTime(recipientDid: string): Promise<Date | null> {
 	return lastSent[0]?.sentAt || null;
 }
 
-/**
- * Convert notification frequency setting to milliseconds.
- */
 function getFrequencyWindow(frequency: string): number {
 	switch (frequency) {
-		case 'immediate':
-			return 10 * 60 * 1000; // 10 minutes
-		case 'hourly':
-			return 60 * 60 * 1000; // 1 hour
-		case 'daily':
-			return 24 * 60 * 60 * 1000; // 1 day
-		default:
-			return 10 * 60 * 1000; // default to 10 min
+		case 'immediate': return 10 * 60 * 1000;
+		case 'hourly':    return 60 * 60 * 1000;
+		case 'daily':     return 24 * 60 * 60 * 1000;
+		default:          return 10 * 60 * 1000;
 	}
 }
 
 async function handleProfileSync(recipientDid: string, payload: any) {
-	// Re-resolve user's profile data from ATproto and update cache
+	const user = await db.query.users.findFirst({
+		where: eq(users.did, recipientDid),
+		columns: { did: true, handle: true }
+	});
 
-	try {
-		const user = await db.query.users.findFirst({
-			where: eq(users.did, recipientDid),
-			columns: { did: true, handle: true }
-		});
+	if (!user) throw new Error(`User ${recipientDid} not found`);
 
-		if (!user) {
-			throw new Error(`User ${recipientDid} not found`);
-		}
+	const profileRes = await fetch(
+		`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${recipientDid}`,
+		{ signal: AbortSignal.timeout(5000) }
+	);
 
-		// Fetch profile via AppView (public, no auth required)
-		const profileRes = await fetch(
-			`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${recipientDid}`,
-			{ signal: AbortSignal.timeout(5000) }
-		);
-
-		if (!profileRes.ok) {
-			throw new Error(`Could not fetch profile for ${recipientDid}`);
-		}
-
-		const profile = await profileRes.json() as {
-			handle: string;
-			displayName?: string;
-			avatar?: string;
-		};
-
-		// Update cached profile data
-		await db
-			.update(users)
-			.set({
-				handle: profile.handle,
-				displayName: profile.displayName || null,
-				avatarUrl: profile.avatar || null,
-				lastProfileSync: new Date()
-			})
-			.where(eq(users.did, recipientDid));
-
-		console.log(`[worker:profile_sync] updated ${profile.handle} (${recipientDid})`);
-	} catch (err) {
-		console.error(`[worker:profile_sync] failed for ${recipientDid}:`, err);
-		throw err;
+	if (!profileRes.ok) {
+		throw new Error(`Could not fetch profile for ${recipientDid}`);
 	}
+
+	const profile = await profileRes.json() as {
+		handle: string;
+		displayName?: string;
+		avatar?: string;
+	};
+
+	await db
+		.update(users)
+		.set({
+			handle: profile.handle,
+			displayName: profile.displayName || null,
+			avatarUrl: profile.avatar || null,
+			lastProfileSync: new Date()
+		})
+		.where(eq(users.did, recipientDid));
+
+	console.log(`[worker:profile_sync] updated ${profile.handle} (${recipientDid})`);
 }
 
 /**
- * Auto-approve posts that have been pending for more than 24 hours.
- * Prevents queue backlog from blocking legitimate users indefinitely.
+ * Auto-approve posts pending for more than 24 hours to prevent indefinite queue backlog.
+ * Each approval is logged to mod_log for admin visibility.
  */
 async function autoApproveStalePosts() {
 	try {
 		const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-		// Find posts pending for > 24h
 		const stalePosts = await db
 			.select({ id: posts.id, threadId: posts.threadId })
 			.from(posts)
@@ -333,12 +333,33 @@ async function autoApproveStalePosts() {
 			await db.transaction(async (tx) => {
 				await tx.update(posts).set({ isApproved: true }).where(eq(posts.id, post.id));
 				await tx.update(threads).set({ lastPostAt: new Date() }).where(eq(threads.id, post.threadId));
+				await tx.insert(modLog).values({
+					moderatorDid: SYSTEM_DID,
+					action: 'auto_approve_stale',
+					targetPostId: post.id,
+					reason: 'Automatically approved after 24 hours in the approval queue',
+				});
 			});
 		}
 
-		console.log(`[worker] auto-approved ${stalePosts.length} posts`);
+		console.log(`[worker] auto-approved ${stalePosts.length} posts (logged to mod_log)`);
 	} catch (err) {
 		console.error('[worker] auto-approve error:', err);
+	}
+}
+
+/**
+ * Delete expired sessions. Supplements the probabilistic 1% cleanup in the web tier
+ * with a guaranteed hourly sweep so sessions don't accumulate indefinitely.
+ */
+async function cleanupExpiredSessions() {
+	try {
+		const result = await db
+			.delete(sessions)
+			.where(lt(sessions.expiresAt, new Date()));
+		console.log(`[worker] session cleanup complete`);
+	} catch (err) {
+		console.error('[worker] session cleanup error:', err);
 	}
 }
 
@@ -350,11 +371,11 @@ async function startNotificationWorker() {
 	// Initial poll
 	await processNotifications();
 	await autoApproveStalePosts();
+	await cleanupExpiredSessions();
 
-	// Then poll every 60 seconds
 	setInterval(processNotifications, pollInterval);
-	// Auto-approve check every 10 minutes (precision beyond 1min unnecessary)
 	setInterval(autoApproveStalePosts, 10 * 60 * 1000);
+	setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
 }
 
 async function main() {
