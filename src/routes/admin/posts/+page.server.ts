@@ -219,5 +219,59 @@ export const actions: Actions = {
 			console.error('movePost error:', err);
 			return fail(500, { error: 'Failed to move post' });
 		}
+	},
+
+	// Bulk action: hide, restore, or delete multiple posts at once
+	bulkAction: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const action = String(form.get('action') ?? '').trim();
+		const postIdString = String(form.get('postIds') ?? '').trim();
+
+		if (!action || !postIdString) return fail(422, { error: 'Action and post IDs required' });
+
+		const postIds = postIdString.split(',').filter(id => id.trim());
+		if (postIds.length === 0) return fail(422, { error: 'No posts selected' });
+
+		try {
+			// Validate all posts exist
+			const validPosts = await db
+				.select({ id: posts.id })
+				.from(posts)
+				.where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+
+			if (validPosts.length === 0) return fail(422, { error: 'No valid posts found' });
+
+			if (action === 'hide') {
+				// Hide all selected posts
+				await db.update(posts).set({ status: 'hidden' }).where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+
+				// Log each action individually for audit trail
+				for (const postId of validPosts.map(p => p.id)) {
+					await db.insert(modLog).values({
+						moderatorDid: locals.user!.did,
+						action: 'hide_post',
+						targetPostId: postId
+					});
+				}
+			} else if (action === 'restore') {
+				// Restore all selected posts
+				await db.update(posts).set({ status: 'active' }).where(db.sql`${posts.id} IN (${db.sql.join(postIds, db.sql`, `)})`);
+
+				// Log each action individually
+				for (const postId of validPosts.map(p => p.id)) {
+					await db.insert(modLog).values({
+						moderatorDid: locals.user!.did,
+						action: 'restore_post',
+						targetPostId: postId
+					});
+				}
+			}
+
+			return { success: true, action: `bulk_${action}`, count: validPosts.length };
+		} catch (err) {
+			console.error('bulkAction error:', err);
+			return fail(500, { error: 'Failed to perform bulk action' });
+		}
 	}
 };

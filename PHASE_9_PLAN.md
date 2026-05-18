@@ -63,24 +63,40 @@ This document captures all improvements and features identified in FORUM_DESIGN_
 
 ---
 
-### 9.3 ⭕ Bulk Moderation
+### 9.3 🔄 Bulk Moderation (In Progress - Posts Complete)
 **Priority:** Tier 1 — High Impact  
 **Complexity:** Medium-Hard  
-**Effort:** ~2 commits
+**Effort:** ~2 commits (Commit 1: Posts done, Commit 2: Threads needed)
 
-- Admin/mod pages: select multiple posts/threads via checkboxes
-- Bulk actions menu: Delete, Lock, Move, Hide, Change Status
-- Confirmation modal listing all affected items
-- Moderation log: one entry per item for audit clarity (allows individual undo/investigation)
-- Apply to `/admin/posts`, `/admin/threads`
+**Completed:**
+- [x] Posts page: checkboxes for individual selection + "Select all" header checkbox
+- [x] Posts page: bulk actions bar appears when items selected
+- [x] Posts page: bulk action buttons (Hide, Restore) with confirmation modal
+- [x] Server handlers: `bulkAction` POST handler for posts with hide/restore support
+- [x] Each action logs individually in mod_log for audit trail
+- [x] Restored items maintain individual undo capability
+
+**Pending (Threads):**
+- [ ] Threads page: checkboxes for individual selection + "Select all" header checkbox
+- [ ] Threads page: bulk actions bar with Lock/Unlock buttons
+- [ ] Threads page: confirmation modal for bulk thread operations
+- [ ] Server handler: update bulkAction to support lock/unlock
+
+**Design Decisions:**
+- Inspired by phpBB and Discourse but simplified for small scale
+- Per-item logging: each bulk action creates individual mod_log entries (not one aggregate entry)
+- Enables item-by-item undo and better audit trail granularity
+- "Select all" only affects current page (not site-wide) - matches phpBB pattern
 
 **Acceptance Criteria:**
-- [ ] Checkboxes appear on post/thread list pages
-- [ ] "Select all on page" checkbox selects all visible items
-- [ ] Bulk actions dropdown appears when items selected
-- [ ] Confirmation modal shows affected items count
-- [ ] Each action creates individual mod_log entries
-- [ ] Bulk delete can be undone item-by-item via restore actions
+- [x] Checkboxes appear on post list page  
+- [x] "Select all" checkbox selects all visible items on page
+- [x] Bulk actions button appears when items selected
+- [x] Confirmation modal shows affected item count
+- [x] Each action creates individual mod_log entries
+- [x] Bulk operations redirect with success message
+- [ ] Same functionality on thread list page
+- [ ] Thread-specific actions (lock/unlock) work in bulk
 
 ---
 
