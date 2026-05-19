@@ -14,6 +14,6 @@ const keyPair = await subtle.generateKey(
 const privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
 const publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
 
-// Output one key per line (first private, then public)
-console.log(JSON.stringify(privateJwk));
-console.log(JSON.stringify(publicJwk));
+// Output as environment variable assignments (one per line)
+console.log('ATPROTO_PRIVATE_KEY=' + JSON.stringify(privateJwk));
+console.log('ATPROTO_PUBLIC_KEY=' + JSON.stringify(publicJwk));
