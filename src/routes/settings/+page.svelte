@@ -146,6 +146,13 @@
 					<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
 						Receive DM notifications when someone replies to your thread, quotes your post, or a moderator takes action on your content.
 					</p>
+					{#if data.serviceHandle}
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-3">
+							Notifications are sent from
+							<a href="https://bsky.app/profile/{data.serviceHandle}" target="_blank" rel="noopener noreferrer" class="link font-mono">@{data.serviceHandle}</a>.
+							To receive DMs, you must either <strong>follow that account</strong> or have your Bluesky DMs set to <strong>accept messages from everyone</strong>.
+						</p>
+					{/if}
 
 					<form method="POST" use:enhance action="?/updateNotificationPreferences" class="space-y-4">
 						<!-- Enable/Disable toggle -->
@@ -209,7 +216,7 @@
 				</div>
 
 				<p class="text-xs text-[rgb(var(--color-text-muted))]">
-					Note: You'll need to authorize your Bluesky account for the forum to send DMs. You'll be prompted when you first enable this.
+					Note: You'll be prompted to authorize Bluesky access when you first enable notifications.
 				</p>
 			</div>
 
