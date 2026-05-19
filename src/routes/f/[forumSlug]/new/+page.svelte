@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
+	import MarkdownHelp from '$components/MarkdownHelp.svelte';
 
 	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
 
@@ -69,6 +70,7 @@
 				Body (Markdown)
 				<span class="form-required">*</span>
 			</label>
+			<MarkdownHelp class="mb-3" />
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				<!-- Editor -->

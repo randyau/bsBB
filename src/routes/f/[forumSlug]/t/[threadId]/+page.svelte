@@ -5,6 +5,7 @@
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import EmptyState from '$components/EmptyState.svelte';
 	import Pagination from '$components/Pagination.svelte';
+	import MarkdownHelp from '$components/MarkdownHelp.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -584,6 +585,7 @@
 					<!-- Body textarea/preview -->
 					<div>
 						<label for="reply-body" class="block text-sm font-semibold mb-2">Your reply (Markdown)</label>
+						<MarkdownHelp class="mb-3" />
 
 						<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 							<!-- Editor -->

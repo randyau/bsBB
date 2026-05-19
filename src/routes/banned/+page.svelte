@@ -1,5 +1,11 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+</script>
+
 <svelte:head>
-	<title>Account Banned — bsBB</title>
+	<title>Account Banned — {data.siteName}</title>
 </svelte:head>
 
 <main class="flex min-h-screen items-center justify-center">

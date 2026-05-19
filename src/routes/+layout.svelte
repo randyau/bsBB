@@ -5,7 +5,7 @@
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
-	const { user, unreadNotificationCount } = $derived(data);
+	const { user, unreadNotificationCount, siteName, faviconUrl, themeOverrideCss, customCss, fontBody } = $derived(data);
 
 	let searchQuery = $state('');
 	let timezoneDetected = $state(false);
@@ -36,7 +36,50 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	{#if faviconUrl}
+		<link rel="icon" href={faviconUrl} />
+	{:else}
+		<link rel="icon" href={favicon} />
+	{/if}
+
+	<!-- Font loading (Google Fonts if not system) -->
+	{#if fontBody && fontBody !== 'system'}
+		{@const fontUrls = {
+			'inter': 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+			'lora': 'https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap',
+			'source-serif-4': 'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&display=swap',
+			'jetbrains-mono': 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap',
+		}}
+		{@const fontFamilies = {
+			'inter': 'Inter, sans-serif',
+			'lora': 'Lora, serif',
+			'source-serif-4': '"Source Serif 4", serif',
+			'jetbrains-mono': '"JetBrains Mono", monospace',
+		}}
+		{@const fontUrl = (fontUrls as Record<string, string>)[fontBody]}
+		{@const fontFamily = (fontFamilies as Record<string, string>)[fontBody]}
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+		{#if fontUrl}
+			<link rel="stylesheet" href={fontUrl} />
+		{/if}
+		{#if fontFamily}
+			<style>
+				body {{ font-family: {fontFamily}; }}
+			</style>
+		{/if}
+	{/if}
+
+	<!-- Theme overrides (primary color) -->
+	{#if themeOverrideCss}
+		<style>{@html themeOverrideCss}</style>
+	{/if}
+
+	<!-- Custom CSS -->
+	{#if customCss}
+		<style>{@html customCss}</style>
+	{/if}
+
 	<script>
 		const theme = document.cookie.split('; ').find(c => c.startsWith('theme='))?.split('=')[1] || 'dark';
 		document.documentElement.setAttribute('data-theme', theme);
@@ -48,7 +91,7 @@
 </a>
 
 <nav class="border-b px-4 py-3 flex items-center justify-between gap-4 bg-[rgb(var(--color-bg))]" aria-label="Site navigation">
-	<a href="/" class="font-bold text-lg whitespace-nowrap">bsBB</a>
+	<a href="/" class="font-bold text-lg whitespace-nowrap">{siteName}</a>
 
 	<!-- Search Bar -->
 	<form onsubmit={handleSearch} class="flex-1 max-w-md">

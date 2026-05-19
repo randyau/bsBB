@@ -1,5 +1,6 @@
 import { NodeOAuthClient, type NodeSavedSession, type NodeSavedState } from '@atproto/oauth-client-node';
 import { Keyset } from '@atproto/jwk';
+import { getSetting } from '$lib/settings';
 
 // In-memory stores for OAuth state/session (sufficient for single-process deployment).
 // These are transient — a server restart requires re-login. Acceptable for this scale.
@@ -8,7 +9,7 @@ const sessionStore = new Map<string, NodeSavedSession>();
 
 let _client: NodeOAuthClient | null = null;
 
-export function getAtprotoClient(): NodeOAuthClient {
+export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	if (_client) return _client;
 
 	const clientId = process.env.ATPROTO_CLIENT_ID;
@@ -28,10 +29,12 @@ export function getAtprotoClient(): NodeOAuthClient {
 		throw new Error('ATPROTO_PRIVATE_KEY must be a valid JSON JWK string');
 	}
 
+	const siteName = await getSetting('site_name', 'bsBB');
+
 	_client = new NodeOAuthClient({
 		clientMetadata: {
 			client_id: clientId,
-			client_name: 'bsBB Forum',
+			client_name: `${siteName} Forum`,
 			client_uri: baseUrl,
 			redirect_uris: [`${baseUrl}/callback`],
 			scope: 'atproto',

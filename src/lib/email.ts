@@ -13,6 +13,7 @@
  */
 
 import nodemailer from 'nodemailer';
+import { getSetting } from './settings';
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -83,9 +84,10 @@ export async function sendEmail(
  */
 export async function testEmail(to: string): Promise<boolean> {
 	try {
+		const siteName = await getSetting('site_name', 'bsBB');
 		await sendEmail(
 			to,
-			'Test Email — bsBB Forum',
+			`Test Email — ${siteName} Forum`,
 			'<p>If you received this, email is configured correctly.</p>'
 		);
 		return true;

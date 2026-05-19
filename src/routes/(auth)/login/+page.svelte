@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Sign in — bsBB</title>
+	<title>Sign in — {data.siteName}</title>
 </svelte:head>
 
 <main class="flex min-h-screen items-center justify-center">
