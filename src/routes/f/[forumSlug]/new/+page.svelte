@@ -56,7 +56,7 @@
 				bind:value={titleValue}
 				class="form-control"
 			/>
-			<div class="form-hint">
+			<div class="form-hint" aria-live="polite" aria-atomic="true">
 				{titleValue.length} / {TITLE_MAX} characters
 				{#if titleValue.length >= TITLE_MAX}
 					<span class="text-[rgb(var(--color-error))] font-semibold">(at limit)</span>
@@ -91,7 +91,7 @@
 						rows="12"
 						class="form-control form-textarea"
 					></textarea>
-					<div class="form-hint">
+					<div class="form-hint" aria-live="polite" aria-atomic="true">
 						{bodyValue.length} / {BODY_MAX} characters
 						{#if bodyValue.length >= BODY_MAX}
 							<span class="text-[rgb(var(--color-error))] font-semibold">(at limit)</span>
@@ -103,8 +103,11 @@
 
 				<!-- Live Preview -->
 				<div>
-					<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2">Preview</p>
+					<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2" id="new-thread-preview-label">Preview</p>
 					<div
+						aria-live="polite"
+						aria-label="Markdown preview"
+						aria-labelledby="new-thread-preview-label"
 						class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[300px] overflow-auto prose-content"
 					>
 						{#if bodyValue.trim()}

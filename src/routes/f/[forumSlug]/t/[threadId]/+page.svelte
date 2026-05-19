@@ -239,6 +239,7 @@
 						<form method="POST" use:enhance action="?/muteThread" style="display: contents;">
 							<button
 								type="submit"
+								aria-pressed={data.userSubscription === 'mute'}
 								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'mute'
 									? 'bg-[rgb(var(--color-primary))] text-white'
 									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
@@ -251,6 +252,8 @@
 						<form method="POST" use:enhance action="?/unwatchThread" style="display: contents;">
 							<button
 								type="submit"
+								aria-pressed={data.userSubscription === null}
+								aria-label="Default notifications"
 								class="px-3 py-2 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
 									? 'bg-[rgb(var(--color-primary))] text-white'
 									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
@@ -264,6 +267,7 @@
 						<form method="POST" use:enhance action="?/watchThread" style="display: contents;">
 							<button
 								type="submit"
+								aria-pressed={data.userSubscription === 'follow'}
 								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'follow'
 									? 'bg-[rgb(var(--color-primary))] text-white'
 									: 'bg-[rgb(var(--color-bg))] text-[rgb(var(--color-text))] hover:bg-[rgb(var(--color-bg-secondary))]'}"
@@ -383,7 +387,7 @@
 									type="button"
 									onclick={() => copyPostLink(post.id)}
 									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
-									title="Copy link to this post"
+									aria-label="Copy link to post by {post.authorHandle}"
 								>
 									Copy link
 								</button>
@@ -394,6 +398,7 @@
 									type="button"
 									onclick={() => addQuoteReference(post.id)}
 									class="text-xs text-[rgb(var(--color-primary))] hover:underline"
+									aria-label="Quote post by {post.authorHandle}"
 								>
 									Quote
 								</button>
@@ -404,6 +409,7 @@
 									type="button"
 									onclick={() => startEdit(post.id)}
 									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
+									aria-label="Edit post by {post.authorHandle}"
 								>
 									Edit
 								</button>
@@ -606,7 +612,7 @@
 									rows="6"
 									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
 								></textarea>
-								<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1">
+								<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1" aria-live="polite" aria-atomic="true">
 									{replyBody.length} / 50,000 characters
 									{#if replyBody.length > 45000}
 										<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
@@ -616,8 +622,11 @@
 
 							<!-- Live Preview -->
 							<div>
-								<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2">Preview</p>
+								<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium mb-2" id="reply-preview-label">Preview</p>
 								<div
+									aria-live="polite"
+									aria-label="Markdown preview"
+									aria-labelledby="reply-preview-label"
 									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg bg-[rgb(var(--color-bg-secondary))] max-w-none min-h-[150px] overflow-auto prose-content"
 								>
 									{#if replyBody.trim()}
@@ -631,7 +640,7 @@
 					</div>
 
 					<!-- Submit -->
-					<button type="submit" class="bg-[rgb(var(--color-primary))] text-white px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-primary-dark))]">
+					<button type="submit" class="btn btn-primary">
 						Post Reply
 					</button>
 				</form>
