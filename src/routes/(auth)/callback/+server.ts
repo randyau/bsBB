@@ -24,7 +24,7 @@ export const GET: RequestHandler = async (event) => {
 		console.log('User upserted');
 
 		// Auto-sync profile on first login
-		const isFirstLogin = !session.handle; // No handle in OAuth session = first login
+		const isFirstLogin = !(session as any).handle; // No handle in OAuth session = first login
 		if (isFirstLogin) {
 			console.log('First login detected, syncing profile...');
 			try {

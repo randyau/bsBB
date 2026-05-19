@@ -11,7 +11,7 @@ const sessionStore = new Map<string, NodeSavedSession>();
 // In-memory lock for concurrent OAuth operations (credentials need exclusive access)
 const locks = new Map<string, Promise<void>>();
 
-async function requestLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+async function requestLock<T>(key: string, fn: () => T | PromiseLike<T>): Promise<T> {
 	const lock = locks.get(key) ?? Promise.resolve();
 	let resolver: (value: void) => void;
 	const newLock = new Promise<void>((resolve) => {
@@ -51,7 +51,7 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	const siteName = await getSetting('site_name', 'bsBB');
 
 	// JoseKey handles the private key internally; pass it as-is for signing operations
-	const key = await JoseKey.fromJWK(privateKeyJwkObj);
+	const key = await JoseKey.fromJWK(privateKeyJwkObj as Record<string, unknown>);
 	const keyset = new Keyset([key]);
 
 	_client = new NodeOAuthClient({
