@@ -14,6 +14,10 @@ export const GET: RequestHandler = async (event) => {
 		const { session } = await client.callback(params);
 		const did = session.did;
 		console.log('OAuth callback successful, DID:', did);
+		console.log('Session object keys:', Object.keys(session));
+		console.log('Session handle:', (session as any).handle);
+		console.log('Session displayName:', (session as any).displayName);
+		console.log('Session avatar:', (session as any).avatar);
 
 		// Upsert user record (create on first login, update profile cache on subsequent)
 		await upsertUser(did, session);
