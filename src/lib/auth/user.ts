@@ -36,16 +36,32 @@ export async function upsertUser(
 // Returns true if this user was promoted (for flash banner)
 // ---------------------------------------------------------------------------
 export async function claimFirstAdmin(did: string): Promise<boolean> {
-	// Check atomically: only promote if 'first_admin_claimed' is still 'false'
-	const result = await db
-		.update(instanceSettings)
-		.set({ value: 'true' })
-		.where(
-			sql`${instanceSettings.key} = 'first_admin_claimed' AND ${instanceSettings.value} = 'false'`
-		)
-		.returning({ key: instanceSettings.key });
+	// Check if already claimed
+	const existing = await db
+		.select({ value: instanceSettings.value })
+		.from(instanceSettings)
+		.where(eq(instanceSettings.key, 'first_admin_claimed'))
+		.limit(1);
 
-	if (result.length === 0) return false; // already claimed
+	// If the setting exists and is 'true', already claimed
+	if (existing.length > 0 && existing[0].value === 'true') {
+		return false;
+	}
+
+	// Either doesn't exist or is 'false' — claim it for this user
+	if (existing.length === 0) {
+		// Insert if it doesn't exist
+		await db.insert(instanceSettings).values({
+			key: 'first_admin_claimed',
+			value: 'true',
+		});
+	} else {
+		// Update if it exists and is 'false'
+		await db
+			.update(instanceSettings)
+			.set({ value: 'true' })
+			.where(eq(instanceSettings.key, 'first_admin_claimed'));
+	}
 
 	// Promote this user to admin
 	await db.update(users).set({ globalRole: 'admin' }).where(eq(users.did, did));
