@@ -290,6 +290,25 @@ export const userNotifications = pgTable('user_notifications', {
 });
 
 // ---------------------------------------------------------------------------
+// pii_removal_requests
+// ---------------------------------------------------------------------------
+export const piiRemovalRequests = pgTable('pii_removal_requests', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	postId: uuid('post_id')
+		.notNull()
+		.references(() => posts.id),
+	requesterDid: text('requester_did')
+		.notNull()
+		.references(() => users.did),
+	reason: text('reason').notNull(),
+	status: text('status').notNull().default('pending'), // 'pending' | 'wiped' | 'dismissed'
+	resolvedByDid: text('resolved_by_did').references(() => users.did),
+	resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+	dismissReason: text('dismiss_reason'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // rate_limit_buckets
 // ---------------------------------------------------------------------------
 export const rateLimitBuckets = pgTable('rate_limit_buckets', {

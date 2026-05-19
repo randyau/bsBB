@@ -376,7 +376,7 @@ id               UUID PRIMARY KEY DEFAULT gen_random_uuid()
 moderator_did    TEXT NOT NULL REFERENCES users(did)
 action           TEXT NOT NULL
                  -- Thread ops: 'lock_thread' | 'unlock_thread' | 'pin_thread' | 'unpin_thread'
-                 -- Post ops: 'hide_post' | 'hide_own_post' | 'delete_post' | 'delete_own_post' | 'restore_post'
+                 -- Post ops: 'hide_post' | 'hide_own_post' | 'delete_post' | 'delete_own_post' | 'restore_post' | 'permanently_delete_post' | 'pii_wipe_post' | 'dismiss_pii_request'
                  -- User ops: 'ban' | 'unban' | 'promote_admin' | 'demote_admin' | 'delete_account' | 'delete_all_posts'
                  -- Role ops: 'create_role' | 'edit_role' | 'delete_role' | 'assign_custom_role' | 'remove_custom_role'
                  -- Forum ops: 'reorder_forum' | 'assign_forum_mod' | 'remove_forum_mod' | 'update_forum_permission'
@@ -414,6 +414,23 @@ value  TEXT NOT NULL
 > - `new_account_cooldown_hours` = `'24'`
 > - Rate limit thresholds (all tunable by admin): `rl_post_submit_per_min`, `rl_post_submit_per_hour`, `rl_thread_create_per_10min`, `rl_thread_create_per_hour`, `rl_login_attempt_per_10min`, `rl_preview_per_min`, `rl_flag_per_10min`
 
+### `pii_removal_requests`
+
+```sql
+id               UUID PRIMARY KEY DEFAULT gen_random_uuid()
+post_id          UUID NOT NULL REFERENCES posts(id)
+requester_did    TEXT NOT NULL REFERENCES users(did)
+reason           TEXT NOT NULL                        -- requester's description of the PII
+status           TEXT NOT NULL DEFAULT 'pending'      -- 'pending' | 'wiped' | 'dismissed'
+resolved_by_did  TEXT REFERENCES users(did)
+resolved_at      TIMESTAMPTZ
+dismiss_reason   TEXT                                 -- set when status = 'dismissed'
+created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+> Never expires from the queue — pending requests remain until a moderator or admin acts on them.
+> Indexes on `post_id` and `status` for fast pending-request lookups.
+
 ### `rate_limit_buckets`
 
 ```sql
@@ -441,6 +458,8 @@ window_start TIMESTAMPTZ NOT NULL DEFAULT now()
 /f/[forumSlug]/t/[threadId]/page/[n]/  Thread view, page n (25 posts/page)
 
 /post/[postId]/revisions/              Post revision history (public)
+
+/mod/pii-requests/                     PII removal request queue (mods + admins)
 
 /login/                                ATproto OAuth initiation
 /callback/                             OAuth callback (handled server-side)
@@ -706,6 +725,22 @@ Flagging flow:
 1. Any authenticated user can flag a post
 2. Flag creates a `notification_queue` entry of type `mod_alert` to all moderators of that forum + all global admins
 3. Queue shows flagged posts; mods can: delete post, dismiss flag, ban user
+
+### PII Removal Queue
+
+`/mod/pii-requests/` — accessible to forum moderators (any forum) and global admins. Never auto-expires.
+
+PII removal flow:
+1. Any authenticated user clicks "Report PII" on any post and submits a reason
+2. A `pii_removal_requests` row is created with `status = 'pending'`
+3. Only one pending request per post is allowed — duplicates are rejected
+4. Moderators see the request in `/mod/pii-requests` with a preview of the post content
+5. **PII Wipe**: deletes all `post_revisions` rows, clears `body_markdown`/`body_html`/`link_metadata`, sets `status = 'deleted'` on the post, marks request `wiped`, logs `pii_wipe_post` to `mod_log`
+6. **Dismiss**: marks request `dismissed` with a required reason, logs `dismiss_pii_request` to `mod_log`
+
+The post stub (id, author_did, thread_id, timestamps) is preserved so quotes and links remain intact. Only content and edit history are erased.
+
+The admin "Permanently Delete" action on `/admin/posts` also purges revision history (same wipe behaviour, no request required).
 
 ### Mod Log
 

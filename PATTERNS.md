@@ -299,6 +299,19 @@ Then in the form:
 - Use "removed from view" / "can be restored" for soft-delete
 - Keep it 2-3 sentences max
 
+### PII Wipe vs. Soft Delete
+
+Two distinct destruction levels exist — use the right one:
+
+| Operation | What it erases | Reversible | When to use |
+|---|---|---|---|
+| **Hide post** (`status = 'hidden'`) | Nothing — hides from public view | Yes (restore) | Moderation: rule violation, off-topic |
+| **Permanently delete** (`status = 'deleted'`, content cleared) | `body_markdown`, `body_html`, `link_metadata`, all `post_revisions` rows | No | PII removal; admin posts panel |
+
+The post stub (id, author_did, created_at) always survives so quoted posts and permalink references remain valid.
+
+**PII wipe must always delete `post_revisions` rows** before or in the same transaction as clearing the post body. Leaving revisions intact defeats the purpose — the PII remains accessible in history.
+
 ### Button Styling
 
 - **Destructive:** Always use `.btn-danger` (red)
