@@ -14,15 +14,15 @@ const keyPair = await subtle.generateKey(
 let privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
 let publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
 
-// WebCrypto adds key_ops and ext; remove them for cleaner JWK
-const { key_ops: _, ext: __, ...cleanPrivateJwk } = privateJwk;
-const { key_ops: _2, ext: __2, ...cleanPublicJwk } = publicJwk;
+// Remove ext property (not needed), but keep key_ops as required by ATproto
+const { ext: _, ...cleanPrivateJwk } = privateJwk;
+const { ext: __, ...cleanPublicJwk } = publicJwk;
 
-// Add required properties for ATproto OAuth signing
+// Add kid to both keys — required by ATproto OAuth
 const kid = 'key-' + Math.random().toString(36).substring(2, 15);
 cleanPrivateJwk.kid = kid;
-cleanPrivateJwk.use = 'sig';
 cleanPublicJwk.kid = kid;
+// Set use='sig' ONLY on public key; private keys use key_ops
 cleanPublicJwk.use = 'sig';
 
 // Output as environment variable assignments (one per line)
