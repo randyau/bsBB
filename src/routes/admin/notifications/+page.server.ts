@@ -107,44 +107,51 @@ export const actions: Actions = {
 		const recipientDid = String(form.get('recipientDid') ?? '').trim();
 		const notificationType = String(form.get('notificationType') ?? 'reply').trim();
 
-		if (!recipientDid) return fail(422, { error: 'Recipient is required' });
+		if (!recipientDid) return fail(422, { action: 'testSend', error: 'Recipient is required' });
 
 		const recipient = await db.query.users.findFirst({
 			where: eq(users.did, recipientDid),
 			columns: { handle: true, chatSessionEncrypted: true, notifyViaBluesky: true }
 		});
 
-		if (!recipient) return fail(404, { error: 'User not found' });
-		if (!recipient.notifyViaBluesky) return fail(422, { error: `@${recipient.handle} has not enabled Bluesky DM notifications` });
-		if (!recipient.chatSessionEncrypted) return fail(422, { error: `@${recipient.handle} has no stored chat session — they need to re-enable DM notifications` });
+		if (!recipient) return fail(404, { action: 'testSend', error: 'User not found' });
+		if (!recipient.notifyViaBluesky) return fail(422, { action: 'testSend', error: `@${recipient.handle} has not enabled Bluesky DM notifications` });
+		if (!recipient.chatSessionEncrypted) return fail(422, { action: 'testSend', error: `@${recipient.handle} has no stored chat session — they need to re-enable DM notifications` });
 
 		const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
-		if (!serviceHandle) return fail(500, { error: 'ATPROTO_SERVICE_HANDLE is not configured' });
+		if (!serviceHandle) return fail(500, { action: 'testSend', error: 'ATPROTO_SERVICE_HANDLE is not configured' });
 
 		let sessionJson: any;
 		try {
 			sessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
 		} catch (err: any) {
-			return fail(500, { error: `Failed to decrypt chat session: ${err.message}` });
+			return fail(500, { action: 'testSend', error: `Failed to decrypt chat session: ${err.message}` });
 		}
+
+		const serviceAppPassword = process.env.ATPROTO_SERVICE_APP_PASSWORD;
+		if (!serviceAppPassword) return fail(500, { action: 'testSend', error: 'ATPROTO_SERVICE_APP_PASSWORD is not configured' });
 
 		const messageText = buildTestMessage(notificationType, locals.user.handle);
 
 		try {
-			const agent = new AtpAgent({ service: 'https://bsky.social' });
-			await agent.resumeSession(sessionJson);
+			// Authenticate as the service account to send the DM
+			const serviceAgent = new AtpAgent({ service: 'https://bsky.social' });
+			await serviceAgent.login({ identifier: serviceHandle, password: serviceAppPassword });
+			const serviceDid = serviceAgent.session?.did;
+			if (!serviceDid) throw new Error('Service account session has no DID after login');
 
-			const serviceProfile = await agent.getProfile({ actor: serviceHandle });
-			const serviceDid = serviceProfile.data.did;
-
-			const convoRes = await agent.api.chat.bsky.convo.getConvoForMembers({
+			// Open the convo from the recipient's side so it appears in their inbox
+			const recipientAgent = new AtpAgent({ service: 'https://bsky.social' });
+			await recipientAgent.resumeSession(sessionJson);
+			const convoRes = await recipientAgent.api.chat.bsky.convo.getConvoForMembers({
 				members: [recipientDid, serviceDid]
 			});
 			const convoId = convoRes.data.convo.id;
 
-			await agent.api.chat.bsky.convo.sendMessage({ convoId, message: { text: messageText } });
+			// Send as the service account
+			await serviceAgent.api.chat.bsky.convo.sendMessage({ convoId, message: { text: messageText } });
 		} catch (err: any) {
-			return fail(500, { error: `Send failed: ${err.message}` });
+			return fail(500, { action: 'testSend', error: `Send failed: ${err.message}` });
 		}
 
 		return { success: true, action: 'testSend', handle: recipient.handle };

@@ -11,6 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	console.log('[settings load] returning user data, notifyViaBluesky:', locals.user.notifyViaBluesky);
 	return {
 		user: locals.user,
+		serviceHandle: process.env.ATPROTO_SERVICE_HANDLE ?? null,
 	};
 };
 
