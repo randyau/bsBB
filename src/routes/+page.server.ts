@@ -3,6 +3,8 @@ import { db } from '$lib/db';
 import { forums, threads } from '$lib/db/schema';
 import { eq, isNull, sql } from 'drizzle-orm';
 import { canRead } from '$lib/permissions';
+import { getSetting } from '$lib/settings';
+import { renderMarkdown } from '$lib/markdown';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Get all top-level forums
@@ -35,8 +37,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Check if first admin was just promoted
 	const flashAdmin = url.searchParams.has('firstAdmin');
 
+	// Load and render homepage announcement
+	const announcementMarkdown = await getSetting('homepage_announcement', '');
+	const announcementHtml = announcementMarkdown ? await renderMarkdown(announcementMarkdown, db) : '';
+
 	return {
 		forums: readableForums,
 		flashAdmin,
+		announcementHtml,
 	};
 };

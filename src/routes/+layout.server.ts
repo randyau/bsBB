@@ -2,6 +2,7 @@ import type { LayoutServerLoad } from './$types.js';
 import { db } from '$lib/db';
 import { userNotifications } from '$lib/db/schema';
 import { and, eq, count } from 'drizzle-orm';
+import { getSetting, getSettings } from '$lib/settings';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	let unreadNotificationCount = 0;
@@ -17,8 +18,35 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		unreadNotificationCount = result?.count ?? 0;
 	}
 
+	const settings = await getSettings([
+		'site_name',
+		'favicon_url',
+		'theme_primary_light',
+		'theme_primary_dark',
+		'custom_css',
+		'font_body',
+	]);
+
+	// Generate theme override CSS if primary colors are customized
+	let themeOverrideCss = '';
+	if (settings.theme_primary_light || settings.theme_primary_dark) {
+		themeOverrideCss = ':root {';
+		if (settings.theme_primary_light) {
+			themeOverrideCss += `\n  [data-theme="light"] { --color-primary: ${settings.theme_primary_light}; }`;
+		}
+		if (settings.theme_primary_dark) {
+			themeOverrideCss += `\n  [data-theme="dark"] { --color-primary: ${settings.theme_primary_dark}; }`;
+		}
+		themeOverrideCss += '\n}';
+	}
+
 	return {
 		user: locals.user,
 		unreadNotificationCount,
+		siteName: settings.site_name,
+		faviconUrl: settings.favicon_url,
+		themeOverrideCss,
+		customCss: settings.custom_css,
+		fontBody: settings.font_body,
 	};
 };

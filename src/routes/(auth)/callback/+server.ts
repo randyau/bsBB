@@ -8,7 +8,7 @@ export const GET: RequestHandler = async (event) => {
 	const params = event.url.searchParams;
 
 	try {
-		const client = getAtprotoClient();
+		const client = await getAtprotoClient();
 		const { session } = await client.callback(params);
 		const did = session.did;
 

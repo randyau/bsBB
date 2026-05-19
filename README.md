@@ -2,7 +2,15 @@
 
 A modern, self-hosted threaded discussion forum built on ATproto and Bluesky identity. No traditional user accounts — everyone signs in with their Bluesky identity. Built with SvelteKit, PostgreSQL, and Docker.
 
-**Status:** Phases 1–12 complete. Production-ready. See [ROADMAP.md](ROADMAP.md) for history.
+**Status:** Phases 1–13 complete. Production-ready. See [ROADMAP.md](ROADMAP.md) for history.
+
+**📖 Documentation:**
+- **[QUICKSTART.md](QUICKSTART.md)** — Deploy to a live server in 10 minutes
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Full production deployment guide with prerequisites and troubleshooting
+- **[CLAUDE.md](CLAUDE.md)** — Architecture decisions, tech stack, and core requirements
+- **[PATTERNS.md](PATTERNS.md)** — Code style guide and component patterns
+- **[ADMIN_GUIDE.md](ADMIN_GUIDE.md)** — Admin panel walkthrough
+- **[SCRIPTS.md](SCRIPTS.md)** — Helper scripts reference
 
 ## Why bsBB?
 

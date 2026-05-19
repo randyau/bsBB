@@ -20,6 +20,7 @@
 				{ href: '/admin/forums', icon: '🗂️', label: 'Forums' },
 				{ href: '/admin/users', icon: '👥', label: 'Users' },
 				{ href: '/admin/roles', icon: '🏷️', label: 'Roles' },
+				{ href: '/admin/settings', icon: '⚙️', label: 'Settings' },
 				{ href: '/admin/threads', icon: '💬', label: 'Threads' },
 				{ href: '/admin/posts', icon: '📝', label: 'Posts' },
 				{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log' },

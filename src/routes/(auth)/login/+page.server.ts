@@ -17,7 +17,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = getAtprotoClient();
+			const client = await getAtprotoClient();
 			const url = await client.authorize(handle, { scope: 'atproto' });
 			redirect(302, url.toString());
 		} catch (err) {

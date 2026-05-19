@@ -12,6 +12,14 @@
 		</div>
 	{/if}
 
+	{#if data.announcementHtml}
+		<div class="box border-l-4 border-[rgb(var(--color-primary))]">
+			<div class="prose-content">
+				{@html data.announcementHtml}
+			</div>
+		</div>
+	{/if}
+
 	<div>
 		<h1 class="page-title">Forums</h1>
 		<p class="mt-2 text-[rgb(var(--color-text-secondary))]">
