@@ -116,8 +116,8 @@ The design system uses Tailwind CSS v4 with semantic CSS custom properties for l
 
 ### Light/Dark Mode
 
-- Light mode is default for new users
-- Dark mode respects `prefers-color-scheme: dark` system preference
+- Dark mode is default for new users
+- Light mode respects `prefers-color-scheme: light` system preference
 - Theme toggle in header allows manual override
 - State persisted to localStorage
 
