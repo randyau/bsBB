@@ -8,6 +8,9 @@ import { getSetting } from '$lib/settings';
 const stateStore = new Map<string, NodeSavedState>();
 const sessionStore = new Map<string, NodeSavedSession>();
 
+// In-memory lock for concurrent OAuth operations (credentials need exclusive access)
+const locks = new Map<string, Promise<void>>();
+
 let _client: NodeOAuthClient | null = null;
 
 export async function getAtprotoClient(): Promise<NodeOAuthClient> {
@@ -71,6 +74,18 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 			},
 			async del(sub: string) {
 				sessionStore.delete(sub);
+			},
+		},
+		lock: {
+			async acquire(key: string) {
+				const lock = locks.get(key) ?? Promise.resolve();
+				let resolver: (value: void) => void;
+				const newLock = new Promise<void>((resolve) => {
+					resolver = resolve;
+				});
+				locks.set(key, newLock);
+				await lock;
+				return () => resolver!();
 			},
 		},
 	});
