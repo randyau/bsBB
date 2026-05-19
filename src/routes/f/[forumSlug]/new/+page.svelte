@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
@@ -37,7 +38,7 @@
 		</div>
 	{/if}
 
-	<form method="POST" class="space-y-6">
+	<form method="POST" use:enhance class="space-y-6">
 		<!-- Title -->
 		<div class="form-group">
 			<label for="title" class="form-label">

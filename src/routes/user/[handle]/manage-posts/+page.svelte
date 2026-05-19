@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import { formatTimeWithAbsolute, formatTimeDisplay } from '$lib/utils/time';
 	import Pagination from '$components/Pagination.svelte';
@@ -129,21 +130,21 @@
 						</a>
 
 						{#if post.status === 'active'}
-							<form method="POST" action="?/hidePost" class="inline">
+							<form method="POST" use:enhance action="?/hidePost" class="inline">
 								<input type="hidden" name="postId" value={post.id} />
 								<button type="submit" class="text-xs btn btn-secondary">
 									Hide
 								</button>
 							</form>
 
-							<form method="POST" action="?/deletePost" class="inline" onsubmit={confirmDelete}>
+							<form method="POST" use:enhance action="?/deletePost" class="inline" onsubmit={confirmDelete}>
 								<input type="hidden" name="postId" value={post.id} />
 								<button type="submit" class="text-xs btn btn-danger">
 									Delete permanently
 								</button>
 							</form>
 						{:else}
-							<form method="POST" action="?/restorePost" class="inline">
+							<form method="POST" use:enhance action="?/restorePost" class="inline">
 								<input type="hidden" name="postId" value={post.id} />
 								<button type="submit" class="text-xs btn btn-secondary">
 									Restore

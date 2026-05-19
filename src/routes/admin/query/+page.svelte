@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { ActionData, PageData } from './$types';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
 
@@ -19,7 +20,7 @@
 		</div>
 		<p class="text-[rgb(var(--color-text-secondary))] text-sm">SELECT queries only. Max 1000 rows, 5 second timeout.</p>
 
-		<form method="POST" action="?/run" class="space-y-4">
+		<form method="POST" use:enhance action="?/run" class="space-y-4">
 			<div>
 				<label for="query" class="block text-sm font-semibold mb-2">SQL Query</label>
 				<textarea

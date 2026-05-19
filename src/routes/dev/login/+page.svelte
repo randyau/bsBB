@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -19,7 +20,7 @@
 		<p>No dev users found. Run <code>npx tsx scripts/seed-dev-users.ts</code> first.</p>
 	{:else}
 		{#each data.devUsers as user}
-			<form method="POST" style="margin-bottom: 0.75rem;">
+			<form method="POST" use:enhance style="margin-bottom: 0.75rem;">
 				<input type="hidden" name="did" value={user.did} />
 				<button
 					type="submit"
