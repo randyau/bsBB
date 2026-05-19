@@ -407,49 +407,50 @@
 								{/if}
 							</div>
 
-							{#if post.status === 'active'}
-								<button
-									type="button"
-									onclick={() => copyPostLink(post.id)}
-									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
-									aria-label="Copy link to post by {post.authorHandle}"
-								>
-									Copy link
-								</button>
-							{/if}
+							<div class="flex flex-wrap justify-end items-center gap-x-3 gap-y-1">
+								{#if post.status === 'active'}
+									<button
+										type="button"
+										onclick={() => copyPostLink(post.id)}
+										class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
+										aria-label="Copy link to post by {post.authorHandle}"
+									>
+										Copy link
+									</button>
+								{/if}
 
-							{#if data.user && data.canPost && !data.thread.isLocked && post.status === 'active'}
-								<button
-									type="button"
-									onclick={() => addQuoteReference(post.id)}
-									class="text-xs text-[rgb(var(--color-primary))] hover:underline"
-									aria-label="Quote post by {post.authorHandle}"
-								>
-									Quote
-								</button>
-							{/if}
+								{#if data.user && data.canPost && !data.thread.isLocked && post.status === 'active'}
+									<button
+										type="button"
+										onclick={() => addQuoteReference(post.id)}
+										class="text-xs text-[rgb(var(--color-primary))] hover:underline"
+										aria-label="Quote post by {post.authorHandle}"
+									>
+										Quote
+									</button>
+								{/if}
 
-							{#if data.user && (post.authorDid === data.user.did || data.canModerate) && post.status === 'active'}
-								<button
-									type="button"
-									onclick={() => startEdit(post.id)}
-									class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
-									aria-label="Edit post by {post.authorHandle}"
-								>
-									Edit
-								</button>
-							{/if}
+								{#if data.user && (post.authorDid === data.user.did || data.canModerate) && post.status === 'active'}
+									<button
+										type="button"
+										onclick={() => startEdit(post.id)}
+										class="text-xs text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text))] hover:underline"
+										aria-label="Edit post by {post.authorHandle}"
+									>
+										Edit
+									</button>
+								{/if}
 
-							{#if data.user && post.status === 'active'}
-								<button
-									type="button"
-									onclick={() => { piiRequestPostId = post.id; piiRequestReason = ''; }}
-									class="text-xs text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-error))] hover:underline"
-									aria-label="Request PII removal for post by {post.authorHandle}"
-								>
-									Report PII
-								</button>
-							{/if}
+								{#if data.user && post.status === 'active'}
+									<button
+										type="button"
+										onclick={() => { piiRequestPostId = post.id; piiRequestReason = ''; }}
+										class="text-xs text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-error))] hover:underline"
+										aria-label="Request PII removal for post by {post.authorHandle}"
+									>
+										Report PII
+									</button>
+								{/if}
 
 							{#if data.canModerate}
 								<details class="relative">
@@ -492,6 +493,7 @@
 									</div>
 								</details>
 							{/if}
+							</div>
 						</div>
 					</div>
 
