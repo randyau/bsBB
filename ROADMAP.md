@@ -155,12 +155,14 @@ ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
 
 ## Deferred (Post-Launch)
 
-Moved to `FUTURE_IMPROVEMENTS.md`:
-- Thread Tags/Labels
-- Digest-Style Notifications
-- Advanced Search Filters
-- Quote Preview on Hover
-- Favorites/Quick Nav Sidebar
-- Share Post Button
+See **[FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md)** for a complete prioritized backlog of post-v1.0 features and improvements, including:
+
+- **Storage & Media:** Local avatar caching, media handling strategies
+- **Forum Features:** Thread tags, advanced search, favorites sidebar, quote preview
+- **Notifications:** Digest-style summaries, read receipts
+- **Admin & Moderation:** Spam detection rules, bulk user actions, analytics dashboard
+- **DevOps & Performance:** Prometheus metrics, health checks, caching optimization
+- **Integrations:** Discord/Matrix bridges, Slack notifications
+- **Known Out of Scope:** Real-time chat, private messaging, file uploads, WYSIWYG editor, karma systems
 
 ---
