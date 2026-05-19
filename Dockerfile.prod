@@ -25,8 +25,8 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy public assets
-COPY --from=builder /app/src/lib/assets ./public/assets || true
+# Copy public assets (optional, may not exist in all builds)
+RUN mkdir -p ./public && cp -r /app/src/lib/assets ./public/assets 2>/dev/null || true
 
 # Non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
