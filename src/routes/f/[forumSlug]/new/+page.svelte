@@ -85,7 +85,6 @@
 						class="form-control form-textarea"
 					></textarea>
 					<MarkdownToolbar value={bodyValue} maxlength={BODY_MAX} onEmojiSelect={(emoji) => bodyValue += emoji} />
-					</div>
 				</div>
 
 				<!-- Live Preview -->
