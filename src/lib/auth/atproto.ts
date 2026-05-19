@@ -32,18 +32,9 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 
 	const siteName = await getSetting('site_name', 'bsBB');
 
+	// JoseKey handles the private key internally; pass it as-is for signing operations
 	const key = await JoseKey.fromJWK(privateKeyJwkObj);
-	console.log('[ATproto] Key created');
-	console.log('  kid:', key.kid);
-	console.log('  alg:', key.alg);
-	console.log('  use:', (key as any).use);
-	console.log('  algorithms:', key.algorithms);
-	console.log('  isPrivate:', key.isPrivate);
-	console.log('  isRevoked:', key.isRevoked);
-	console.log('  isActive:', key.isActive());
-
 	const keyset = new Keyset([key]);
-	console.log('[ATproto] Keyset created, size:', keyset.size);
 
 	_client = new NodeOAuthClient({
 		clientMetadata: {
@@ -56,9 +47,7 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 			response_types: ['code'],
 			token_endpoint_auth_method: 'private_key_jwt',
 			token_endpoint_auth_signing_alg: 'ES256',
-			jwks: {
-				keys: [{ ...privateKeyJwkObj, use: 'sig', alg: 'ES256' }],
-			},
+			jwks: keyset.publicJwks,
 			dpop_bound_access_tokens: true,
 			application_type: 'web',
 		},
