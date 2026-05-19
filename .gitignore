@@ -6,6 +6,7 @@ e:*
 elinux*
 logs/*.log
 client-metadata.json
+!src/routes/client-metadata.json/
 .svelte-kit/
 build/
 .env.local

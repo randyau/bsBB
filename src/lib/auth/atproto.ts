@@ -1,5 +1,6 @@
 import { NodeOAuthClient, type NodeSavedSession, type NodeSavedState } from '@atproto/oauth-client-node';
 import { Keyset } from '@atproto/jwk';
+import { JoseKey } from '@atproto/jwk-jose';
 import { getSetting } from '$lib/settings';
 
 // In-memory stores for OAuth state/session (sufficient for single-process deployment).
@@ -22,14 +23,18 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 		);
 	}
 
-	let privateKey: JsonWebKey;
+	let privateKeyJwkObj: JsonWebKey;
 	try {
-		privateKey = JSON.parse(privateKeyJwk);
+		privateKeyJwkObj = JSON.parse(privateKeyJwk);
 	} catch {
 		throw new Error('ATPROTO_PRIVATE_KEY must be a valid JSON JWK string');
 	}
 
 	const siteName = await getSetting('site_name', 'bsBB');
+
+	// JoseKey handles the private key internally; pass it as-is for signing operations
+	const key = await JoseKey.fromJWK(privateKeyJwkObj);
+	const keyset = new Keyset([key]);
 
 	_client = new NodeOAuthClient({
 		clientMetadata: {
@@ -42,13 +47,10 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 			response_types: ['code'],
 			token_endpoint_auth_method: 'private_key_jwt',
 			token_endpoint_auth_signing_alg: 'ES256',
-			jwks: {
-				keys: [{ ...privateKey, use: 'sig', alg: 'ES256' }],
-			},
 			dpop_bound_access_tokens: true,
 			application_type: 'web',
 		},
-		keyset: new Keyset([privateKey as any]),
+		keyset,
 		stateStore: {
 			async get(key: string) {
 				return stateStore.get(key);
