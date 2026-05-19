@@ -40,8 +40,7 @@
 
 	function selectEmoji(emoji: string) {
 		onEmojiSelect?.(emoji);
-		isOpen = false;
-		searchQuery = '';
+		closePicker();
 		triggerButton?.focus();
 	}
 
@@ -55,23 +54,20 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && isOpen) {
-			isOpen = false;
-			searchQuery = '';
+			closePicker();
 			triggerButton?.focus();
 		}
 	}
 
-	function handleOutsideClick(e: MouseEvent) {
-		if (isOpen && !(e.target as Element)?.closest('.emoji-picker-root')) {
-			isOpen = false;
-			searchQuery = '';
-		}
+	function closePicker() {
+		isOpen = false;
+		searchQuery = '';
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+<svelte:window onkeydown={handleKeydown} />
 
-<div class="relative inline-block emoji-picker-root" onclick={(e) => e.stopPropagation()}>
+<div class="relative inline-block emoji-picker-root">
 	<button
 		type="button"
 		bind:this={triggerButton}
@@ -85,6 +81,8 @@
 	</button>
 
 	{#if isOpen}
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="fixed inset-0 z-40" onclick={closePicker} aria-hidden="true"></div>
 		<div
 			role="dialog"
 			aria-label="Emoji picker"
