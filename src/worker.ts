@@ -24,7 +24,6 @@ import { notificationQueue, posts, threads, users, sessions, modLog, workerLog }
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
-import { decrypt } from '$lib/crypto';
 import { AtpAgent } from '@atproto/api';
 
 // Sentinel DID used as moderatorDid for system-initiated mod_log entries
@@ -202,7 +201,6 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	const recipient = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: {
-			chatSessionEncrypted: true,
 			notifyViaBluesky: true,
 			notificationType: true,
 			notificationFrequency: true
@@ -216,10 +214,6 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	if (!recipient.notifyViaBluesky) {
 		console.log(`[worker:dm_notification] skipped (Bluesky DMs disabled): ${recipientDid}`);
 		return;
-	}
-
-	if (!recipient.chatSessionEncrypted) {
-		throw new Error(`No chat session stored for ${recipientDid} — user must re-authorise with chat scope`);
 	}
 
 	if (
@@ -239,7 +233,6 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	const threadLink = threadSlug && forumSlug ? `\n\n${baseUrl}/f/${forumSlug}/t/${threadSlug}` : '';
 	const messageText = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
 
-	// Authenticate as the service account (bot) to send the DM
 	const serviceAgent = new AtpAgent({ service: 'https://bsky.social' });
 	try {
 		await serviceAgent.login({ identifier: serviceHandle, password: serviceAppPassword });
@@ -250,32 +243,14 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	const serviceDid = serviceAgent.session?.did;
 	if (!serviceDid) throw new Error('Service account session has no DID after login');
 
-	// Use the recipient's stored chat-scope session to open the convo from their side.
-	// This ensures the convo exists even if the recipient has DMs restricted to followers only.
-	let recipientSessionJson: any;
-	try {
-		recipientSessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
-	} catch (err: any) {
-		throw new Error(`Failed to decrypt chat session for ${recipientDid}: ${err.message}`);
-	}
-
-	const recipientAgent = new AtpAgent({ service: 'https://bsky.social' });
-	try {
-		await recipientAgent.resumeSession(recipientSessionJson);
-	} catch (err: any) {
-		throw new Error(`Failed to resume recipient ATproto session for ${recipientDid}: ${err.message}`);
-	}
-
-	// Get (or create) the convo from the recipient's side so it's visible to them
 	let convoId: string;
 	try {
-		const convoRes = await recipientAgent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
+		const convoRes = await serviceAgent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
 		convoId = convoRes.data.convo.id;
 	} catch (err: any) {
 		throw new Error(`Failed to get/create convo between ${recipientDid} and ${serviceDid}: ${err.message}`);
 	}
 
-	// Send the message as the service account
 	try {
 		await serviceAgent.api.chat.bsky.convo.sendMessage({ convoId, message: { text: messageText } });
 	} catch (err: any) {

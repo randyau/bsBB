@@ -216,7 +216,7 @@
 				</div>
 
 				<p class="text-xs text-[rgb(var(--color-text-muted))]">
-					Note: You'll be prompted to authorize Bluesky access when you first enable notifications.
+					Note: Notifications are sent via Bluesky DM from the account listed above. You must follow that account or allow DMs from everyone to receive them.
 				</p>
 			</div>
 
