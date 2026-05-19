@@ -24,6 +24,7 @@ import { notificationQueue, posts, threads, users, sessions, modLog, workerLog }
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
+import { getSetting } from '$lib/settings';
 import { AtpAgent } from '@atproto/api';
 
 // Sentinel DID used as moderatorDid for system-initiated mod_log entries
@@ -123,6 +124,8 @@ async function processNotifications() {
 					await handleModeratorAlert(recipientDid, payload);
 				} else if (type === 'dm_notification') {
 					await handleDmNotification(recipientDid, payload);
+				} else if (type === 'welcome_dm') {
+					await handleWelcomeDm(recipientDid, payload);
 				} else if (type === 'profile_sync') {
 					await handleProfileSync(recipientDid, payload);
 				} else {
@@ -224,14 +227,21 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 		return;
 	}
 
+	const baseUrl = process.env.PUBLIC_BASE_URL ?? '';
+	const settingsUrl = `${baseUrl}/settings`;
+	const threadLink = threadSlug && forumSlug ? `\n${baseUrl}/f/${forumSlug}/t/${threadSlug}` : '';
+	const siteName = await getSetting('site_name', 'bsBB');
+	const messageText = buildDmMessage(notificationType, threadTitle, replyAuthorHandle, siteName, threadLink, settingsUrl);
+
+	await sendDm(recipientDid, messageText);
+	console.log(`[worker:dm_notification] sent to ${recipientDid}: ${messageText.substring(0, 80)}`);
+}
+
+async function sendDm(recipientDid: string, text: string) {
 	const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
 	const serviceAppPassword = process.env.ATPROTO_SERVICE_APP_PASSWORD;
 	if (!serviceHandle) throw new Error('ATPROTO_SERVICE_HANDLE env var is not set');
 	if (!serviceAppPassword) throw new Error('ATPROTO_SERVICE_APP_PASSWORD env var is not set');
-
-	const baseUrl = process.env.PUBLIC_BASE_URL ?? '';
-	const threadLink = threadSlug && forumSlug ? `\n\n${baseUrl}/f/${forumSlug}/t/${threadSlug}` : '';
-	const messageText = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
 
 	const serviceAgent = new AtpAgent({ service: 'https://bsky.social' });
 	try {
@@ -259,23 +269,45 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 
 	try {
 		await serviceAgent.api.chat.bsky.convo.sendMessage(
-			{ convoId, message: { text: messageText } },
+			{ convoId, message: { text } },
 			{ headers: chatHeaders }
 		);
 	} catch (err: any) {
 		throw new Error(`Failed to send DM in convo ${convoId}: ${err.message}`);
 	}
-
-	console.log(`[worker:dm_notification] sent to ${recipientDid}: ${messageText.substring(0, 80)}`);
 }
 
-function buildDmMessage(type: string, threadTitle?: string, authorHandle?: string): string {
+function buildDmMessage(
+	type: string,
+	threadTitle: string | undefined,
+	authorHandle: string | undefined,
+	siteName: string,
+	threadLink: string,
+	settingsUrl: string,
+): string {
+	const footer = `\n\nTo stop these messages, disable notifications at ${settingsUrl}`;
 	switch (type) {
-		case 'reply':             return `@${authorHandle} replied to your thread "${threadTitle}"`;
-		case 'quote':             return `@${authorHandle} quoted your post in "${threadTitle}"`;
-		case 'new_reply_in_thread': return `New reply in "${threadTitle}"`;
-		default:                  return 'You have a new notification';
+		case 'reply':
+			return `[${siteName}] @${authorHandle} replied to your thread "${threadTitle}"${threadLink}${footer}`;
+		case 'quote':
+			return `[${siteName}] @${authorHandle} quoted your post in "${threadTitle}"${threadLink}${footer}`;
+		case 'new_reply_in_thread':
+			return `[${siteName}] New reply in "${threadTitle}"${threadLink}${footer}`;
+		default:
+			return `[${siteName}] You have a new forum notification${footer}`;
 	}
+}
+
+async function handleWelcomeDm(recipientDid: string, payload: any) {
+	const { siteName, settingsUrl } = payload;
+
+	const text =
+		`[${siteName}] You've enabled Bluesky DM notifications for ${siteName}.\n\n` +
+		`You'll receive a message here when someone replies to your threads or quotes your posts.\n\n` +
+		`To change your preferences or disable notifications at any time, visit:\n${settingsUrl}`;
+
+	await sendDm(recipientDid, text);
+	console.log(`[worker:welcome_dm] sent to ${recipientDid}`);
 }
 
 async function getLastDmSentTime(recipientDid: string): Promise<Date | null> {
