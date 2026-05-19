@@ -9,7 +9,6 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
       - SESSION_SECRET=${SESSION_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - ATPROTO_CLIENT_ID=${ATPROTO_CLIENT_ID}
@@ -44,7 +43,6 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
       - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
       - SMTP_HOST=${SMTP_HOST}

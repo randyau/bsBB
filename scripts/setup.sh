@@ -96,7 +96,6 @@ fi
 # Generate secrets
 # ---------------------------------------------------------------------------
 SESSION_SECRET=$(openssl rand -hex 32)
-ENCRYPTION_KEY=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -hex 24)
 
 # ---------------------------------------------------------------------------
@@ -113,7 +112,7 @@ const meta = {
   client_name: 'bsBB Forum',
   client_uri: '$PUBLIC_BASE_URL',
   redirect_uris: ['${PUBLIC_BASE_URL}/callback'],
-  scope: 'atproto transition:chat.bsky',
+  scope: 'atproto',
   grant_types: ['authorization_code', 'refresh_token'],
   response_types: ['code'],
   token_endpoint_auth_method: 'private_key_jwt',
@@ -153,9 +152,8 @@ DB_USER=forum
 DB_PASSWORD=${DB_PASSWORD}
 DB_NAME=forum
 
-# Sessions & Encryption
+# Sessions
 SESSION_SECRET=${SESSION_SECRET}
-ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
 # App
 PUBLIC_BASE_URL=${PUBLIC_BASE_URL}

@@ -418,8 +418,7 @@ Check that `ATPROTO_SERVICE_HANDLE`, `ATPROTO_SERVICE_APP_PASSWORD`, and SMTP va
 
 - Only Caddy (ports 80/443) is exposed to the internet. All other services are on an internal Docker network.
 - The database has no external port binding — only the `app` and `worker` containers can reach it.
-- `SESSION_SECRET` and `ENCRYPTION_KEY` are generated randomly by `setup.sh`. Never share them.
-- All ATproto tokens are encrypted at rest using `ENCRYPTION_KEY`.
+- `SESSION_SECRET` is generated randomly by `setup.sh`. Never share it.
 - Content is sanitized before storage — no XSS from user-generated markdown.
 
 ---

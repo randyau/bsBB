@@ -71,6 +71,13 @@
       "when": 1779200000000,
       "tag": "0009_notification_debug",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779286400000,
+      "tag": "0010_drop_chat_session",
+      "breakpoints": true
     }
   ]
 }

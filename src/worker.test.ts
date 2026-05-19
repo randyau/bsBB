@@ -1,71 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { encrypt, decrypt, generateKey } from '$lib/crypto';
+import { describe, it, expect } from 'vitest';
 import { sendEmail, testEmail } from '$lib/email';
 
-/**
- * Worker Tests — Background job processing, encryption, and email.
- *
- * Covers:
- * - Encryption for ATproto chat tokens
- * - Email sending for notifications
- * - Notification queue patterns and types
- * - Worker polling and error handling
- *
- * Full integration tests in src/routes/api/test/integration.test.ts
- * verify actual queue processing and delivery.
- */
-
 describe('Phase 5 — Worker & Notifications', () => {
-	beforeAll(() => {
-		// Set a valid 32-byte hex encryption key for tests
-		process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-	});
-
-	describe('Encryption (AES-256-GCM)', () => {
-		it('encrypts and decrypts correctly', () => {
-			const plaintext = 'secret_token_12345';
-			const encrypted = encrypt(plaintext);
-			const decrypted = decrypt(encrypted);
-
-			expect(decrypted).toBe(plaintext);
-		});
-
-		it('produces different ciphertext for same plaintext (IV randomization)', () => {
-			const plaintext = 'same_message';
-			const enc1 = encrypt(plaintext);
-			const enc2 = encrypt(plaintext);
-
-			expect(enc1).not.toBe(enc2);
-			expect(decrypt(enc1)).toBe(plaintext);
-			expect(decrypt(enc2)).toBe(plaintext);
-		});
-
-		it('fails to decrypt with wrong key', () => {
-			// Set wrong key in env
-			const original = process.env.ENCRYPTION_KEY;
-			try {
-				const plaintext = 'sensitive_data';
-				const encrypted = encrypt(plaintext);
-
-				// Change key
-				process.env.ENCRYPTION_KEY = generateKey();
-
-				expect(() => {
-					decrypt(encrypted);
-				}).toThrow();
-			} finally {
-				process.env.ENCRYPTION_KEY = original;
-			}
-		});
-
-		it('generates valid 32-byte keys', () => {
-			const key = generateKey();
-
-			// Should be hex string of 64 characters (32 bytes * 2)
-			expect(/^[0-9a-f]{64}$/i.test(key)).toBe(true);
-		});
-	});
-
 	describe('Email', () => {
 		it('sendEmail logs in dev mode (no SMTP config)', async () => {
 			// In dev mode without SMTP_HOST, sendEmail returns null and logs
