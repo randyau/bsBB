@@ -4,6 +4,7 @@
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import MarkdownHelp from '$components/MarkdownHelp.svelte';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 
 	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
 
@@ -76,7 +77,10 @@
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				<!-- Editor -->
 				<div>
-					<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Write</p>
+					<div class="flex items-center justify-between mb-2">
+						<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium m-0">Write</p>
+						<EmojiPicker onEmojiSelect={(emoji) => bodyValue += emoji} />
+					</div>
 					<textarea
 						id="body"
 						name="body"

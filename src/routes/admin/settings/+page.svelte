@@ -3,6 +3,7 @@
 	import MarkdownHelp from '$components/MarkdownHelp.svelte';
 	import Toast from '$components/Toast.svelte';
 	import { enhance } from '$app/forms';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -22,11 +23,16 @@
 	let submitting = $state(false);
 	let toastMessage = $state('');
 	let toastType: 'success' | 'error' = $state('success');
+	let announcementValue = $state('');
 
 	function handleSubmit() {
 		submitting = true;
 		toastMessage = 'Saving...';
 	}
+
+	$effect(() => {
+		announcementValue = data.settings.homepage_announcement ?? '';
+	});
 
 	$effect(() => {
 		if (form && submitting) {
@@ -78,7 +84,10 @@
 		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="homepage_announcement" />
 			<div>
-				<label for="announcement" class="form-label">Announcement (Markdown)</label>
+				<div class="flex items-center justify-between mb-2">
+					<label for="announcement" class="form-label m-0">Announcement (Markdown)</label>
+					<EmojiPicker onEmojiSelect={(emoji) => announcementValue += emoji} />
+				</div>
 				<MarkdownHelp class="mb-3" />
 				<textarea
 					id="announcement"
@@ -86,6 +95,7 @@
 					class="form-control form-textarea"
 					rows="6"
 					placeholder="Enter markdown text to display on the homepage. Leave empty to hide."
+					bind:value={announcementValue}
 				>{data.settings.homepage_announcement}</textarea>
 				<p class="text-xs text-[rgb(var(--color-text-muted))] mt-2">
 					Leave empty to hide the announcement box.

@@ -7,6 +7,7 @@
 	import EmptyState from '$components/EmptyState.svelte';
 	import Pagination from '$components/Pagination.svelte';
 	import MarkdownHelp from '$components/MarkdownHelp.svelte';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -591,7 +592,10 @@
 						<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 							<!-- Editor -->
 							<div>
-								<label for="reply-body" class="text-xs text-[rgb(var(--color-text-muted))] font-medium block mb-2">Write</label>
+								<div class="flex items-center justify-between mb-2">
+									<label for="reply-body" class="text-xs text-[rgb(var(--color-text-muted))] font-medium">Write</label>
+									<EmojiPicker onEmojiSelect={(emoji) => replyBody += emoji} />
+								</div>
 								<textarea
 									id="reply-body"
 									name="body"
