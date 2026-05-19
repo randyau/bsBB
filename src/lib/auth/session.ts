@@ -129,7 +129,7 @@ export function setSessionCookie(event: RequestEvent, token: string): void {
 	event.cookies.set(SESSION_COOKIE, token, {
 		path: '/',
 		httpOnly: true,
-		sameSite: 'strict',
+		sameSite: 'lax', // 'lax' allows OAuth redirects from other sites; 'strict' would reject them
 		secure: process.env.NODE_ENV === 'production',
 		maxAge: SESSION_DURATION_MS / 1000,
 	});
