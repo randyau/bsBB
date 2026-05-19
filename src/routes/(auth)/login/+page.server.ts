@@ -21,6 +21,15 @@ export const actions: Actions = {
 			const url = await client.authorize(handle, { scope: 'atproto' });
 			redirect(302, url.toString());
 		} catch (err) {
+			// Handle SvelteKit redirect errors and other redirect-like objects
+			if (
+				err &&
+				typeof err === 'object' &&
+				'location' in err &&
+				typeof err.location === 'string'
+			) {
+				redirect(302, err.location);
+			}
 			const message = err instanceof Error ? err.message : JSON.stringify(err);
 			console.error('OAuth authorize error:', message, err);
 			return fail(400, { error: `Could not initiate login: ${message}` });
