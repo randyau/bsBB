@@ -14,7 +14,7 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 - **Docker and Docker Compose** installed on the server
 - **Node.js 20+** and npm installed on the server (for running `scripts/setup.sh`)
 - **Git** installed on the server (to clone the repo)
-- Domain name pointed at your server's IP
+- **Domain name** pointed at your server's IP — **required, not optional.** ATproto OAuth will not work without a real public domain; you cannot self-host on a bare IP address or localhost
 - Bluesky account for the notification bot (optional but recommended)
 - SMTP credentials for email alerts (optional)
 
@@ -24,9 +24,25 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 
 ## Step 1 — Provision a Server
 
-**Recommended: Hetzner CAX11** (ARM64, 2 vCPU, 4GB RAM, €3.29/mo)
+**Recommended: Hetzner CX22** (x86_64, 2 vCPU, 4GB RAM, ~€4/mo)
 
-Other good options: Hetzner CX22, DigitalOcean Basic (2GB, $12/mo), any Ubuntu 22.04 VPS.
+**Minimum: 2 vCPU, 4 GB RAM.** Docker overhead alone (~850 MB for dockerd + containerd) plus PostgreSQL, the app, worker, and Caddy leaves under 1 GB headroom on a 2 GB machine — avoid 2 GB VPS options.
+
+Other good options: Hetzner CAX11 (ARM64, 2 vCPU, 4GB RAM, ~€3.29/mo), DigitalOcean Basic ($18/mo, 2 vCPU/4GB), any Ubuntu 22.04+ VPS with ≥4 GB RAM.
+
+### Configure Swap
+
+Hetzner and most cloud VPS providers provision no swap by default. Without swap, an OOM event kills processes immediately rather than degrading gracefully. Add a 2 GB swapfile:
+
+```bash
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+Verify with `free -h`. This is a safety net — normal operation should never touch swap on a 4 GB machine.
 
 ### Install Docker
 
@@ -138,13 +154,43 @@ Everything else (Bluesky bot, SMTP, DNS) works identically with subdomains.
 
 ## Step 4 — Configure DNS
 
-Point your domain to your server's IP address. Caddy handles SSL automatically once DNS resolves.
+**A domain is required.** ATproto OAuth uses your domain as the OAuth client identifier (`client-metadata.json` must be publicly reachable at a real HTTPS URL). A bare IP address or `localhost` will not work.
 
-Check that your domain resolves before starting services:
+### Get your server's IP
+
+```bash
+curl -4 ifconfig.me
+```
+
+### Add DNS records
+
+At your domain registrar or DNS provider (Cloudflare, Namecheap, etc.), add:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| A | `yourforum.com` | `<your server IP>` | 300 |
+| A | `www` | `<your server IP>` | 300 (optional) |
+
+If deploying to a **subdomain** (e.g., `forum.example.com`):
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| A | `forum` | `<your server IP>` | 300 |
+
+> **Cloudflare users:** Set the record to **DNS only** (grey cloud, not proxied) during initial setup so Caddy can complete the Let's Encrypt ACME challenge. You can enable proxying later if desired, but it's not required and adds complexity.
+
+TTL 300 (5 minutes) lets you iterate quickly during setup. You can raise it to 3600+ once everything is confirmed working.
+
+### Verify propagation
+
+DNS changes can take a few minutes to propagate. Check before proceeding:
+
 ```bash
 dig +short yourforum.com
 # Should return your server's IP
 ```
+
+Or use `nslookup yourforum.com` if `dig` is not installed. Do not start services until this resolves correctly — Caddy's automatic HTTPS will fail if DNS is not pointing at the server.
 
 ---
 
