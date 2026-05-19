@@ -18,12 +18,13 @@ let publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
 const { ext: _, ...cleanPrivateJwk } = privateJwk;
 const { ext: __, ...cleanPublicJwk } = publicJwk;
 
-// Add kid to both keys — required by ATproto OAuth
+// Add kid and alg to both keys — required by ATproto OAuth
 const kid = 'key-' + Math.random().toString(36).substring(2, 15);
 cleanPrivateJwk.kid = kid;
+cleanPrivateJwk.alg = 'ES256';  // Needed so algorithms array is computed correctly
 cleanPublicJwk.kid = kid;
-// Set use='sig' ONLY on public key; private keys use key_ops
 cleanPublicJwk.use = 'sig';
+cleanPublicJwk.alg = 'ES256';
 
 // Output as environment variable assignments (one per line)
 console.log('ATPROTO_PRIVATE_KEY=' + JSON.stringify(cleanPrivateJwk));
