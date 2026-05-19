@@ -33,7 +33,17 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	const siteName = await getSetting('site_name', 'bsBB');
 
 	const key = await JoseKey.fromJWK(privateKeyJwkObj);
+	console.log('[ATproto] Key created');
+	console.log('  kid:', key.kid);
+	console.log('  alg:', key.alg);
+	console.log('  use:', (key as any).use);
+	console.log('  algorithms:', key.algorithms);
+	console.log('  isPrivate:', key.isPrivate);
+	console.log('  isRevoked:', key.isRevoked);
+	console.log('  isActive:', key.isActive());
+
 	const keyset = new Keyset([key]);
+	console.log('[ATproto] Keyset created, size:', keyset.size);
 
 	_client = new NodeOAuthClient({
 		clientMetadata: {
