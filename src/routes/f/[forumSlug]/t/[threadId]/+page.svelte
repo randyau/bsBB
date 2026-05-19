@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import { formatTimeDisplay } from '$lib/utils/time';
@@ -234,7 +235,7 @@
 				{#if data.user.notifyViaBluesky}
 					<div class="flex items-center gap-1 border border-[rgb(var(--color-border))] rounded overflow-hidden" role="group" aria-label="Thread notification preferences">
 						<!-- Mute button -->
-						<form method="POST" action="?/muteThread" style="display: contents;">
+						<form method="POST" use:enhance action="?/muteThread" style="display: contents;">
 							<button
 								type="submit"
 								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'mute'
@@ -246,7 +247,7 @@
 						</form>
 
 						<!-- Default button -->
-						<form method="POST" action="?/unwatchThread" style="display: contents;">
+						<form method="POST" use:enhance action="?/unwatchThread" style="display: contents;">
 							<button
 								type="submit"
 								class="px-3 py-2 text-xs leading-tight font-medium transition border-l border-r border-[rgb(var(--color-border))] {data.userSubscription === null
@@ -259,7 +260,7 @@
 						</form>
 
 						<!-- Watch button -->
-						<form method="POST" action="?/watchThread" style="display: contents;">
+						<form method="POST" use:enhance action="?/watchThread" style="display: contents;">
 							<button
 								type="submit"
 								class="px-3 py-2 text-sm font-medium transition {data.userSubscription === 'follow'
@@ -284,21 +285,21 @@
 					</summary>
 					<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
 						{#if data.thread.isLocked}
-							<form method="POST" action="?/unlockThread">
+							<form method="POST" use:enhance action="?/unlockThread">
 								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unlock thread</button>
 							</form>
 						{:else}
-							<form method="POST" action="?/lockThread">
+							<form method="POST" use:enhance action="?/lockThread">
 								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Lock thread</button>
 							</form>
 						{/if}
 						{#if data.user?.globalRole === 'admin'}
 							{#if data.thread.isPinned}
-								<form method="POST" action="?/unpinThread">
+								<form method="POST" use:enhance action="?/unpinThread">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unpin thread</button>
 								</form>
 							{:else}
-								<form method="POST" action="?/pinThread">
+								<form method="POST" use:enhance action="?/pinThread">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Pin thread</button>
 								</form>
 							{/if}
@@ -424,22 +425,22 @@
 										{/if}
 										{#if idx === 0}
 											{#if data.thread.isLocked}
-												<form method="POST" action="?/unlockThread">
+												<form method="POST" use:enhance action="?/unlockThread">
 													<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unlock thread</button>
 												</form>
 											{:else}
-												<form method="POST" action="?/lockThread">
+												<form method="POST" use:enhance action="?/lockThread">
 													<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Lock thread</button>
 												</form>
 											{/if}
 										{/if}
 										{#if post.status !== 'active'}
-											<form method="POST" action="?/restorePost">
+											<form method="POST" use:enhance action="?/restorePost">
 												<input type="hidden" name="postId" value={post.id} />
 												<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Restore post</button>
 											</form>
 										{:else}
-											<form method="POST" action="?/deletePost" onsubmit={(e) => { if (!confirmDeletePost()) { e.preventDefault(); return; } const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
+											<form method="POST" use:enhance action="?/deletePost" onsubmit={(e) => { if (!confirmDeletePost()) { e.preventDefault(); return; } const reason = prompt('Reason (optional):'); if (reason !== null) { const el = e.currentTarget.querySelector('input[name=reason]'); if (el) (el as HTMLInputElement).value = reason; } else e.preventDefault(); }}>
 												<input type="hidden" name="postId" value={post.id} />
 												<input type="hidden" name="reason" value="" />
 												<button type="submit" class="w-full text-left px-4 py-2 text-sm text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-bg-secondary))]">Hide post</button>
@@ -580,7 +581,7 @@
 				{/if}
 
 
-				<form method="POST" action="?/reply" class="space-y-4">
+				<form method="POST" use:enhance action="?/reply" class="space-y-4">
 
 					<!-- Body textarea/preview -->
 					<div>

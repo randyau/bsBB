@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -15,7 +16,7 @@
 			Your account has been suspended from this forum. If you believe this is an error,
 			please contact the forum administrators.
 		</p>
-		<form method="POST" action="/logout">
+		<form method="POST" use:enhance action="/logout">
 			<button type="submit" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">
 				Sign out
 			</button>
