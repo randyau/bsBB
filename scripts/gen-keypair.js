@@ -14,14 +14,14 @@ const keyPair = await subtle.generateKey(
 let privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
 let publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
 
-// Remove ext property (not needed), but keep key_ops as required by ATproto
-const { ext: _, ...cleanPrivateJwk } = privateJwk;
-const { ext: __, ...cleanPublicJwk } = publicJwk;
+// Remove ext and key_ops from both keys (not needed for OAuth jwks)
+const { ext: _, key_ops: __, ...cleanPrivateJwk } = privateJwk;
+const { ext: ___, key_ops: ____, ...cleanPublicJwk } = publicJwk;
 
 // Add kid and alg to both keys — required by ATproto OAuth
 const kid = 'key-' + Math.random().toString(36).substring(2, 15);
 cleanPrivateJwk.kid = kid;
-cleanPrivateJwk.alg = 'ES256';  // Needed so algorithms array is computed correctly
+cleanPrivateJwk.alg = 'ES256';
 cleanPublicJwk.kid = kid;
 cleanPublicJwk.use = 'sig';
 cleanPublicJwk.alg = 'ES256';
