@@ -121,7 +121,7 @@
 				{/if}
 			</a>
 			<a href="/user/{user.handle}" class="text-secondary hover:underline">@{user.handle}</a>
-			<form method="POST" action="?/logout">
+			<form method="POST" action="/logout">
 				<button type="submit" class="hover:underline">Sign out</button>
 			</form>
 		{:else}
