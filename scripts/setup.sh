@@ -36,7 +36,15 @@ echo "  openssl: $(openssl version)"
 if [ -f "$ENV_FILE" ]; then
   echo ""
   echo "WARNING: .env already exists."
-  read -rp "Overwrite? This will replace all existing config. [y/N] " confirm
+  echo ""
+  echo "This setup script will generate a NEW database password. If you have an"
+  echo "existing database, you MUST delete its Docker volume or the new password"
+  echo "will not match. Otherwise, the app will fail to connect."
+  echo ""
+  echo "To delete the volume (destroys all forum data):"
+  echo "  docker compose -f docker-compose.prod.yml down -v"
+  echo ""
+  read -rp "Overwrite .env and continue? This will replace all existing config. [y/N] " confirm
   if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
     echo "Aborting."
     exit 0
