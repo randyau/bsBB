@@ -1,8 +1,15 @@
 node_modules/
 .env
+.env.backup
+.env.*.backup
 logs/*.log
 client-metadata.json
 .svelte-kit/
 build/
 .env.local
 coverage/
+# IDE and editor temp files
+*.swp
+*.swo
+*~
+.DS_Store
