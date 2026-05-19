@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
 import { createSession, setSessionCookie } from '$lib/auth/session.js';
@@ -27,27 +27,17 @@ export const GET: RequestHandler = async (event) => {
 		const token = await createSession(did);
 		console.log('Session created, token:', token.substring(0, 20) + '...');
 
-		// Build Set-Cookie header manually (SvelteKit won't apply event.cookies to manual Response)
-		const SESSION_COOKIE = 'session';
-		const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-		const maxAge = Math.floor(SESSION_DURATION_MS / 1000);
-		const secure = process.env.NODE_ENV === 'production' ? 'Secure;' : '';
-		const setCookieHeader = `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; ${secure} Max-Age=${maxAge}`;
-		console.log('Set-Cookie header:', setCookieHeader.substring(0, 50) + '...');
+		// Set session cookie (SvelteKit preserves this through redirect)
+		setSessionCookie(event, token);
+		console.log('Session cookie set');
 
-		// Build redirect URL with optional first-admin flag
+		// Redirect to home, with first-admin flag if applicable
 		const redirectUrl = flashAdmin ? '/?firstAdmin=1' : '/';
 		console.log('Redirecting to:', redirectUrl);
-
-		// Return 302 redirect response with Set-Cookie header
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: redirectUrl,
-				'Set-Cookie': setCookieHeader,
-			},
-		});
+		redirect(302, redirectUrl);
 	} catch (err) {
+		// Re-throw SvelteKit's redirect error (throws when redirect() is called)
+		if ((err as { status?: number }).status === 302) throw err;
 		const message = err instanceof Error ? err.message : 'Unknown error';
 		console.error('Callback error:', message);
 		error(500, `Authentication failed: ${message}`);
