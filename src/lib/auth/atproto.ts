@@ -1,5 +1,5 @@
 import { NodeOAuthClient, type NodeSavedSession, type NodeSavedState } from '@atproto/oauth-client-node';
-import { Keyset, Key } from '@atproto/jwk';
+import { Keyset } from '@atproto/jwk';
 import { getSetting } from '$lib/settings';
 
 // In-memory stores for OAuth state/session (sufficient for single-process deployment).
@@ -33,19 +33,9 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	console.log('[ATproto] Parsed JWK keys:', Object.keys(privateKeyJwkObj));
 	console.log('[ATproto] JWK kty:', (privateKeyJwkObj as any).kty);
 
-	let key;
 	try {
-		key = Key.fromJwk(privateKeyJwkObj);
-		console.log('[ATproto] Created key:', typeof key, 'isActive:', (key as any).isActive);
-		console.log('[ATproto] Key prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(key)).slice(0, 10));
-	} catch (err) {
-		console.error('[ATproto] Failed to create key from JWK:', err);
-		throw err;
-	}
-
-	try {
-		console.log('[ATproto] Creating Keyset with key...');
-		const keyset = new Keyset([key]);
+		console.log('[ATproto] Creating Keyset with raw JWK...');
+		const keyset = new Keyset([privateKeyJwkObj as any]);
 		console.log('[ATproto] Keyset created successfully');
 
 		_client = new NodeOAuthClient({
