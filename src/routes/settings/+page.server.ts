@@ -1,8 +1,9 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { users, posts, sessions, modLog } from '$lib/db/schema';
+import { users, posts, sessions, modLog, notificationQueue } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
+import { getSetting } from '$lib/settings';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -54,6 +55,16 @@ export const actions: Actions = {
 				.update(users)
 				.set({ notifyViaBluesky: enabled })
 				.where(eq(users.did, locals.user.did));
+
+			if (enabled) {
+				const siteName = await getSetting('site_name', 'bsBB');
+				const baseUrl = process.env.PUBLIC_BASE_URL ?? '';
+				await db.insert(notificationQueue).values({
+					recipientDid: locals.user.did,
+					type: 'welcome_dm',
+					payload: { siteName, baseUrl, settingsUrl: `${baseUrl}/settings` },
+				});
+			}
 
 			return { success: true, notifyViaBluesky: enabled };
 		} catch (err) {

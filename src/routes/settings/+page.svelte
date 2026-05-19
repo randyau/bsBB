@@ -20,10 +20,13 @@
 		notificationFrequency = data.user.notificationFrequency ?? 'immediate';
 	});
 
+	let justEnabledNotifications = $state(false);
+
 	// Sync state when form action completes
 	$effect(() => {
 		if (form?.success && form?.notifyViaBluesky !== undefined) {
 			console.log('[settings] form response, updating notifyViaBluesky to:', form.notifyViaBluesky);
+			justEnabledNotifications = form.notifyViaBluesky === true;
 			notifyViaBluesky = form.notifyViaBluesky;
 		}
 	});
@@ -143,35 +146,36 @@
 			<div class="space-y-4">
 				<div class="p-4 bg-[rgb(var(--color-bg-secondary))] rounded-lg">
 					<h3 class="font-semibold mb-2">Bluesky DM Notifications</h3>
-					<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
-						Receive DM notifications when someone replies to your thread, quotes your post, or a moderator takes action on your content.
+					<p class="text-sm text-[rgb(var(--color-text-muted))] mb-3">
+						Opt in to receive a Bluesky DM when someone replies to your thread or quotes your post. This is entirely optional — you can disable it at any time below.
 					</p>
 					{#if data.serviceHandle}
-						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-3">
-							Notifications are sent from
+						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+							Messages are sent by
 							<a href="https://bsky.app/profile/{data.serviceHandle}" target="_blank" rel="noopener noreferrer" class="link font-mono">@{data.serviceHandle}</a>.
-							To receive DMs, you must either <strong>follow that account</strong> or have your Bluesky DMs set to <strong>accept messages from everyone</strong>.
+							To receive them you must either <strong>follow that account</strong> or have your Bluesky DMs set to <strong>accept messages from everyone</strong>.
 						</p>
 					{/if}
-
-					<div class="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md mb-4">
-						<p class="text-sm text-amber-800 dark:text-amber-200 font-medium">Bluesky DM notifications are temporarily paused</p>
-						<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">We're working with Bluesky moderation to restore this feature. Enabling notifications is disabled in the meantime. If you have them enabled, you can still disable them below.</p>
-					</div>
 
 					<form method="POST" use:enhance action="?/updateNotificationPreferences" class="space-y-4">
 						<!-- Enable/Disable toggle -->
 						<div>
 							{#if notifyViaBluesky}
-								<p class="text-sm text-amber-600 font-medium mb-3">⚠ Enabled (currently paused — notifications will not be sent)</p>
+								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Enabled — you will receive DMs from the service account above.</p>
 								<button type="submit" formaction="?/toggleNotifications" value="false" name="enabled" class="btn btn-sm btn-secondary">
 									Disable Notifications
 								</button>
 							{:else}
 								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
-								<button type="submit" disabled class="btn btn-sm btn-primary" title="Feature temporarily paused">
+								<button type="submit" formaction="?/toggleNotifications" value="true" name="enabled" class="btn btn-sm btn-primary">
 									Enable Notifications
 								</button>
+							{/if}
+							{#if justEnabledNotifications}
+								<div class="mt-3 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+									<p class="text-sm text-green-800 dark:text-green-200 font-medium">Notifications enabled</p>
+									<p class="text-sm text-green-700 dark:text-green-300 mt-1">A confirmation message has been sent to you. Check your Bluesky DMs and chat requests.</p>
+								</div>
 							{/if}
 						</div>
 
