@@ -1,0 +1,33 @@
+[Unit]
+Description=bsBB Forum
+Documentation=https://github.com/randyau/bsBB
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/forum/bsBB
+User=forum
+Group=forum
+
+# Start the services
+ExecStart=/home/forum/bsBB/scripts/start-prod.sh
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=3
+StartLimitIntervalSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bsbb
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

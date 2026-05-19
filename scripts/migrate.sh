@@ -12,5 +12,5 @@ fi
 
 echo "Running migrations against: $DATABASE_URL"
 cd "$PROJECT_ROOT"
-npx drizzle-kit migrate
+npx -y drizzle-kit migrate
 echo "Migrations complete."
