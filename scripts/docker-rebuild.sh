@@ -35,22 +35,21 @@ if [ ! -f ".env" ]; then
 fi
 echo -e "${GREEN}✓ .env file found${NC}\n"
 
-# Stop running containers
-echo -e "${YELLOW}3. Stopping running containers...${NC}"
-docker compose -f docker-compose.prod.yml down 2>/dev/null || true
-echo -e "${GREEN}✓ Stopped${NC}\n"
-
-# Rebuild images
-echo -e "${YELLOW}4. Building Docker images (this may take a minute)...${NC}"
+# Rebuild images (while old containers are still running)
+echo -e "${YELLOW}3. Building Docker images (this may take a minute)...${NC}"
 if docker compose -f docker-compose.prod.yml build --no-cache app worker; then
   echo -e "${GREEN}✓ Images built${NC}"
 else
-  echo -e "${RED}✗ Build failed${NC}"
+  echo -e "${RED}✗ Build failed — leaving existing containers running${NC}"
   exit 1
 fi
 
-# Start services
-echo -e "\n${YELLOW}5. Starting Docker services...${NC}"
+# Stop and restart with new images (minimal downtime window)
+echo -e "\n${YELLOW}4. Stopping running containers...${NC}"
+docker compose -f docker-compose.prod.yml down 2>/dev/null || true
+echo -e "${GREEN}✓ Stopped${NC}\n"
+
+echo -e "${YELLOW}5. Starting Docker services...${NC}"
 if docker compose -f docker-compose.prod.yml up -d; then
   echo -e "${GREEN}✓ Services started${NC}"
 else
