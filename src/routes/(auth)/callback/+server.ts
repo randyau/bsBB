@@ -23,6 +23,58 @@ export const GET: RequestHandler = async (event) => {
 		await upsertUser(did, session);
 		console.log('User upserted');
 
+		// Auto-sync profile on first login
+		const isFirstLogin = !session.handle; // No handle in OAuth session = first login
+		if (isFirstLogin) {
+			console.log('First login detected, syncing profile...');
+			try {
+				// Fetch handle from PLC Directory
+				const plcRes = await fetch(`https://plc.directory/${did}`, {
+					signal: AbortSignal.timeout(5000),
+				});
+
+				if (plcRes.ok) {
+					const doc = await plcRes.json() as { alsoKnownAs?: string[] };
+					const atUri = doc.alsoKnownAs?.find((a: string) => a.startsWith('at://'));
+					const handle = atUri ? atUri.replace('at://', '') : null;
+
+					if (handle) {
+						// Fetch profile from AppView
+						const profileRes = await fetch(
+							`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${did}`,
+							{ signal: AbortSignal.timeout(5000) }
+						);
+
+						if (profileRes.ok) {
+							const profile = await profileRes.json() as {
+								displayName?: string;
+								avatar?: string;
+							};
+
+							// Update user with synced profile
+							const { db } = await import('$lib/db');
+							const { users } = await import('$lib/db/schema');
+							const { eq } = await import('drizzle-orm');
+							await db
+								.update(users)
+								.set({
+									handle,
+									displayName: profile.displayName ?? null,
+									avatarUrl: profile.avatar ?? null,
+									lastProfileSync: new Date(),
+								})
+								.where(eq(users.did, did));
+
+							console.log('Profile synced on first login:', handle);
+						}
+					}
+				}
+			} catch (err) {
+				console.error('Profile sync failed on first login:', err);
+				// Don't block login if sync fails
+			}
+		}
+
 		// First-admin gate: promote if instance has no admin yet
 		const flashAdmin = await claimFirstAdmin(did);
 		console.log('First admin claimed:', flashAdmin);

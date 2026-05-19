@@ -26,13 +26,18 @@
 				return;
 			}
 
+			const result = await res.json();
 			syncSuccess = true;
 			setTimeout(() => {
 				syncSuccess = false;
 			}, 3000);
 
-			// Reload page to show updated profile
-			window.location.reload();
+			// Redirect to the handle-based profile URL if we got a new handle
+			if (result.redirectUrl) {
+				window.location.href = result.redirectUrl;
+			} else {
+				window.location.reload();
+			}
 		} catch (err) {
 			syncError = 'Network error';
 		} finally {

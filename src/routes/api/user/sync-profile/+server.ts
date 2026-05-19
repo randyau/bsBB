@@ -64,11 +64,20 @@ export const POST: RequestHandler = async ({ locals }) => {
 		}
 	}
 
+	const currentUser = await db
+		.select({ displayName: users.displayName })
+		.from(users)
+		.where(eq(users.did, did))
+		.limit(1);
+
+	// Preserve user-customized displayName if it exists, otherwise use ATproto version
+	const finalDisplayName = currentUser[0]?.displayName || displayName;
+
 	await db
 		.update(users)
 		.set({
 			handle,
-			displayName,
+			displayName: finalDisplayName,
 			avatarUrl,
 			lastProfileSync: new Date(),
 		})
@@ -77,7 +86,8 @@ export const POST: RequestHandler = async ({ locals }) => {
 	return json({
 		success: true,
 		handle,
-		displayName,
+		displayName: finalDisplayName,
 		avatarUrl,
+		redirectUrl: handle ? `/user/${handle}` : null,
 	});
 };
