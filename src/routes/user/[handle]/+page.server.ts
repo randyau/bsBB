@@ -15,6 +15,7 @@ import {
 import { eq, and, desc, count } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
+import { emojify } from 'node-emoji';
 
 const POSTS_PAGE_SIZE = 25;
 
@@ -120,7 +121,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		customRoles,
 		userPosts: userPosts.map((p) => ({
 			...p,
-			bodyPreview: p.bodyMarkdown.substring(0, 200)
+			bodyPreview: emojify(p.bodyMarkdown.substring(0, 200))
 		})),
 		userPostsTotal: Number(userPostsTotal),
 		userPostsPage: postsPage,

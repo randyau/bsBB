@@ -3,8 +3,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
-	import MarkdownHelp from '$components/MarkdownHelp.svelte';
-	import EmojiPicker from '$components/EmojiPicker.svelte';
+	import MarkdownToolbar from '$components/MarkdownToolbar.svelte';
 
 	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
 
@@ -72,15 +71,9 @@
 				Body (Markdown)
 				<span class="form-required">*</span>
 			</label>
-			<MarkdownHelp class="mb-3" />
-
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				<!-- Editor -->
 				<div>
-					<div class="flex items-center justify-between mb-2">
-						<p class="text-xs text-[rgb(var(--color-text-muted))] font-medium m-0">Write</p>
-						<EmojiPicker onEmojiSelect={(emoji) => bodyValue += emoji} />
-					</div>
 					<textarea
 						id="body"
 						name="body"
@@ -91,13 +84,7 @@
 						rows="12"
 						class="form-control form-textarea"
 					></textarea>
-					<div class="form-hint" aria-live="polite" aria-atomic="true">
-						{bodyValue.length} / {BODY_MAX} characters
-						{#if bodyValue.length >= BODY_MAX}
-							<span class="text-[rgb(var(--color-error))] font-semibold">(at limit)</span>
-						{:else if bodyValue.length > BODY_MAX * 0.8}
-							<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
-						{/if}
+					<MarkdownToolbar value={bodyValue} maxlength={BODY_MAX} onEmojiSelect={(emoji) => bodyValue += emoji} />
 					</div>
 				</div>
 

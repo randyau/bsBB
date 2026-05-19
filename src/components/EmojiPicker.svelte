@@ -71,7 +71,7 @@
 
 <svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
 
-<div class="relative inline-block emoji-picker-root">
+<div class="relative inline-block emoji-picker-root" onclick={(e) => e.stopPropagation()}>
 	<button
 		type="button"
 		bind:this={triggerButton}

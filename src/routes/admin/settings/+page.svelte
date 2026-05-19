@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
-	import MarkdownHelp from '$components/MarkdownHelp.svelte';
 	import Toast from '$components/Toast.svelte';
 	import { enhance } from '$app/forms';
-	import EmojiPicker from '$components/EmojiPicker.svelte';
+	import MarkdownToolbar from '$components/MarkdownToolbar.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -84,11 +83,7 @@
 		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="homepage_announcement" />
 			<div>
-				<div class="flex items-center justify-between mb-2">
-					<label for="announcement" class="form-label m-0">Announcement (Markdown)</label>
-					<EmojiPicker onEmojiSelect={(emoji) => announcementValue += emoji} />
-				</div>
-				<MarkdownHelp class="mb-3" />
+				<label for="announcement" class="form-label">Announcement (Markdown)</label>
 				<textarea
 					id="announcement"
 					name="value"
@@ -97,6 +92,7 @@
 					placeholder="Enter markdown text to display on the homepage. Leave empty to hide."
 					bind:value={announcementValue}
 				>{data.settings.homepage_announcement}</textarea>
+				<MarkdownToolbar value={announcementValue} onEmojiSelect={(emoji) => announcementValue += emoji} />
 				<p class="text-xs text-[rgb(var(--color-text-muted))] mt-2">
 					Leave empty to hide the announcement box.
 				</p>
