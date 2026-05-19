@@ -36,6 +36,12 @@
 </script>
 
 <svelte:head>
+	<!-- Theme initialization FIRST — before CSS loads to prevent FOUC -->
+	<script>
+		const theme = document.cookie.split('; ').find(c => c.startsWith('theme='))?.split('=')[1] || 'dark';
+		document.documentElement.setAttribute('data-theme', theme);
+	</script>
+
 	{#if faviconUrl}
 		<link rel="icon" href={faviconUrl} />
 	{:else}
@@ -79,11 +85,6 @@
 	{#if customCss}
 		<style>{@html customCss}</style>
 	{/if}
-
-	<script>
-		const theme = document.cookie.split('; ').find(c => c.startsWith('theme='))?.split('=')[1] || 'dark';
-		document.documentElement.setAttribute('data-theme', theme);
-	</script>
 </svelte:head>
 
 <a href="#main-content" class="sr-only focus:not-sr-only px-4 py-2 bg-[rgb(var(--color-primary))] text-white font-semibold rounded">
@@ -131,3 +132,7 @@
 <main id="main-content" class="container">
 	{@render children()}
 </main>
+
+<footer class="border-t mt-12 py-4 px-4 text-center text-sm text-[rgb(var(--color-text-muted))] bg-[rgb(var(--color-bg))]">
+	Powered by <a href="https://github.com/randyau/bsBB" target="_blank" rel="noopener noreferrer" class="font-semibold hover:underline">bsBB</a>
+</footer>

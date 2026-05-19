@@ -175,6 +175,99 @@ node scripts/gen-keypair.js
 
 ---
 
+## Docker Management
+
+### `npm run docker:build` — Rebuild Docker Images
+**File:** `scripts/docker-rebuild.sh`  
+**When to use:** After code changes, dependency updates, or Dockerfile changes
+
+**What it does:**
+1. Stops running containers
+2. Rebuilds app and worker images without cache (ensures fresh build)
+3. Starts all services (app, worker, db, caddy)
+4. Waits for containers to be healthy
+
+**Command:**
+```bash
+npm run docker:build
+```
+
+**Equivalent manual command:**
+```bash
+bash scripts/docker-rebuild.sh
+```
+
+**Requirements:**
+- Docker installed and accessible
+- `docker-compose.prod.yml` present
+- Previous containers can be safely stopped
+
+**When combined with dev workflow:**
+```bash
+npm run docker:build  # Rebuild
+# Services are now running in containers
+# App available at http://localhost (via Caddy proxy)
+```
+
+---
+
+### `npm run docker:restart` — Quick Restart Without Rebuild
+**File:** `scripts/docker-restart.sh`  
+**When to use:** After restarting a laptop, or to reload config without rebuilding images
+
+**What it does:**
+1. Restarts all running containers (app, worker, db, caddy)
+2. Skips rebuild — uses existing images
+3. Waits for containers to be healthy
+4. Faster than rebuild (~5–10 seconds vs. 1–2 minutes)
+
+**Command:**
+```bash
+npm run docker:restart
+```
+
+**Equivalent manual command:**
+```bash
+bash scripts/docker-restart.sh
+```
+
+**Example workflow:**
+```bash
+npm run docker:restart  # Quick restart after machine sleep/wake
+# Services back online in seconds
+```
+
+---
+
+### `npm run docker:stop` — Stop All Services
+**File:** `scripts/docker-stop.sh`  
+**When to use:** Shutting down dev environment, freeing resources
+
+**What it does:**
+- Stops all Docker services (app, worker, db, caddy)
+- Removes containers but preserves data volume
+- Safe — database is persistent across restart
+
+**Command:**
+```bash
+npm run docker:stop
+```
+
+**Equivalent manual command:**
+```bash
+bash scripts/docker-stop.sh
+```
+
+**Data persistence:**
+- Database volume (`forum-db`) is preserved
+- Stopping and restarting keeps all data
+- To fully reset database, manually remove volume:
+  ```bash
+  docker volume rm forum-db
+  ```
+
+---
+
 ## Testing & Verification
 
 ### `npm test` — Run Unit Tests
