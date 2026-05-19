@@ -211,6 +211,54 @@ Use `$state` rune for reactive variables:
 </script>
 ```
 
+### Mobile Nav Drawer
+
+Any layout with a sidebar must use the `NavDrawer` component so it collapses to a slide-in drawer on narrow screens. The parent owns the `open` boolean and the hamburger button; the component owns the overlay, slide transition, and ✕ close button.
+
+```svelte
+<script lang="ts">
+  import NavDrawer from '$components/NavDrawer.svelte';
+  let drawerOpen = $state(false);
+</script>
+
+<div class="flex min-h-screen bg-[rgb(var(--color-bg))]">
+  <NavDrawer id="my-nav" bind:open={drawerOpen}>
+    <div class="p-6 flex flex-col h-full">
+      <!-- nav heading, links, footer -->
+    </div>
+  </NavDrawer>
+
+  <main class="flex-1 min-w-0 overflow-y-auto">
+    <!-- sticky top bar with hamburger -->
+    <div class="sticky top-0 z-10 flex items-center gap-3 px-4 py-3
+                border-b border-[rgb(var(--color-border))]
+                bg-[rgb(var(--color-bg))]">
+      <button
+        class="md:hidden p-2 rounded-lg text-[rgb(var(--color-text-secondary))]
+               hover:bg-[rgb(var(--color-bg-secondary))]"
+        onclick={() => (drawerOpen = true)}
+        aria-expanded={drawerOpen}
+        aria-controls="my-nav"
+        aria-label="Open navigation"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <!-- other top-bar content -->
+    </div>
+    <!-- page content -->
+  </main>
+</div>
+```
+
+Key rules:
+- Always set `min-w-0` on `<main>` — prevents flex overflow from squeezing content.
+- Nav links should call `onclick={() => (drawerOpen = false)}` so the drawer closes on navigation.
+- `id` on `<NavDrawer>` must match `aria-controls` on the hamburger button.
+- On `md+` the component renders as a normal static sidebar — no behavior change for desktop.
+
 ---
 
 ## Session Management
