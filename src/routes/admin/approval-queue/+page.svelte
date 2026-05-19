@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from "$app/forms";
 	import type { PageData, ActionData } from './$types';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
 	import EmptyState from '$components/EmptyState.svelte';
@@ -55,7 +56,7 @@
 
 					<!-- Actions -->
 					{#if rejectingPostId === post.id}
-						<form method="POST" action="?/reject" class="space-y-2">
+						<form method="POST" use:enhance action="?/reject" class="space-y-2">
 							<input type="hidden" name="postId" value={post.id} />
 							<div>
 								<label for="reason-{post.id}" class="form-label text-sm">Rejection reason (sent to author)</label>
@@ -80,7 +81,7 @@
 						</form>
 					{:else}
 						<div class="flex gap-2">
-							<form method="POST" action="?/approve">
+							<form method="POST" use:enhance action="?/approve">
 								<input type="hidden" name="postId" value={post.id} />
 								<button type="submit" class="btn btn-primary btn-sm">Approve</button>
 							</form>
@@ -97,8 +98,7 @@
 								target="_blank"
 								rel="noopener"
 							>
-								View thread ↗
-							</a>
+								View thread ↁE							</a>
 						</div>
 					{/if}
 				</div>
@@ -106,3 +106,4 @@
 		</div>
 	{/if}
 </AdminPageShell>
+

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from "$app/forms";
 	import type { PageData, ActionData } from './$types';
 	import { formatTimeDisplay } from '$lib/utils/time';
 	import TableSearch from '$components/TableSearch.svelte';
@@ -238,7 +239,7 @@
 											Move to thread
 										</button>
 									</div>
-									<form method="POST" action="?/hide" class="flex flex-col gap-1" onsubmit={confirmHide}>
+									<form method="POST" use:enhance action="?/hide" class="flex flex-col gap-1" onsubmit={confirmHide}>
 										<input type="hidden" name="postId" value={post.id} />
 										<label for="hide-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Reason (optional)</label>
 										<input
@@ -252,11 +253,11 @@
 									</form>
 								{:else if post.status === 'hidden'}
 									<div class="space-y-2">
-										<form method="POST" action="?/restore" class="inline">
+										<form method="POST" use:enhance action="?/restore" class="inline">
 											<input type="hidden" name="postId" value={post.id} />
 											<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Restore</button>
 										</form>
-										<form method="POST" action="?/permanentlyDelete" class="flex flex-col gap-1" onsubmit={confirmPermanentlyDelete}>
+										<form method="POST" use:enhance action="?/permanentlyDelete" class="flex flex-col gap-1" onsubmit={confirmPermanentlyDelete}>
 											<input type="hidden" name="postId" value={post.id} />
 											<label for="delete-reason-{post.id}" class="text-xs text-[rgb(var(--color-text-muted))]">Delete reason</label>
 											<input
@@ -272,7 +273,7 @@
 								{:else if post.status === 'deleted'}
 									<span class="text-xs text-[rgb(var(--color-text-muted))] italic">No actions available</span>
 								{:else if post.status === 'archived'}
-									<form method="POST" action="?/restore" class="inline">
+									<form method="POST" use:enhance action="?/restore" class="inline">
 										<input type="hidden" name="postId" value={post.id} />
 										<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Reactivate</button>
 									</form>
@@ -314,7 +315,7 @@
 					onkeydown={(e) => { e.stopPropagation(); trapFocus(e, moveModalEl); }}
 				>
 					<h2 id="move-post-title" class="section-title mb-4">Move Post to Thread</h2>
-					<form method="POST" action="?/movePost" onsubmit={() => { movePostId = null; }}>
+					<form method="POST" use:enhance action="?/movePost" onsubmit={() => { movePostId = null; }}>
 						<input type="hidden" name="postId" value={movePostId} />
 						<div class="form-group mb-4">
 							<label for="destThread" class="form-label">Destination Thread:</label>
@@ -402,3 +403,4 @@
 		{/if}
 	</div>
 </AdminPageShell>
+

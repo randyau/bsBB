@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import EmptyState from '$components/EmptyState.svelte';
@@ -52,7 +53,7 @@
 			<h1 class="page-title">Notifications</h1>
 			{#if data.notifications.length > 0}
 				<div class="flex gap-2">
-					<form method="POST" action="?/deleteAll">
+					<form method="POST" use:enhance action="?/deleteAll">
 						<button
 							type="submit"
 							class="btn btn-secondary btn-sm"

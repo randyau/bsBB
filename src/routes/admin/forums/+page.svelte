@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
+	import { enhance } from '$app/forms';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 	let modUserId = $state('');
@@ -62,7 +63,7 @@
 							<td class="px-4 py-3 text-sm">{forum.parentName || '—'}</td>
 							<td class="px-4 py-3 text-sm text-muted">{forum.sortOrder}</td>
 							<td class="px-4 py-3">
-								<form method="POST" action="?/setApprovalDays" class="flex items-center gap-2">
+								<form method="POST" use:enhance action="?/setApprovalDays" class="flex items-center gap-2">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<label for="approval-days-{forum.id}" class="sr-only">Approval age threshold in days for {forum.name} (0 = disabled)</label>
 									<input
@@ -82,12 +83,12 @@
 								{/if}
 							</td>
 							<td class="px-4 py-3 space-x-2 flex gap-2">
-								<form method="POST" action="?/reorder" class="inline">
+								<form method="POST" use:enhance action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="up" />
 									<button type="submit" class="btn btn-sm btn-secondary" aria-label="Move {forum.name} up" title="Move up">↑</button>
 								</form>
-								<form method="POST" action="?/reorder" class="inline">
+								<form method="POST" use:enhance action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="down" />
 									<button type="submit" class="btn btn-sm btn-secondary" aria-label="Move {forum.name} down" title="Move down">↓</button>
@@ -97,6 +98,39 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+	</div>
+
+	<!-- Create Forum -->
+	<div class="space-y-4">
+		<h2 class="section-title">Create Forum</h2>
+		<div class="card-secondary space-y-4">
+			<form method="POST" use:enhance action="?/createForum" class="space-y-4">
+				<div class="grid grid-cols-2 gap-4">
+					<div class="form-group">
+						<label for="forumName" class="form-label">Forum Name *</label>
+						<input
+							id="forumName"
+							type="text"
+							name="name"
+							placeholder="e.g., General Discussion"
+							required
+							class="form-control"
+						/>
+						<p class="text-xs text-muted mt-1">Minimum 2 characters</p>
+					</div>
+					<div class="form-group">
+						<label for="parentForum" class="form-label">Parent Forum (optional)</label>
+						<select id="parentForum" name="parentId" class="form-control">
+							<option value="">No parent (top-level forum)</option>
+							{#each data.forums as forum (forum.id)}
+								<option value={forum.id}>{forum.name}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+				<button type="submit" class="btn btn-primary">Create Forum</button>
+			</form>
 		</div>
 	</div>
 
@@ -153,7 +187,7 @@
 					{/if}
 				</div>
 			</div>
-			<form method="POST" action="?/assignMod">
+			<form method="POST" use:enhance action="?/assignMod">
 				<input type="hidden" name="forumId" value={selectedForumId} />
 				<input type="hidden" name="userDid" value={modUserId} />
 				<button
@@ -222,7 +256,7 @@
 									</div>
 								</td>
 								<td class="px-4 py-3">
-									<form method="POST" action="?/removeMod" class="inline">
+									<form method="POST" use:enhance action="?/removeMod" class="inline">
 										<input type="hidden" name="forumId" value={mod.forumId} />
 										<input type="hidden" name="userDid" value={mod.userDid} />
 										<button type="submit" class="text-xs text-error hover:underline">Remove</button>
@@ -280,7 +314,7 @@
 										<tr class="border-b border-[rgb(var(--color-border))]">
 											<td class="py-2 px-2 font-semibold">{roleName}</td>
 											<td class="text-center py-2 px-2">
-												<form method="POST" action="?/updatePermission" class="inline">
+												<form method="POST" use:enhance action="?/updatePermission" class="inline">
 													<input type="hidden" name="forumId" value={forum.id} />
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canRead" />
@@ -293,7 +327,7 @@
 												</form>
 											</td>
 											<td class="text-center py-2 px-2">
-												<form method="POST" action="?/updatePermission" class="inline">
+												<form method="POST" use:enhance action="?/updatePermission" class="inline">
 													<input type="hidden" name="forumId" value={forum.id} />
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canPost" />
@@ -306,7 +340,7 @@
 												</form>
 											</td>
 											<td class="text-center py-2 px-2">
-												<form method="POST" action="?/updatePermission" class="inline">
+												<form method="POST" use:enhance action="?/updatePermission" class="inline">
 													<input type="hidden" name="forumId" value={forum.id} />
 													<input type="hidden" name="role" value={roleName} />
 													<input type="hidden" name="permType" value="canModerate" />

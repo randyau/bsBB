@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from "$app/forms";
 	import type { PageData, ActionData } from './$types';
 	import { goto } from '$app/navigation';
 	import { formatTimeDisplay } from '$lib/utils/time';
@@ -160,24 +161,24 @@
 							</td>
 							<td class="px-4 py-3 space-x-2 flex gap-1 flex-wrap">
 								{#if thread.isLocked}
-									<form method="POST" action="?/unlock" class="inline">
+									<form method="POST" use:enhance action="?/unlock" class="inline">
 										<input type="hidden" name="threadId" value={thread.id} />
 										<button type="submit" class="text-xs text-[rgb(var(--color-success))] hover:underline font-semibold">Unlock</button>
 									</form>
 								{:else}
-									<form method="POST" action="?/lock" class="inline">
+									<form method="POST" use:enhance action="?/lock" class="inline">
 										<input type="hidden" name="threadId" value={thread.id} />
 										<button type="submit" class="text-xs text-orange-600 hover:underline font-semibold">Lock</button>
 									</form>
 								{/if}
 
 								{#if thread.isPinned}
-									<form method="POST" action="?/unpin" class="inline">
+									<form method="POST" use:enhance action="?/unpin" class="inline">
 										<input type="hidden" name="threadId" value={thread.id} />
 										<button type="submit" class="text-xs text-purple-600 hover:underline font-semibold">Unpin</button>
 									</form>
 								{:else}
-									<form method="POST" action="?/pin" class="inline">
+									<form method="POST" use:enhance action="?/pin" class="inline">
 										<input type="hidden" name="threadId" value={thread.id} />
 										<button type="submit" class="text-xs text-purple-600 hover:underline font-semibold">Pin</button>
 									</form>
@@ -220,7 +221,7 @@
 			>
 				<div role="none" class="bg-[rgb(var(--color-bg))] rounded-lg p-6 max-w-sm w-full mx-4 border border-[rgb(var(--color-border))]" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 					<h2 id="move-thread-title" class="section-title mb-4">Move Thread to Forum</h2>
-					<form method="POST" action="?/moveThread" onsubmit={() => { moveThreadId = null; }}>
+					<form method="POST" use:enhance action="?/moveThread" onsubmit={() => { moveThreadId = null; }}>
 						<input type="hidden" name="threadId" value={moveThreadId} />
 						<div class="form-group mb-4">
 							<label for="destForum" class="form-label">Destination Forum:</label>
@@ -258,3 +259,4 @@
 		{/if}
 	</div>
 </AdminPageShell>
+

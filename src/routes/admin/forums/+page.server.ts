@@ -1,8 +1,9 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, userForumRoles, modLog, users, roles, forumPermissions } from '$lib/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { randomUUID } from 'crypto';
 
 export const load: PageServerLoad = async () => {
 	const forumList = await db
@@ -294,6 +295,60 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('updatePermission action error:', err);
 			return fail(500, { error: 'Failed to update permission' });
+		}
+	},
+
+	createForum: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const name = String(form.get('name') ?? '').trim();
+		const parentId = String(form.get('parentId') ?? '').trim() || null;
+
+		if (!name || name.length < 2) {
+			return fail(422, { error: 'Forum name must be at least 2 characters' });
+		}
+
+		try {
+			const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+			const maxOrder = await db
+				.select({ max: sql<number>`MAX(${forums.sortOrder})` })
+				.from(forums);
+
+			const sortOrder = (maxOrder[0]?.max ?? -1) + 1;
+			const id = randomUUID();
+
+			await db.insert(forums).values({
+				id,
+				name,
+				slug,
+				parentId,
+				sortOrder
+			});
+
+			// Set default permissions for guest and member roles
+			const defaultRoles = ['guest', 'member'];
+			for (const role of defaultRoles) {
+				await db.insert(forumPermissions).values({
+					forumId: id,
+					role,
+					canRead: true,
+					canPost: role === 'member',
+					canModerate: false
+				});
+			}
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user!.did,
+				action: 'create_forum',
+				targetForumId: id,
+				reason: `Created forum: ${name}`
+			});
+
+			return { success: true, action: 'createForum', forumId: id };
+		} catch (err) {
+			console.error('createForum action error:', err);
+			return fail(500, { error: 'Failed to create forum' });
 		}
 	}
 };
