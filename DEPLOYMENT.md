@@ -11,7 +11,9 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 ## Prerequisites
 
 - **Linux server** (Ubuntu 22.04+ recommended) — all production scripts are Linux bash scripts
-- Docker and Docker Compose installed on the server
+- **Docker and Docker Compose** installed on the server
+- **Node.js 20+** and npm installed on the server (for running `scripts/setup.sh`)
+- **Git** installed on the server (to clone the repo)
 - Domain name pointed at your server's IP
 - Bluesky account for the notification bot (optional but recommended)
 - SMTP credentials for email alerts (optional)
@@ -35,6 +37,43 @@ sudo usermod -aG docker $USER
 ```
 
 Verify: `docker ps` should work without sudo.
+
+### Install Node.js 20+
+
+**Using NodeSource repository (recommended for Ubuntu/Debian):**
+
+```bash
+# Add NodeSource repository
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+# Install Node.js (includes npm)
+sudo apt-get install -y nodejs
+```
+
+**Verify installation:**
+
+```bash
+node --version  # Should be v20.x or higher
+npm --version   # Should be 10.x or higher
+```
+
+**Alternative: Using nvm** (if you prefer version management):
+
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Reload shell
+source ~/.bashrc
+
+# Install Node.js 20
+nvm install 20
+nvm use 20
+
+# Verify
+node --version
+npm --version
+```
 
 ---
 
