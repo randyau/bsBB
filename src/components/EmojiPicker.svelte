@@ -9,6 +9,7 @@
 	let searchQuery = $state('');
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let triggerButton = $state<HTMLButtonElement | null>(null);
+	let pickerStyle = $state('');
 
 	const commonEmojis = [
 		'😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
@@ -28,13 +29,12 @@
 		'🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
 		'🍕', '🍔', '🍟', '🌭', '🍿', '🥓', '🍗', '🍖',
 		'🌮', '🌯', '🥙', '🧆', '🍱', '🍜', '🍝', '🍠',
-		'🍣', '🍤', '🥘', '🍲', '🍛', '🍣', '🍳', '☕',
+		'🍣', '🍤', '🥘', '🍲', '🍛', '🥗', '🍳', '☕',
 		'🍵', '🥤', '🍶', '🍷', '🍸', '🍹', '🍺', '🍻'
 	];
 
 	const filteredEmojis = $derived.by(() => {
 		if (!searchQuery.trim()) return commonEmojis;
-		// Simple filter - just show all emojis on search (no emoji names db)
 		return commonEmojis;
 	});
 
@@ -45,9 +45,21 @@
 	}
 
 	function togglePicker() {
+		if (!isOpen && triggerButton) {
+			const rect = triggerButton.getBoundingClientRect();
+			const pickerWidth = 256; // w-64 = 16rem = 256px
+			const left = Math.max(4, rect.right - pickerWidth);
+			// Prefer above the button; fall back to below if not enough space
+			const spaceAbove = rect.top;
+			const pickerHeight = 320;
+			if (spaceAbove >= pickerHeight) {
+				pickerStyle = `position:fixed;bottom:${window.innerHeight - rect.top + 8}px;left:${left}px`;
+			} else {
+				pickerStyle = `position:fixed;top:${rect.bottom + 8}px;left:${left}px`;
+			}
+		}
 		isOpen = !isOpen;
 		if (isOpen) {
-			// Focus search input after DOM updates
 			setTimeout(() => searchInput?.focus(), 0);
 		}
 	}
@@ -67,7 +79,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="relative inline-block emoji-picker-root">
+<div class="relative inline-block">
 	<button
 		type="button"
 		bind:this={triggerButton}
@@ -87,7 +99,8 @@
 			role="dialog"
 			aria-label="Emoji picker"
 			aria-modal="true"
-			class="absolute bottom-full right-0 mb-2 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg z-50 p-3 w-64"
+			style={pickerStyle}
+			class="z-50 w-64 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg p-3"
 		>
 			<!-- Search -->
 			<input
@@ -114,7 +127,6 @@
 				{/each}
 			</div>
 
-			<!-- No results -->
 			{#if filteredEmojis.length === 0}
 				<p class="text-center text-sm text-[rgb(var(--color-text-muted))] py-4">
 					No emojis found
