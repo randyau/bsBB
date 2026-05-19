@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let theme = $state<'light' | 'dark'>('light');
+	let theme = $state<'light' | 'dark'>('dark');
 
 	onMount(() => {
 		// Read actual theme from DOM on mount
