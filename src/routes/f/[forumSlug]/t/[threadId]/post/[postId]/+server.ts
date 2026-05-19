@@ -5,6 +5,7 @@ import { posts, postRevisions, modLog } from '$lib/db/schema';
 import { eq, max } from 'drizzle-orm';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
+import { isModerator } from '$lib/auth/roles.js';
 
 /**
  * PATCH /f/[forumSlug]/t/[threadId]/post/[postId]
@@ -91,7 +92,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 				.where(eq(posts.id, post.id));
 
 			// If mod edit, log it
-			if (isModEdit && post.authorDid !== locals.user!.did && locals.user!.globalRole === 'admin') {
+			if (isModEdit && post.authorDid !== locals.user!.did && isModerator(locals.user)) {
 				await tx.insert(modLog).values({
 					moderatorDid: locals.user!.did,
 					action: 'edit_post_as_mod',

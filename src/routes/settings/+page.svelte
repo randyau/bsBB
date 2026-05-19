@@ -154,17 +154,22 @@
 						</p>
 					{/if}
 
+					<div class="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md mb-4">
+						<p class="text-sm text-amber-800 dark:text-amber-200 font-medium">Bluesky DM notifications are temporarily paused</p>
+						<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">We're working with Bluesky moderation to restore this feature. Enabling notifications is disabled in the meantime. If you have them enabled, you can still disable them below.</p>
+					</div>
+
 					<form method="POST" use:enhance action="?/updateNotificationPreferences" class="space-y-4">
 						<!-- Enable/Disable toggle -->
 						<div>
 							{#if notifyViaBluesky}
-								<p class="text-sm text-green-600 font-medium mb-3">✓ Enabled</p>
+								<p class="text-sm text-amber-600 font-medium mb-3">⚠ Enabled (currently paused — notifications will not be sent)</p>
 								<button type="submit" formaction="?/toggleNotifications" value="false" name="enabled" class="btn btn-sm btn-secondary">
 									Disable Notifications
 								</button>
 							{:else}
 								<p class="text-sm text-[rgb(var(--color-text-muted))] font-medium mb-3">Disabled</p>
-								<button type="submit" formaction="?/toggleNotifications" value="true" name="enabled" class="btn btn-sm btn-primary">
+								<button type="submit" disabled class="btn btn-sm btn-primary" title="Feature temporarily paused">
 									Enable Notifications
 								</button>
 							{/if}

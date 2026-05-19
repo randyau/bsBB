@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { forums, threads, posts, users } from '$lib/db/schema';
+import { isModerator } from '$lib/auth/roles.js';
 import { eq } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -67,9 +68,8 @@ export const actions: Actions = {
 		}
 
 		// Determine if post needs approval
-		const isAdmin = locals.user.globalRole === 'admin';
 		let requiresApproval = false;
-		if (!isAdmin && forum.requireApprovalDays > 0) {
+		if (!isModerator(locals.user) && forum.requireApprovalDays > 0) {
 			const author = await db.query.users.findFirst({
 				where: eq(users.did, locals.user.did),
 				columns: { createdAt: true },

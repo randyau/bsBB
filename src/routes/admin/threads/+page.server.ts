@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { threads, forums, users, posts, modLog } from '$lib/db/schema';
+import { isModerator } from '$lib/auth/roles.js';
 import { eq, desc, sql, and, gte, count, ilike, or, inArray } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
@@ -77,7 +78,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 export const actions: Actions = {
 	lock: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -99,7 +100,7 @@ export const actions: Actions = {
 	},
 
 	unlock: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -121,7 +122,7 @@ export const actions: Actions = {
 	},
 
 	pin: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -143,7 +144,7 @@ export const actions: Actions = {
 	},
 
 	unpin: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 
@@ -165,7 +166,7 @@ export const actions: Actions = {
 	},
 
 	moveThread: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const threadId = String(form.get('threadId') ?? '').trim();
 		const destForumId = String(form.get('destForumId') ?? '').trim();
@@ -224,7 +225,7 @@ export const actions: Actions = {
 
 	// Bulk action: lock, unlock, pin, or unpin multiple threads at once
 	bulkAction: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const action = String(form.get('action') ?? '').trim();
 		const threadIdString = String(form.get('threadIds') ?? '').trim();

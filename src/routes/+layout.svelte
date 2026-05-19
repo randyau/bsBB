@@ -112,6 +112,8 @@
 		{#if user}
 			{#if user.globalRole === 'admin'}
 				<a href="/admin" class="font-semibold hover:underline">Admin</a>
+			{:else if user.globalRole === 'moderator'}
+				<a href="/admin" class="font-semibold hover:underline">Mod</a>
 			{/if}
 			<a href="/notifications" class="relative hover:underline" aria-label="Notifications{unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}">
 				Notifications
