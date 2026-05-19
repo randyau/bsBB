@@ -116,6 +116,8 @@
 				<!-- Global role badge -->
 				{#if data.profileUser.globalRole === 'admin'}
 					<span class="badge bg-red-50 text-red-600 border border-red-200">Admin</span>
+				{:else if data.profileUser.globalRole === 'moderator'}
+					<span class="badge bg-amber-50 text-amber-600 border border-amber-200">Moderator</span>
 				{:else if data.profileUser.globalRole === 'banned'}
 					<span class="badge bg-gray-100 text-gray-600 border border-gray-300">Banned</span>
 				{:else}

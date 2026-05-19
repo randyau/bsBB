@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { users, modLog, sessions } from '$lib/db/schema';
+import { isAdmin, isModerator } from '$lib/auth/roles.js';
 import { eq, or, ilike, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 export const actions: Actions = {
 	ban: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Moderator access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -98,7 +99,7 @@ export const actions: Actions = {
 	},
 
 	unban: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Moderator access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 
@@ -134,7 +135,7 @@ export const actions: Actions = {
 	},
 
 	promote: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isAdmin(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 
@@ -172,7 +173,7 @@ export const actions: Actions = {
 	},
 
 	demote: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isAdmin(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const targetDid = String(form.get('did') ?? '').trim();
 
@@ -219,6 +220,71 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('demote action error:', err);
 			return fail(500, { error: 'Failed to demote user' });
+		}
+	},
+
+	promoteModerator: async ({ locals, request }) => {
+		if (!locals.user || !isAdmin(locals.user)) return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const targetDid = String(form.get('did') ?? '').trim();
+
+		if (!targetDid) return fail(422, { error: 'User DID is required' });
+		if (targetDid === locals.user.did) return fail(422, { error: 'Cannot change your own role' });
+
+		try {
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true, globalRole: true }
+			});
+
+			if (!targetUser) return fail(404, { error: 'User not found' });
+			if (targetUser.globalRole === 'admin') return fail(422, { error: 'Cannot demote an admin to moderator via this action' });
+
+			await db.update(users).set({ globalRole: 'moderator' }).where(eq(users.did, targetDid));
+			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'promote_moderator',
+				targetDid
+			});
+
+			return { success: true, action: 'promoteModerator', targetDid };
+		} catch (err) {
+			console.error('promoteModerator action error:', err);
+			return fail(500, { error: 'Failed to promote user to moderator' });
+		}
+	},
+
+	demoteModerator: async ({ locals, request }) => {
+		if (!locals.user || !isAdmin(locals.user)) return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const targetDid = String(form.get('did') ?? '').trim();
+
+		if (!targetDid) return fail(422, { error: 'User DID is required' });
+
+		try {
+			const targetUser = await db.query.users.findFirst({
+				where: eq(users.did, targetDid),
+				columns: { handle: true, globalRole: true }
+			});
+
+			if (!targetUser) return fail(404, { error: 'User not found' });
+			if (targetUser.globalRole !== 'moderator') return fail(422, { error: 'User is not a moderator' });
+
+			await db.update(users).set({ globalRole: 'member' }).where(eq(users.did, targetDid));
+			await db.delete(sessions).where(eq(sessions.userDid, targetDid));
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'demote_moderator',
+				targetDid
+			});
+
+			return { success: true, action: 'demoteModerator', targetDid };
+		} catch (err) {
+			console.error('demoteModerator action error:', err);
+			return fail(500, { error: 'Failed to remove moderator role' });
 		}
 	}
 };

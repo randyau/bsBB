@@ -4,6 +4,7 @@ import { forums, threads, posts, users, userForumRoles, modLog, threadViews, not
 import { eq, and, sql, ne, inArray, count } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
+import { isModerator } from '$lib/auth/roles.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { checkAbuse } from '$lib/abuse/index.js';
@@ -73,7 +74,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Check if user can moderate (needed before post filtering)
 	let canModerate = false;
 	if (locals.user) {
-		if (locals.user.globalRole === 'admin') {
+		if (isModerator(locals.user)) {
 			canModerate = true;
 		} else {
 			const [forumRole] = await db
@@ -192,8 +193,7 @@ async function loadForMod(locals: App.Locals, params: { forumSlug: string; threa
 		.limit(1);
 	if (!thread) throw error(404, 'Thread not found');
 
-	const isAdmin = locals.user.globalRole === 'admin';
-	if (!isAdmin) {
+	if (!isModerator(locals.user)) {
 		const [forumRole] = await db
 			.select()
 			.from(userForumRoles)
@@ -276,9 +276,8 @@ export const actions: Actions = {
 		}
 
 		// Determine if post needs approval
-		const isAdmin = locals.user.globalRole === 'admin';
 		let requiresApproval = false;
-		if (!isAdmin && forum.requireApprovalDays > 0) {
+		if (!isModerator(locals.user) && forum.requireApprovalDays > 0) {
 			const author = await db.query.users.findFirst({
 				where: eq(users.did, locals.user.did),
 				columns: { createdAt: true },

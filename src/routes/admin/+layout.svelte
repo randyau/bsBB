@@ -5,29 +5,33 @@
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
+	const isAdmin = data.user.globalRole === 'admin';
+
 	function isActive(href: string): boolean {
 		return $page.url.pathname === href || $page.url.pathname.startsWith(href + '/');
 	}
+
+	const navItems = [
+		{ href: '/admin/approval-queue', icon: '⏳', label: 'Approval Queue', adminOnly: false },
+		{ href: '/admin/users', icon: '👥', label: 'Users', adminOnly: false },
+		{ href: '/admin/threads', icon: '💬', label: 'Threads', adminOnly: false },
+		{ href: '/admin/posts', icon: '📝', label: 'Posts', adminOnly: false },
+		{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log', adminOnly: false },
+		{ href: '/mod/pii-requests', icon: '🔒', label: 'PII Requests', adminOnly: false },
+		{ href: '/admin/forums', icon: '🗂️', label: 'Forums', adminOnly: true },
+		{ href: '/admin/roles', icon: '🏷️', label: 'Roles', adminOnly: true },
+		{ href: '/admin/settings', icon: '⚙️', label: 'Settings', adminOnly: true },
+		{ href: '/admin/notifications', icon: '🔔', label: 'Notifications', adminOnly: true },
+		{ href: '/admin/query', icon: '🔍', label: 'SQL Queries', adminOnly: true },
+	].filter(item => !item.adminOnly || isAdmin);
 </script>
 
 <div class="flex min-h-screen bg-[rgb(var(--color-bg))]">
 	<!-- Sidebar -->
 	<div class="w-64 bg-[rgb(var(--color-bg-secondary))] border-r border-[rgb(var(--color-border))] p-6">
-		<h2 class="text-lg font-bold mb-6 text-[rgb(var(--color-text))]">Admin Panel</h2>
+		<h2 class="text-lg font-bold mb-6 text-[rgb(var(--color-text))]">{isAdmin ? 'Admin Panel' : 'Mod Panel'}</h2>
 		<nav class="space-y-2" aria-label="Admin navigation">
-			{#each [
-				{ href: '/admin/approval-queue', icon: '⏳', label: 'Approval Queue' },
-				{ href: '/admin/forums', icon: '🗂️', label: 'Forums' },
-				{ href: '/admin/users', icon: '👥', label: 'Users' },
-				{ href: '/admin/roles', icon: '🏷️', label: 'Roles' },
-				{ href: '/admin/settings', icon: '⚙️', label: 'Settings' },
-				{ href: '/admin/threads', icon: '💬', label: 'Threads' },
-				{ href: '/admin/posts', icon: '📝', label: 'Posts' },
-				{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log' },
-				{ href: '/mod/pii-requests', icon: '🔒', label: 'PII Requests' },
-				{ href: '/admin/notifications', icon: '🔔', label: 'Notifications' },
-				{ href: '/admin/query', icon: '🔍', label: 'SQL Queries' },
-			] as item}
+			{#each navItems as item}
 				<a
 					href={item.href}
 					class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]"

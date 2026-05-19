@@ -8,7 +8,7 @@ export type SessionUser = {
 	handle: string;
 	displayName: string | null;
 	avatarUrl: string | null;
-	globalRole: 'admin' | 'member' | 'banned';
+	globalRole: 'admin' | 'moderator' | 'member' | 'banned';
 	notifyViaBluesky: boolean;
 	notificationType: string;
 	notificationFrequency: string;
@@ -108,7 +108,7 @@ export async function validateSession(
 			handle: row.handle,
 			displayName: row.displayName,
 			avatarUrl: row.avatarUrl,
-			globalRole: row.globalRole as 'admin' | 'member' | 'banned',
+			globalRole: row.globalRole as 'admin' | 'moderator' | 'member' | 'banned',
 			notifyViaBluesky: row.notifyViaBluesky,
 			notificationType: row.notificationType,
 			notificationFrequency: row.notificationFrequency,

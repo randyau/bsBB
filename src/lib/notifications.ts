@@ -57,14 +57,12 @@ export async function writeInboxNotification(
  * Returns global admins + forum-specific moderators.
  */
 export async function getAdminDids(forumId?: string) {
-	// For now, just return global admins (Phase 5 MVP)
-	// Later: union with per-forum moderators from user_forum_roles
-	const admins = await db
+	const rows = await db
 		.select({ did: users.did })
 		.from(users)
-		.where(eq(users.globalRole, 'admin'));
+		.where(sql`${users.globalRole} IN ('admin', 'moderator')`);
 
-	return admins.map((a) => a.did);
+	return rows.map((r) => r.did);
 }
 
 /**

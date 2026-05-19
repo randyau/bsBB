@@ -3,9 +3,11 @@ import { db } from '$lib/db';
 import { posts, threads, forums, users, modLog, piiRemovalRequests, postRevisions, userForumRoles } from '$lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
+import { isModerator } from '$lib/auth/roles.js';
 
-async function isModOrAdmin(userDid: string, globalRole: string): Promise<boolean> {
-	if (globalRole === 'admin') return true;
+async function isModOrAdmin(user: Parameters<typeof isModerator>[0], userDid: string): Promise<boolean> {
+	if (isModerator(user)) return true;
+	// Forum-specific moderators also get access
 	const rows = await db
 		.select({ id: userForumRoles.userDid })
 		.from(userForumRoles)
@@ -16,7 +18,7 @@ async function isModOrAdmin(userDid: string, globalRole: string): Promise<boolea
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw error(401, 'Not authenticated');
-	const allowed = await isModOrAdmin(locals.user.did, locals.user.globalRole ?? '');
+	const allowed = await isModOrAdmin(locals.user, locals.user.did);
 	if (!allowed) throw error(403, 'Moderator access required');
 
 	const pending = await db
@@ -65,7 +67,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	piiWipe: async ({ locals, request }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
-		const allowed = await isModOrAdmin(locals.user.did, locals.user.globalRole ?? '');
+		const allowed = await isModOrAdmin(locals.user, locals.user.did);
 		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		const form = await request.formData();
@@ -114,7 +116,7 @@ export const actions: Actions = {
 
 	dismiss: async ({ locals, request }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
-		const allowed = await isModOrAdmin(locals.user.did, locals.user.globalRole ?? '');
+		const allowed = await isModOrAdmin(locals.user, locals.user.did);
 		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		const form = await request.formData();

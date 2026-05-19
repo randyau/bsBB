@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { users, posts, threads, forums, modLog } from '$lib/db/schema';
+import { isModerator } from '$lib/auth/roles.js';
 import { eq, and, like, desc, or } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Check permission: only user or admin can manage posts
 	const isOwner = locals.user?.did === profileUser.did;
-	const isAdmin = locals.user?.globalRole === 'admin';
+	const isAdmin = isModerator(locals.user);
 
 	if (!isOwner && !isAdmin) {
 		throw error(403, 'You do not have permission to manage this user\'s posts');

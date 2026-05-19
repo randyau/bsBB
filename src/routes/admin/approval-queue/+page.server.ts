@@ -1,12 +1,13 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, forums, users, modLog } from '$lib/db/schema';
+import { isModerator } from '$lib/auth/roles.js';
 import { eq, and } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { writeInboxNotification } from '$lib/notifications.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user || locals.user.globalRole !== 'admin') {
+	if (!locals.user || !isModerator(locals.user)) {
 		return { pendingPosts: [] };
 	}
 
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	approve: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		if (!postId) return fail(422, { error: 'Post ID required' });
@@ -71,7 +72,7 @@ export const actions: Actions = {
 	},
 
 	reject: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();

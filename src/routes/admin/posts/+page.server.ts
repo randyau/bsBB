@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, users, modLog, forums, postRevisions } from '$lib/db/schema';
+import { isModerator } from '$lib/auth/roles.js';
 import { eq, desc, ilike, and, or, inArray, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
@@ -78,7 +79,7 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions: Actions = {
 	// Hide post (soft-delete, content preserved, can be restored)
 	hide: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -103,7 +104,7 @@ export const actions: Actions = {
 
 	// Restore hidden post
 	restore: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -129,7 +130,7 @@ export const actions: Actions = {
 	// Permanently delete post (clear content, set status to deleted)
 	// Post stub remains for quotes/links but content is irretrievable
 	permanentlyDelete: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -166,7 +167,7 @@ export const actions: Actions = {
 
 	// Legacy delete endpoint - maps to hide for backwards compatibility
 	delete: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
@@ -190,7 +191,7 @@ export const actions: Actions = {
 	},
 
 	movePost: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const postId = String(form.get('postId') ?? '').trim();
 		const destThreadId = String(form.get('destThreadId') ?? '').trim();
@@ -249,7 +250,7 @@ export const actions: Actions = {
 
 	// Bulk action: hide, restore, or delete multiple posts at once
 	bulkAction: async ({ locals, request }) => {
-		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		if (!locals.user || !isModerator(locals.user)) return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const action = String(form.get('action') ?? '').trim();
 		const postIdString = String(form.get('postIds') ?? '').trim();

@@ -323,7 +323,7 @@
 								<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Lock thread</button>
 							</form>
 						{/if}
-						{#if data.user?.globalRole === 'admin'}
+						{#if data.canModerate}
 							{#if data.thread.isPinned}
 								<form method="POST" use:enhance action="?/unpinThread">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-[rgb(var(--color-bg-secondary))]">Unpin thread</button>
@@ -429,7 +429,7 @@
 								</button>
 							{/if}
 
-							{#if data.user && (post.authorDid === data.user.did || data.user.globalRole === 'admin') && post.status === 'active'}
+							{#if data.user && (post.authorDid === data.user.did || data.canModerate) && post.status === 'active'}
 								<button
 									type="button"
 									onclick={() => startEdit(post.id)}
@@ -457,7 +457,7 @@
 										⋯
 									</summary>
 									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
-										{#if post.status === 'active' && data.user?.globalRole === 'admin' && post.authorDid !== data.user.did}
+										{#if post.status === 'active' && data.canModerate && post.authorDid !== data.user.did}
 											<button
 												type="button"
 												onclick={() => startModEdit(post.id)}

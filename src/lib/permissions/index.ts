@@ -2,6 +2,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { forums, forumPermissions, userForumRoles, userRoles, roles, instanceSettings } from '$lib/db/schema';
 import type { SessionUser } from '$lib/auth/session';
 import type { db as dbType } from '$lib/db';
+import { isModerator } from '$lib/auth/roles.js';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -29,7 +30,7 @@ export async function canRead(
 	forumId: string,
 	user: SessionUser | null
 ): Promise<boolean> {
-	if (user?.globalRole === 'admin') return true;
+	if (isModerator(user)) return true;
 	if (user?.globalRole === 'banned') return false;
 
 	let effectiveRole = 'guest';
@@ -78,7 +79,7 @@ export async function canPost(
 	forumId: string,
 	user: SessionUser | null
 ): Promise<boolean> {
-	if (user?.globalRole === 'admin') return true;
+	if (isModerator(user)) return true;
 	if (user?.globalRole === 'banned') return false;
 	if (!user) return false;
 
