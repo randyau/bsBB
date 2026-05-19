@@ -91,8 +91,8 @@ The official ATproto OAuth client (`@atproto/oauth-client-node`) is the sole per
 |---|---|
 | Any custom OAuth/DPoP implementation | `@atproto/oauth-client-node` SDK only |
 | Using `handle` as user identifier | Use `did` from token response `sub` field |
-| Storing raw OAuth tokens in DB | Tier 2 tokens encrypted via AES-256 in `chat_session_encrypted` |
-| Requesting `transition:chat.bsky` at login | Only request this scope lazily when user opts into DM notifications |
+| Storing user OAuth tokens | No user tokens are stored; DMs are sent by the forum service account only |
+| Requesting `transition:chat.bsky` from users | DM notifications use `ATPROTO_SERVICE_APP_PASSWORD`; no per-user chat scope |
 
 Verify every ATproto API call against the current `@atproto` package docs before writing. The ATproto API surface changes; do not rely on training data for method signatures.
 
@@ -323,7 +323,7 @@ only ~150 lines instead of 400+.
 - [ ] `markdown.test.ts` passes.
 - [ ] Sanitization test: `<script>` tags in input produce no `<script>` in output.
 
-**Modifying notification worker (`src/lib/notifications/`):**
+**Modifying notification worker (`src/worker.ts` or `src/lib/notifications.ts`):**
 - [ ] `notifications.test.ts` passes.
 - [ ] Rate limit test: second DM to same recipient within 1 hour is suppressed.
 
@@ -333,11 +333,9 @@ only ~150 lines instead of 400+.
 
 ## Rule 15: Phase Freeze Boundaries
 
-_No modules are frozen yet — project is in initial scaffolding phase._
+v1.0 is complete. No modules are currently frozen for active feature work.
 
-When modules are designated frozen (post-v1 stabilization), this section will be updated with specific paths and cutoff dates.
-
-Until then: all modules are mutable, but the DID invariant (Rule 5), the sanitization invariant (Rule 11), and the permission isolation invariant (Rule 8) are permanently non-negotiable regardless of phase.
+The DID invariant (Rule 5), sanitization invariant (Rule 11), and permission isolation invariant (Rule 8) are permanently non-negotiable regardless of phase.
 
 ---
 
@@ -404,7 +402,7 @@ Because stdout is harder to inspect across the Windows/WSL boundary, all long-ru
 
 - Dev server output: `npm run dev 2>&1 | tee logs/dev.log`
 - Setup script: writes to `logs/setup.log`
-- Notification worker: writes to `logs/worker.log`
+- Notification worker: writes structured logs to the `worker_log` DB table (visible at `/admin/notifications`)
 - Test runs: `npm test 2>&1 | tee logs/test.log`
 
 `logs/` is gitignored. Create it if it doesn't exist: `mkdir -p logs`.
@@ -473,9 +471,9 @@ curl -H "Cookie: session=<token>" http://localhost:5173/admin
 
 ## Rule 20: ATproto-Specific Security Rules
 
-- Session cookies: `SameSite=Strict` always. No exceptions.
+- Session cookies: `SameSite=Lax` (required for OAuth redirect from PDS to complete), `HttpOnly`, `Secure` in production.
 - Markdown: sanitized server-side via `rehype-sanitize` before storage. CSP headers as additional defence-in-depth, not primary sanitization.
-- Tier 2 ATproto tokens (`chat_session_encrypted`): encrypted at rest with AES-256 using `SESSION_SECRET` as key material. Never stored plaintext.
+- No per-user ATproto tokens are stored. DM notifications are sent by the forum service account only (`ATPROTO_SERVICE_APP_PASSWORD`).
 - DPoP, PAR, and token refresh are handled entirely by `@atproto/oauth-client-node`. Do not reimplement.
 - Rate limiting: Drizzle parameterized queries throughout — no raw string concatenation in SQL.
 
@@ -491,5 +489,5 @@ curl -H "Cookie: session=<token>" http://localhost:5173/admin
 6. **Mod log is append-only.** No update or delete routes exist. Ever.
 7. **Persistence before state.** DB commit before session/memory update.
 8. **Config is read-only at runtime.** `client-metadata.json` and `.env` are never written during request handling.
-9. **Tier 2 tokens are encrypted at rest.** `chat_session_encrypted` uses AES-256.
+9. **No user OAuth tokens stored.** DMs sent by forum service account only; no per-user chat tokens in DB.
 10. **Tests before implementation** for all auth, permission, and schema changes.

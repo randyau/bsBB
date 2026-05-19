@@ -1,8 +1,7 @@
 # v1.0 Launch Roadmap
 
-**Last Updated:** 2026-05-18  
-**Status:** Phase 13 Complete — v1.0 Launch Ready  
-**Execution Order:** Phase 12 → Phase 13
+**Last Updated:** 2026-05-19  
+**Status:** All Phases 1–13 Complete — v1.0 Launch Ready
 
 ---
 
@@ -34,122 +33,19 @@ All complete. 11 commits total covering:
 
 ## Phase 11 ✅ — Approval Queue
 
-**Goal:** Give moderators a spam prevention lever without blocking all new users.
-
-- Per-forum toggle: "Require approval for posts from accounts < N days old"
-- New posts from young accounts set `posts.is_approved = false`, hidden from thread until approved
-- `/admin/approval-queue` page with Approve/Reject buttons per pending post
-- Reject sends DM to user with reason
-- Auto-approve after 24h to prevent queue backlog
-
-**Schema:**
-```sql
-ALTER TABLE posts ADD COLUMN is_approved BOOLEAN DEFAULT true;
-ALTER TABLE posts ADD COLUMN rejection_reason TEXT;
-```
-
-**Acceptance Criteria:**
-- [x] Per-forum approval toggle in `/admin/forums`
-- [x] New posts from young accounts require approval
-- [x] Approval queue page shows pending posts with context
-- [x] Approve/Reject buttons update mod_log
-- [x] Reject sends DM with reason
-- [x] Auto-approve after 24h
+Per-forum toggle: require approval for posts from accounts < N days old. New posts from young accounts are hidden until approved or rejected (with reason DM). Auto-approve after 24h to prevent queue backlog. `/admin/approval-queue` page.
 
 ---
 
 ## Phase 12 ✅ — Accessibility & Polish (Final UI Pass)
 
-**Goal:** Comprehensive accessibility audit across all built features. Done last to cover everything built.
-
-### 12.1 WCAG Color Contrast
-- Audit all text/background combos for WCAG AA (4.5:1 normal, 3:1 large)
-- Fix contrast issues in light/dark themes
-- Ensure visible focus indicators (3px colored outline minimum)
-
-### 12.2 Semantic HTML & Screen Reader
-- Audit heading hierarchy (no skips)
-- Add `<label>` to all form inputs, `aria-label` to icon-only buttons
-- Add `role="region"` and `aria-labelledby` to major sections
-- Test with NVDA/JAWS on key pages
-
-### 12.3 Keyboard Navigation & Focus Management
-- Audit tab order on all pages
-- Modal focus trapping and focus restore on close
-- Dropdown arrow key navigation
-- Test: full nav using only keyboard
-
-### 12.4 Breadcrumbs Audit
-- Verify breadcrumbs on all major pages (forum index, forum, thread, admin, user profile)
-- Fix missing or incorrectly ordered breadcrumbs
-- Consistent styling across all pages
-
-**Acceptance Criteria:**
-- [x] WCAG AA contrast passes for all text (light + dark)
-- [x] Heading hierarchy correct on all pages
-- [x] All form inputs labeled
-- [x] Icon-only buttons have aria-label
-- [x] Tab order logical on all pages
-- [x] Focus indicators visible and consistent
-- [x] Modal focus trapping works
-- [x] Keyboard-only navigation possible throughout
-- [x] Breadcrumbs present and correct on all pages
+WCAG AA color contrast audit (light + dark), semantic HTML and heading hierarchy, all form inputs labeled, icon-only buttons get `aria-label`, keyboard-only navigation, modal focus trapping, visible focus indicators, breadcrumbs on all pages.
 
 ---
 
 ## Phase 13 ✅ — Deployment, Operations & Documentation
 
-**Goal:** Make it easy for adopters and testers to spin up, run, upgrade, and back up their instance.
-
-### 13.1 Dev Setup & Local Testing Docs
-- `QUICKSTART.md` — from zero to running locally in 5 minutes
-- `.env.example` with full descriptions for every variable
-- Troubleshooting guide for common dev issues
-- Verify `npm run dev:setup` works on Windows/Mac/Linux
-
-**Acceptance Criteria:**
-- [x] New developer can run locally without help
-- [x] All npm scripts documented
-- [x] Database reset procedure is clear
-
-### 13.2 Production Deployment Guide
-- `DEPLOYMENT.md` — step-by-step VPS setup
-- `scripts/setup.sh` tested end-to-end
-- Caddy HTTPS setup, migrations, health checks documented
-- First-user admin promotion documented
-
-**Acceptance Criteria:**
-- [x] Fresh VPS → running forum in under 30 minutes
-- [x] SMTP and ATproto OAuth setup walkthroughs included
-- [x] Rollback procedure documented
-
-### 13.3 Backup, Restore & Disaster Recovery
-- `BACKUP.md` — backup strategies, automated script, S3/R2/B2 integration
-- Restore procedure tested on fresh instance
-- Retention policy and RTO/RPO targets documented
-
-**Acceptance Criteria:**
-- [x] Daily backup cron works reliably
-- [x] Restore from backup verified end-to-end
-- [x] Recovery time documented
-
-### 13.4 Upgrade Guide
-- `UPGRADE.md` — how to upgrade instances between versions
-- Drizzle migrations automated (`npm run db:migrate`)
-- Rollback procedure if upgrade fails
-
-**Acceptance Criteria:**
-- [x] Upgrade path documented and tested
-- [x] Breaking changes flagged in release notes
-
-### 13.5 Adopter Documentation
-- `ADMIN_GUIDE.md` — user/role management, forum setup, moderation
-- `USER_GUIDE.md` — posting, searching, notifications, settings
-- Update `ARCHITECTURE.md` with current deployment details
-
-**Acceptance Criteria:**
-- [x] New admin can operate forum without asking questions
-- [x] Users understand all features
+`QUICKSTART.md`, `DEPLOYMENT.md`, `BACKUP.md`, `UPGRADE.md`, `ADMIN_GUIDE.md`, `USER_GUIDE.md` — complete ops and adopter documentation. `scripts/setup.sh` tested end-to-end. Systemd service file included.
 
 ---
 

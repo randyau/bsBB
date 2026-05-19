@@ -79,21 +79,19 @@ bsBB/
 │   │   │
 │   │   ├── markdown/
 │   │   │   ├── index.ts                  # renderMarkdown() — unified pipeline: parse → rehype → sanitize → stringify
+│   │   │   ├── client.ts                 # renderMarkdownClient() — markdown-it + DOMPurify for live preview
 │   │   │   ├── og.ts                     # fetchLinkMetadata() — OG metadata fetch (bare-URL-on-own-line only)
 │   │   │   └── slug.ts                   # generateSlug() — Title → URL slug with uniqueness retry
 │   │   │
-│   │   ├── notifications/
-│   │   │   ├── worker.ts                 # setInterval polling loop for notification queue
-│   │   │   ├── send-dm.ts                # @atproto/api chat send with rate-limit check
-│   │   │   └── send-email.ts             # Nodemailer wrapper (sendEmail fn only)
-│   │   │
-│   │   ├── crypto/
-│   │   │   └── index.ts                  # AES-256 encrypt/decrypt for chat_session_encrypted
+│   │   │   ├── notifications.ts              # writeInboxNotification, enqueueDmNotification, enqueueProfileSync, etc.
+│   │   ├── email.ts                      # sendEmail() — Nodemailer wrapper
 │   │   │
 │   │   ├── abuse/
 │   │   │   └── index.ts                  # checkAbuse() — rate limiting via atomic PostgreSQL upserts
+│   │   ├── settings.ts                   # getSetting() / getSettings() — instance_settings helpers
 │   │   └── utils/
-│   │       └── slug.ts, sanitize.ts, etc.
+│   │       ├── time.ts                   # formatTime/formatDate/formatAbsoluteTime/formatTimeDisplay
+│   │       └── (other utilities)
 │   │
 │   └── routes/
 │       ├── +layout.server.ts             # Global session/user hydration
@@ -101,74 +99,71 @@ bsBB/
 │       │
 │       ├── (auth)/
 │       │   ├── login/+page.svelte        # Handle input → ATproto OAuth redirect
-│       │   ├── login/+page.server.ts
 │       │   ├── callback/+server.ts       # OAuth callback handler
-│       │   └── logout/+server.ts
+│       │   └── logout/+server.ts         # GET — invalidates session, redirects to /
 │       │
-│       ├── (forum)/
-│       │   ├── +page.svelte              # Forum index — list of top-level forums
-│       │   ├── +page.server.ts
-│       │   │
-│       │   └── f/
-│       │       └── [forumSlug]/
-│       │           ├── +page.svelte          # Thread list for forum
-│       │           ├── +page.server.ts
-│       │           ├── new/                  # New thread form
-│       │           │   ├── +page.svelte       # Form with markdown editor + preview toggle
-│       │           │   └── +page.server.ts    # Thread creation, slug generation, OG fetch
-│       │           └── t/
-│       │               └── [threadId]/
-│       │                   ├── +page.svelte       # Thread view — flat post list + inline reply form
-│       │                   ├── +page.server.ts    # Thread load + reply action
-│       │                   └── [titleSlug]/       # Cosmetic slug — redirects to canonical
-│       │                       └── +server.ts
+│       ├── +page.svelte                  # Forum index — list of top-level forums
+│       ├── search/                       # Full-text search
+│       ├── notifications/                # In-app notification inbox
+│       ├── settings/                     # User settings (notifications, timezone, profile sync)
+│       ├── user/[handle]/                # Public user profile
+│       ├── user/[handle]/manage-posts/   # User's own post management
+│       ├── dev/login/                    # Dev-only bypass login (DEV_AUTH_ENABLED=true only)
 │       │
-│       ├── (user)/
-│       │   └── profile/
-│       │       ├── +page.svelte          # User profile settings (notifications opt-in, etc.)
-│       │       └── +page.server.ts
+│       ├── f/
+│       │   └── [forumSlug]/
+│       │       ├── +page.svelte              # Thread list for forum
+│       │       ├── new/                      # New thread form (markdown editor + live preview)
+│       │       └── t/[threadId]/
+│       │           ├── +page.svelte           # Thread view — flat post list + inline reply form
+│       │           └── post/[postId]/revisions/  # Post revision history
 │       │
-│       ├── (mod)/
-│       │   └── mod/
-│       │       ├── queue/                # Flagged content queue
-│       │       │   ├── +page.svelte
-│       │       │   └── +page.server.ts
-│       │       └── log/                  # Mod action log (read-only)
-│       │           ├── +page.svelte
-│       │           └── +page.server.ts
+│       ├── mod/
+│       │   ├── queue/                    # Flagged content queue
+│       │   ├── log/                      # Mod action log (read-only)
+│       │   └── pii-requests/             # PII removal request queue
 │       │
-│       ├── (admin)/
-│       │   └── admin/
-│       │       ├── forums/               # Create/edit/delete forums, set permissions
-│       │       ├── users/                # Role assignment, ban management
-│       │       └── settings/             # Instance-level settings (default visibility, etc.)
+│       ├── admin/
+│       │   ├── forums/                   # Create/edit/delete forums, set permissions
+│       │   ├── users/                    # Role assignment, ban management
+│       │   ├── roles/                    # Custom role management
+│       │   ├── posts/                    # Post management
+│       │   ├── threads/                  # Thread management
+│       │   ├── approval-queue/           # New-account post approval queue
+│       │   ├── notifications/            # Notification worker debug log
+│       │   ├── query/                    # Direct DB query tool
+│       │   ├── mod-log/                  # Mod log (alias for /mod/log)
+│       │   └── settings/                 # Instance-level settings
 │       │
-│       ├── banned/
-│       │   └── +page.svelte              # Dedicated ban page shown to banned users
-│       │
-│       └── api/
-│           └── preview/
-│               └── +server.ts            # POST: render markdown server-side for editor preview
+│       ├── banned/                       # Ban page shown to banned users
+│       ├── client-metadata.json/         # Dynamic ATproto client metadata (dev only; prod uses Caddy static file)
+│       └── api/preview/                  # POST: render markdown server-side for editor
 │
 ├── scripts/
-│   ├── setup.sh                          # First-run setup (keypair, client-metadata.json, .env)
+│   ├── setup.sh                          # First-run setup (keypair, .env)
 │   ├── migrate.sh                        # Wrapper: runs drizzle-kit migrate inside WSL/container
-│   ├── test-integration.sh                # Run tests requiring DATABASE_URL (interactive, sudo-friendly)
-│   ├── verify-tests.sh                    # Verification checklist (type, build, tests, routes)
-│   └── admin-promote.sh                  # Breakglass: docker exec → promote DID to admin
+│   ├── dev.sh                            # Start DB + migrate + seed + dev server
+│   ├── seed.ts / seed-dev-users.ts       # DB seeding scripts
+│   ├── docker-rebuild.sh                 # Build before stopping to minimize downtime
+│   ├── docker-restart.sh / docker-stop.sh
+│   ├── start-prod.sh                     # Start production compose stack
+│   ├── gen-keypair.js                    # Generate P-256 JWK keypair
+│   ├── test-integration.sh               # Run tests requiring DATABASE_URL
+│   └── verify-tests.sh                   # Verification checklist (type, build, tests, routes)
 │
 ├── docker/
-│   ├── Dockerfile                        # Multi-stage: build → node runtime
-│   ├── docker-compose.yml
-│   └── Caddyfile
+│   ├── docker-compose.yml                # Dev compose (DB only)
+│   └── Caddyfile                         # Dev Caddy config
 │
+├── Dockerfile.prod                       # Multi-stage production image
+├── docker-compose.prod.yml               # Production compose (app + worker + db + caddy)
+├── Caddyfile.prod                        # Production Caddy config
 ├── drizzle.config.ts
-├── svelte.config.ts
-├── tailwind.config.ts
+├── svelte.config.js
 ├── vite.config.ts
 ├── tsconfig.json
 ├── .env.example
-└── logs/                                 # gitignored; dev log output (tee targets)
+└── logs/                                 # gitignored; dev log output
 ```
 
 ---
@@ -186,18 +181,17 @@ display_name            TEXT
 avatar_url              TEXT
 last_profile_sync       TIMESTAMPTZ NOT NULL
 global_role             TEXT NOT NULL DEFAULT 'member'
-                        -- enum: 'admin' | 'member' | 'banned'
-                        -- 'moderator' is now per-forum only (see user_forum_roles)
+                        -- enum: 'admin' | 'moderator' | 'member' | 'banned'
+                        -- 'moderator' here = global moderator (access to all mod tools + admin panel)
+                        -- per-forum moderators are in user_forum_roles
 notify_via_bluesky      BOOLEAN NOT NULL DEFAULT false
 notification_type       TEXT NOT NULL DEFAULT 'both'      -- 'replies' | 'quotes' | 'both'
 notification_frequency  TEXT NOT NULL DEFAULT 'immediate' -- 'immediate' | 'hourly' | 'daily'
 timezone                TEXT NOT NULL DEFAULT 'America/New_York'  -- IANA identifier
-chat_session_encrypted  TEXT                      -- AES-256; null until DM opt-in
 created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
-> `global_role` is intentionally reduced to `admin | member | banned`. Moderator status is
-> per-forum and lives in `user_forum_roles`. Global admin and banned override everything.
+> `global_role` values: `admin` (full access), `moderator` (global mod — access to all mod tools and admin panel), `member` (default), `banned` (denied everywhere). Per-forum moderator assignments additionally live in `user_forum_roles`.
 
 ### `forums`
 
@@ -311,8 +305,8 @@ assigned_at TIMESTAMPTZ NOT NULL DEFAULT now()
 PRIMARY KEY (user_did, forum_id)
 ```
 
-> Global `admin` and `banned` on `users.global_role` always take precedence over this table.
-> Permission resolution order: banned → admin → user_forum_roles → forum_permissions by role.
+> Global `admin`, `moderator`, and `banned` on `users.global_role` always take precedence over this table.
+> Permission resolution order: banned → admin/moderator (global) → user_forum_roles → forum_permissions by role.
 
 ### `roles` (Admin-defined custom roles)
 
@@ -353,7 +347,21 @@ status         TEXT NOT NULL DEFAULT 'pending'
                -- 'pending' | 'sent' | 'failed'
 created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 sent_at        TIMESTAMPTZ
+error          TEXT                          -- last error message if status = 'failed'
+retry_count    INTEGER NOT NULL DEFAULT 0
 ```
+
+### `worker_log`
+
+```sql
+id         UUID PRIMARY KEY DEFAULT gen_random_uuid()
+level      TEXT NOT NULL                      -- 'info' | 'warn' | 'error'
+message    TEXT NOT NULL
+context    JSONB
+created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+> Persisted log for notification worker activity. Exposed in `/admin/notifications` for debugging delivery failures.
 
 ### `user_notifications`
 
@@ -457,27 +465,36 @@ window_start TIMESTAMPTZ NOT NULL DEFAULT now()
 /f/[forumSlug]/t/[threadId]/[slug]/    Cosmetic redirect → canonical (301)
 /f/[forumSlug]/t/[threadId]/page/[n]/  Thread view, page n (25 posts/page)
 
-/post/[postId]/revisions/              Post revision history (public)
+/f/[forumSlug]/t/[threadId]/post/[postId]/revisions/   Post revision history (public)
 
-/mod/pii-requests/                     PII removal request queue (mods + admins)
-
-/login/                                ATproto OAuth initiation
-/callback/                             OAuth callback (handled server-side)
-/logout/                               POST only
-
-/profile/                              User settings (auth required)
+/search/                               Full-text search across posts
+/notifications/                        In-app notification inbox (auth required)
+/settings/                             User settings: notifications, timezone, profile sync (auth required)
+/user/[handle]/                        Public user profile
+/user/[handle]/manage-posts/           User's own post management (auth required)
 
 /mod/queue/                            Flagged content (moderator+ required)
-/mod/log/                              Mod action log (moderator+ required)
+/mod/log/                              Mod action log (moderator+ required) — also at /admin/mod-log
+/mod/pii-requests/                     PII removal request queue (mods + admins)
 
 /admin/forums/                         Forum management (admin required)
 /admin/users/                          User/role management (admin required)
+/admin/roles/                          Custom role management (admin required)
+/admin/posts/                          Post management (admin required)
+/admin/threads/                        Thread management (admin required)
+/admin/approval-queue/                 New-account post approval queue (admin required)
+/admin/notifications/                  Notification worker debug log (admin required)
+/admin/query/                          Direct DB query tool (admin required)
 /admin/settings/                       Instance settings (admin required)
 
+/login/                                ATproto OAuth initiation
+/callback/                             OAuth callback (handled server-side)
+/logout/                               GET — invalidates session and redirects
 /banned/                               Ban page (shown to banned users)
+/dev/login/                            Dev-only login (requires DEV_AUTH_ENABLED=true)
 
 /api/preview/                          POST: server-side markdown render for editor
-/client-metadata.json                  Served by Caddy as static file (not a route)
+/client-metadata.json                  Static file served by Caddy (prod); SvelteKit dynamic route (dev)
 ```
 
 **Thread URL rules:**
@@ -552,7 +569,7 @@ Queries flow:
 3. `@atproto/oauth-client-node` initiates PAR + DPoP flow, redirects user to their PDS
 4. User authorizes; PDS redirects to `/callback/`
 5. SDK completes token exchange; DID extracted from `sub` field (cryptographically verified)
-6. Custom session created: 32-byte random token → SHA-256 hash stored in DB, raw token in cookie (`SameSite=Strict`, `HttpOnly`, `Secure`)
+6. Custom session created: 32-byte random token → SHA-256 hash stored in DB, raw token in cookie (`SameSite=Lax`, `HttpOnly`, `Secure`) — Lax is required so the OAuth redirect back from the user's PDS carries the cookie
    - Implementation: `src/lib/auth/session.ts` — `createSession()`
    - Cookie TTL: 30 days rolling; refreshed if < 15 days remain
    - Probabilistic cleanup: 1% of requests fire async DELETE of expired sessions (no separate cron job)
@@ -560,12 +577,11 @@ Queries flow:
 8. If `instance_settings.first_admin_claimed = 'false'`: promote this user to `global_role = 'admin'`, set `first_admin_claimed = 'true'`, write `mod_log` entry. Show one-time notice.
    - Implementation: `src/lib/auth/user.ts` — `claimFirstAdmin()`
 
-### Tier 2 (DM notifications opt-in)
+### DM Notifications Opt-In
 
-- User navigates to `/profile/`, enables "Notify me via Bluesky DM"
-- Server initiates a new OAuth request with scope `atproto transition:chat.bsky`
-- On callback, new tokens encrypted with AES-256 (`SESSION_SECRET` as key material) and stored in `users.chat_session_encrypted`
-- Profile page clearly explains this grants the forum permission to send DMs
+- User navigates to `/settings/`, enables "Notify me via Bluesky DM"
+- No additional OAuth scope is requested — DMs are sent by the forum service account using its App Password, not the user's own tokens
+- Setting stored in `users.notify_via_bluesky` (boolean)
 
 ### Lazy Profile Sync
 
@@ -582,7 +598,7 @@ Queries flow:
   handle: string,
   displayName: string | null,
   avatarUrl: string | null,
-  globalRole: 'admin' | 'member' | 'banned'
+  globalRole: 'admin' | 'moderator' | 'member' | 'banned'
 }
 ```
 If `globalRole === 'banned'`: redirect to `/banned/` immediately (except `/banned/` itself and `/logout/`).
@@ -643,7 +659,7 @@ Route: `POST /api/preview/`
 - Output: JSON with `{ html: "..." }`
 - Runs same markdown pipeline as post submission
 - No authentication required (safe to preview)
-- No client-side markdown library — pure server-side rendering
+- Not used by the UI (live preview uses `renderMarkdownClient` on the client); available for external tooling
 
 ### OG Link Detection Rule
 
@@ -659,26 +675,20 @@ Only one URL per post. If inside code block or inline in a sentence, not detecte
 
 ### Worker
 
-Runs inside the SvelteKit Node process — started in `hooks.server.ts` on first request (guarded by a module-level flag to prevent double-start):
+`src/worker.ts` — runs as a **separate process** (its own Docker container). Not embedded in the web tier.
 
-```typescript
-// hooks.server.ts
-if (!workerStarted) {
-  workerStarted = true;
-  startNotificationWorker(); // sets up setInterval(60_000)
-}
-```
-
-Worker loop:
+Worker loop (every 60 seconds):
 1. Query `notification_queue WHERE status = 'pending' ORDER BY created_at LIMIT 50`
-2. For each: check per-recipient rate limit (no more than 1 DM/hour per recipient, tracked in `notification_queue` sent records)
-3. Send via `@atproto/api` using `ATPROTO_SERVICE_APP_PASSWORD` credentials
-4. Mark `sent` or `failed` with `sent_at`
-5. Log to `logs/worker.log`
+2. For each: check per-recipient rate limit (no more than 1 DM/hour per recipient)
+3. Send via `@atproto/api` using `ATPROTO_SERVICE_APP_PASSWORD` credentials (forum service account only — no user tokens)
+4. Mark `sent` or `failed` with `sent_at` and `error` (if failed)
+5. Write structured log to `worker_log` table (accessible at `/admin/notifications`)
+
+Errors are stored in `notification_queue.error` and `retry_count` is incremented. Worker logs all activity to the `worker_log` table for admin visibility.
 
 ### Email (admin/mod alerts only)
 
-`src/lib/notifications/send-email.ts` exports exactly one function:
+`src/lib/email.ts` exports exactly one function:
 ```typescript
 export async function sendEmail(to: string, subject: string, body: string): Promise<void>
 ```
@@ -702,7 +712,7 @@ Custom session implementation with no external session library. Session storage:
 - **Create:** generate token → hash → insert `sessions` row with `expires_at = now() + 30 days` → set cookie
 - **Validate (every request):** read cookie → hash → look up in `sessions` → if found and not expired, extend by 30 days if < 15 days remaining → populate `locals.user` and `locals.session`
 - **Invalidate (logout):** delete `sessions` row → clear cookie
-- Cookie attributes: `SameSite=Strict`, `HttpOnly`, `Secure` (in production)
+- Cookie attributes: `SameSite=Lax`, `HttpOnly`, `Secure` (in production) — Lax allows the OAuth redirect from the PDS to complete
 
 ### Implementation Location
 
@@ -824,8 +834,7 @@ worker — Node process (×M); internal network only; runs src/worker.ts
 db     — postgres:17; named volume forum_data; internal network only
          Central state store; notification_queue uses row locking for safe concurrent access
          
-caddy  — ports 80/443; reverse proxies to app:3000
-         No longer serves static files (all dynamic now)
+caddy  — ports 80/443; serves /client-metadata.json as static file from docker/caddy-static/; reverse proxies everything else to app:3000
 ```
 
 ### Caddy Config (key excerpts)
@@ -987,8 +996,8 @@ src/lib/abuse/
 
 ## 14. Implementation Status
 
-**For comprehensive breakdown of all phases (1–7) with detailed commit counts and feature checklists, see `STATUS.md` in the project root.**
+**All phases complete (1–13). v1.0 launch ready.**
 
-Current status summary:
-- ✅ **Phases 1–7 Complete** (55+ commits, 14 DB tables, custom roles system, user post management, notification preferences, comprehensive design system)
-- 🎉 **Production Ready** — All core features, security hardening, and design polish complete
+- ✅ **Phases 1–13 Complete** — Full feature set: auth, forums, posts, moderation, search, notifications, custom roles, user post management, unread tracking, thread subscriptions, timezone support, approval queue, accessibility, and deployment/ops documentation
+- See **ROADMAP.md** for completed phase details and post-launch backlog
+- See **FUTURE_IMPROVEMENTS.md** for prioritized post-v1.0 features
