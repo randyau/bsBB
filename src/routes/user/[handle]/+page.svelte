@@ -6,6 +6,40 @@
 
 	let { data }: { data: PageData } = $props();
 
+	let syncLoading = $state(false);
+	let syncError = $state<string | null>(null);
+	let syncSuccess = $state(false);
+
+	async function syncProfile() {
+		syncLoading = true;
+		syncError = null;
+		syncSuccess = false;
+
+		try {
+			const res = await fetch('/api/user/sync-profile', {
+				method: 'POST',
+			});
+
+			if (!res.ok) {
+				const err = await res.json();
+				syncError = err.message || 'Failed to sync profile';
+				return;
+			}
+
+			syncSuccess = true;
+			setTimeout(() => {
+				syncSuccess = false;
+			}, 3000);
+
+			// Reload page to show updated profile
+			window.location.reload();
+		} catch (err) {
+			syncError = 'Network error';
+		} finally {
+			syncLoading = false;
+		}
+	}
+
 	let forumModSelect = $state('');
 	let banReason = $state('');
 
@@ -99,16 +133,31 @@
 
 	<!-- Personal profile actions (when viewing own profile) -->
 	{#if data.isSelf}
-		<div class="mb-8 flex gap-3">
-			<a href="/settings" class="btn btn-primary text-sm">
-				Edit Profile
-			</a>
-			<a href="/user/{data.profileUser.handle}/manage-posts" class="btn btn-secondary text-sm">
-				Manage Posts
-			</a>
-			<a href="/settings#notifications" class="btn btn-secondary text-sm">
-				Notification Settings
-			</a>
+		<div class="mb-8">
+			<div class="flex gap-3 mb-3">
+				<a href="/settings" class="btn btn-primary text-sm">
+					Edit Profile
+				</a>
+				<a href="/user/{data.profileUser.handle}/manage-posts" class="btn btn-secondary text-sm">
+					Manage Posts
+				</a>
+				<a href="/settings#notifications" class="btn btn-secondary text-sm">
+					Notification Settings
+				</a>
+				<button
+					onclick={syncProfile}
+					disabled={syncLoading}
+					class="btn btn-secondary text-sm"
+				>
+					{syncLoading ? 'Syncing...' : 'Sync Profile'}
+				</button>
+			</div>
+			{#if syncError}
+				<p class="text-sm text-red-600">{syncError}</p>
+			{/if}
+			{#if syncSuccess}
+				<p class="text-sm text-green-600">Profile synced successfully!</p>
+			{/if}
 		</div>
 	{/if}
 

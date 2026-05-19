@@ -1,21 +1,8 @@
-import type { LayoutServerLoad, Actions } from './$types.js';
-import { redirect } from '@sveltejs/kit';
+import type { LayoutServerLoad } from './$types.js';
 import { db } from '$lib/db';
 import { userNotifications } from '$lib/db/schema';
 import { and, eq, count } from 'drizzle-orm';
 import { getSetting, getSettings } from '$lib/settings';
-import { invalidateSession, deleteSessionCookie } from '$lib/auth/session.js';
-
-export const actions: Actions = {
-	logout: async ({ locals, cookies }) => {
-		const { sessionId } = locals;
-		if (sessionId) {
-			await invalidateSession(sessionId);
-		}
-		deleteSessionCookie({ cookies } as any);
-		redirect(302, '/');
-	},
-};
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	let unreadNotificationCount = 0;
