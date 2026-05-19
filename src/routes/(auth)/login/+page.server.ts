@@ -16,13 +16,28 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please enter your Bluesky handle.' });
 		}
 
+		const client = await getAtprotoClient();
+		let authUrl: string;
+
 		try {
-			const client = await getAtprotoClient();
-			const url = await client.authorize(handle, { scope: 'atproto' });
-			redirect(302, url.toString());
+			authUrl = await client.authorize(handle, { scope: 'atproto' });
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Unknown error';
-			return fail(400, { error: `Could not initiate login: ${message}` });
+			// authorize() may throw a redirect-like object instead of returning
+			if (
+				err &&
+				typeof err === 'object' &&
+				'location' in err &&
+				typeof err.location === 'string'
+			) {
+				authUrl = (err as any).location;
+			} else {
+				const message = err instanceof Error ? err.message : JSON.stringify(err);
+				console.error('OAuth authorize error:', message);
+				return fail(400, { error: `Could not initiate login: ${message}` });
+			}
 		}
+
+		// Redirect to OAuth provider
+		redirect(302, authUrl);
 	},
 };
