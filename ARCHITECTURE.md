@@ -23,18 +23,9 @@ This document translates the project specification (CLAUDE.md) and all collected
 
 ---
 
-## Status — All Phases Complete (1–7) — 55+ Commits ✅
+## Status — All Phases Complete (1–13) — v1.0 Launch Ready ✅
 
-**Current Implementation (55+ commits):**
-- ✅ Phase 1: Foundations (auth, sessions, DB, Docker)
-- ✅ Phase 2: Read-only forum views
-- ✅ Phase 3: Post creation with markdown + OG metadata
-- ✅ Phase 4: Moderation & admin (rate limiting, ban/delete/lock/pin, mod log, 17 integration tests)
-- ✅ Phase 5: Notifications & background tasks (email, Bluesky DM, worker, encryption)
-- ✅ Phase 6: Post edits, full-text search, production Docker stack
-- ✅ Phase 7: Theme system, dark mode, custom roles, post management, user profiles, design polish (11 commits)
-
-**See CLAUDE.md for detailed breakdown of all phases and complete feature list.**
+**See CLAUDE.md for complete feature list. See ROADMAP.md for phase-by-phase breakdown.**
 
 ---
 
@@ -198,6 +189,9 @@ global_role             TEXT NOT NULL DEFAULT 'member'
                         -- enum: 'admin' | 'member' | 'banned'
                         -- 'moderator' is now per-forum only (see user_forum_roles)
 notify_via_bluesky      BOOLEAN NOT NULL DEFAULT false
+notification_type       TEXT NOT NULL DEFAULT 'both'      -- 'replies' | 'quotes' | 'both'
+notification_frequency  TEXT NOT NULL DEFAULT 'immediate' -- 'immediate' | 'hourly' | 'daily'
+timezone                TEXT NOT NULL DEFAULT 'America/New_York'  -- IANA identifier
 chat_session_encrypted  TEXT                      -- AES-256; null until DM opt-in
 created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
@@ -213,8 +207,9 @@ parent_id   UUID REFERENCES forums(id)            -- null = top-level
 name        TEXT NOT NULL
 description TEXT NOT NULL DEFAULT ''
 slug        TEXT NOT NULL UNIQUE
-sort_order  INTEGER NOT NULL DEFAULT 0
-created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+sort_order            INTEGER NOT NULL DEFAULT 0
+require_approval_days INTEGER NOT NULL DEFAULT 0  -- 0 = disabled; N = require approval for accounts < N days old
+created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
 ### `threads`
@@ -245,6 +240,8 @@ reply_to_post_id UUID REFERENCES posts(id)      -- flat model; for quote links o
 link_metadata    JSONB                           -- OG data for first bare URL, or null
 status           TEXT NOT NULL DEFAULT 'active'  -- 'active' | 'hidden' | 'archived' | 'deleted'
 is_deleted       BOOLEAN NOT NULL DEFAULT false  -- DEPRECATED: use status column instead
+is_approved      BOOLEAN NOT NULL DEFAULT true   -- false for posts requiring mod approval
+rejection_reason TEXT                            -- set by moderator on reject; triggers DM to author
 created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 edited_at        TIMESTAMPTZ                     -- null if never edited
 
@@ -357,6 +354,20 @@ status         TEXT NOT NULL DEFAULT 'pending'
 created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 sent_at        TIMESTAMPTZ
 ```
+
+### `user_notifications`
+
+```sql
+id            UUID PRIMARY KEY DEFAULT gen_random_uuid()
+recipient_did TEXT NOT NULL REFERENCES users(did) ON DELETE CASCADE
+type          TEXT NOT NULL
+              -- 'reply' | 'quote' | 'new_reply_in_thread' | 'post_rejected'
+payload       JSONB NOT NULL
+is_read       BOOLEAN NOT NULL DEFAULT false
+created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+> Always written on qualifying events, independent of Bluesky DM opt-in. Powers the in-app notification inbox. Recipients see notifications even without a Bluesky account connected.
 
 ### `mod_log`
 

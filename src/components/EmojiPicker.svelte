@@ -9,6 +9,7 @@
 	let searchQuery = $state('');
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let triggerButton = $state<HTMLButtonElement | null>(null);
+	let pickerStyle = $state('');
 
 	const commonEmojis = [
 		'😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
@@ -28,50 +29,57 @@
 		'🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
 		'🍕', '🍔', '🍟', '🌭', '🍿', '🥓', '🍗', '🍖',
 		'🌮', '🌯', '🥙', '🧆', '🍱', '🍜', '🍝', '🍠',
-		'🍣', '🍤', '🥘', '🍲', '🍛', '🍣', '🍳', '☕',
+		'🍣', '🍤', '🥘', '🍲', '🍛', '🥗', '🍳', '☕',
 		'🍵', '🥤', '🍶', '🍷', '🍸', '🍹', '🍺', '🍻'
 	];
 
 	const filteredEmojis = $derived.by(() => {
 		if (!searchQuery.trim()) return commonEmojis;
-		// Simple filter - just show all emojis on search (no emoji names db)
 		return commonEmojis;
 	});
 
 	function selectEmoji(emoji: string) {
 		onEmojiSelect?.(emoji);
-		isOpen = false;
-		searchQuery = '';
+		closePicker();
 		triggerButton?.focus();
 	}
 
 	function togglePicker() {
+		if (!isOpen && triggerButton) {
+			const rect = triggerButton.getBoundingClientRect();
+			const pickerWidth = 256; // w-64 = 16rem = 256px
+			const left = Math.max(4, rect.right - pickerWidth);
+			// Prefer above the button; fall back to below if not enough space
+			const spaceAbove = rect.top;
+			const pickerHeight = 320;
+			if (spaceAbove >= pickerHeight) {
+				pickerStyle = `position:fixed;bottom:${window.innerHeight - rect.top + 8}px;left:${left}px`;
+			} else {
+				pickerStyle = `position:fixed;top:${rect.bottom + 8}px;left:${left}px`;
+			}
+		}
 		isOpen = !isOpen;
 		if (isOpen) {
-			// Focus search input after DOM updates
 			setTimeout(() => searchInput?.focus(), 0);
 		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && isOpen) {
-			isOpen = false;
-			searchQuery = '';
+			closePicker();
 			triggerButton?.focus();
 		}
 	}
 
-	function handleOutsideClick(e: MouseEvent) {
-		if (isOpen && !(e.target as Element)?.closest('.emoji-picker-root')) {
-			isOpen = false;
-			searchQuery = '';
-		}
+	function closePicker() {
+		isOpen = false;
+		searchQuery = '';
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+<svelte:window onkeydown={handleKeydown} />
 
-<div class="relative inline-block emoji-picker-root" onclick={(e) => e.stopPropagation()}>
+<div class="relative inline-block">
 	<button
 		type="button"
 		bind:this={triggerButton}
@@ -85,11 +93,14 @@
 	</button>
 
 	{#if isOpen}
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="fixed inset-0 z-40" onclick={closePicker} aria-hidden="true"></div>
 		<div
 			role="dialog"
 			aria-label="Emoji picker"
 			aria-modal="true"
-			class="absolute bottom-full right-0 mb-2 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg z-50 p-3 w-64"
+			style={pickerStyle}
+			class="z-50 w-64 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg p-3"
 		>
 			<!-- Search -->
 			<input
@@ -116,7 +127,6 @@
 				{/each}
 			</div>
 
-			<!-- No results -->
 			{#if filteredEmojis.length === 0}
 				<p class="text-center text-sm text-[rgb(var(--color-text-muted))] py-4">
 					No emojis found

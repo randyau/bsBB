@@ -20,7 +20,7 @@
  */
 
 import { db } from '$lib/db';
-import { notificationQueue, posts, threads, users, sessions, modLog } from '$lib/db/schema';
+import { notificationQueue, posts, threads, users, sessions, modLog, workerLog } from '$lib/db/schema';
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { sendEmail } from '$lib/email';
@@ -30,11 +30,37 @@ import { AtpAgent } from '@atproto/api';
 // Sentinel DID used as moderatorDid for system-initiated mod_log entries
 const SYSTEM_DID = 'did:system:worker';
 
+// ---------------------------------------------------------------------------
+// Structured logging — writes to stdout AND persists errors/warnings to DB
+// ---------------------------------------------------------------------------
+
+type LogLevel = 'info' | 'warn' | 'error';
+
+async function wlog(level: LogLevel, message: string, context?: Record<string, unknown>) {
+	const prefix = `[worker:${level}]`;
+	if (level === 'error') {
+		console.error(prefix, message, context ?? '');
+	} else if (level === 'warn') {
+		console.warn(prefix, message, context ?? '');
+	} else {
+		console.log(prefix, message, context ?? '');
+	}
+
+	if (level === 'warn' || level === 'error') {
+		try {
+			await db.insert(workerLog).values({ level, message, context: context ?? null });
+		} catch {
+			// never let logging itself crash the worker
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Notification processing
+// ---------------------------------------------------------------------------
+
 async function processNotifications() {
 	try {
-		// Select up to 10 pending notifications and atomically mark them as 'processing'
-		// inside the same transaction that holds the FOR UPDATE SKIP LOCKED locks.
-		// This prevents a second worker instance from picking up the same rows.
 		const pending = await db.transaction(async (tx) => {
 			const rows = await tx.execute(sql`
 				SELECT id, recipient_did, type, payload, created_at
@@ -66,7 +92,6 @@ async function processNotifications() {
 
 		console.log(`[worker] processing ${pending.length} notifications`);
 
-		// Process each notification
 		for (const row of pending as any[]) {
 			const notifId = row.id;
 			const recipientDid = row.recipient_did;
@@ -74,7 +99,6 @@ async function processNotifications() {
 			const payload = row.payload;
 
 			try {
-				// For DM notifications, check frequency-based rate limiting
 				if (type === 'dm_notification') {
 					const userPrefs = await db.query.users.findFirst({
 						where: eq(users.did, recipientDid),
@@ -86,10 +110,7 @@ async function processNotifications() {
 						const freqWindow = getFrequencyWindow(userPrefs.notificationFrequency);
 
 						if (lastSent && Date.now() - lastSent.getTime() < freqWindow) {
-							// Too soon — reset to pending so it will be retried on the next poll
-							console.log(
-								`[worker] deferred (frequency throttled): ${recipientDid} — resetting to pending`
-							);
+							console.log(`[worker] deferred (frequency throttled): ${recipientDid}`);
 							await db
 								.update(notificationQueue)
 								.set({ status: 'pending' })
@@ -99,7 +120,6 @@ async function processNotifications() {
 					}
 				}
 
-				// Route by notification type
 				if (type === 'moderator_alert') {
 					await handleModeratorAlert(recipientDid, payload);
 				} else if (type === 'dm_notification') {
@@ -107,35 +127,43 @@ async function processNotifications() {
 				} else if (type === 'profile_sync') {
 					await handleProfileSync(recipientDid, payload);
 				} else {
-					console.warn(`[worker] unknown notification type: ${type}`);
+					await wlog('warn', `Unknown notification type: ${type}`, { notifId, recipientDid, type });
 				}
 
-				// Mark as sent
 				await db
 					.update(notificationQueue)
-					.set({
-						status: 'sent',
-						sentAt: new Date()
-					})
+					.set({ status: 'sent', sentAt: new Date(), error: null })
 					.where(eq(notificationQueue.id, notifId));
 
-				console.log(`[worker] ✓ notification ${notifId} sent`);
-			} catch (err) {
-				console.error(`[worker] failed to process notification ${notifId}:`, err);
+				console.log(`[worker] sent notification ${notifId} (${type}) to ${recipientDid}`);
+			} catch (err: any) {
+				const errorMessage = formatError(err);
+				await wlog('error', `Failed to process notification ${notifId}`, {
+					notifId,
+					recipientDid,
+					type,
+					error: errorMessage,
+					payload: sanitizePayloadForLog(payload),
+				});
 
-				// Mark as failed (don't retry — admin should investigate)
 				await db
 					.update(notificationQueue)
 					.set({
-						status: 'failed'
+						status: 'failed',
+						error: errorMessage,
+						retryCount: sql`retry_count + 1`,
 					})
 					.where(eq(notificationQueue.id, notifId));
 			}
 		}
-	} catch (err) {
-		console.error('[worker] error in processNotifications:', err);
+	} catch (err: any) {
+		await wlog('error', 'Unhandled error in processNotifications', { error: formatError(err) });
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
 
 async function handleModeratorAlert(recipientDid: string, payload: any) {
 	const { action, targetType, targetLabel, moderatorHandle, reason } = payload;
@@ -181,12 +209,19 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 		}
 	});
 
-	if (!recipient?.notifyViaBluesky || !recipient?.chatSessionEncrypted) {
-		console.log(`[worker:dm_notification] skipped (not opted in): ${recipientDid}`);
+	if (!recipient) {
+		throw new Error(`Recipient user not found: ${recipientDid}`);
+	}
+
+	if (!recipient.notifyViaBluesky) {
+		console.log(`[worker:dm_notification] skipped (Bluesky DMs disabled): ${recipientDid}`);
 		return;
 	}
 
-	// Check notification type preference
+	if (!recipient.chatSessionEncrypted) {
+		throw new Error(`No chat session stored for ${recipientDid} — user must re-authorise with chat scope`);
+	}
+
 	if (
 		(recipient.notificationType === 'replies' && notificationType === 'quote') ||
 		(recipient.notificationType === 'quotes' && notificationType === 'reply')
@@ -198,55 +233,58 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	let sessionJson: any;
 	try {
 		sessionJson = JSON.parse(decrypt(recipient.chatSessionEncrypted));
-	} catch (err) {
-		console.error(`[worker:dm_notification] failed to decrypt session for ${recipientDid}`);
-		throw new Error('Failed to decrypt chat session');
+	} catch (err: any) {
+		throw new Error(`Failed to decrypt chat session for ${recipientDid}: ${err.message}`);
+	}
+
+	const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
+	if (!serviceHandle) {
+		throw new Error('ATPROTO_SERVICE_HANDLE env var is not set');
 	}
 
 	const baseUrl = process.env.PUBLIC_BASE_URL ?? '';
 	const threadLink = threadSlug && forumSlug ? `\n\n${baseUrl}/f/${forumSlug}/t/${threadSlug}` : '';
 	const messageText = buildDmMessage(notificationType, threadTitle, replyAuthorHandle) + threadLink;
 
-	// Send DM via Bluesky chat API using the recipient's stored OAuth session
 	const agent = new AtpAgent({ service: 'https://bsky.social' });
-	await agent.resumeSession(sessionJson);
 
-	// Find or create a DM conversation with the service account (forum bot)
-	const serviceHandle = process.env.ATPROTO_SERVICE_HANDLE;
-	if (!serviceHandle) {
-		throw new Error('ATPROTO_SERVICE_HANDLE must be set to send DM notifications');
+	try {
+		await agent.resumeSession(sessionJson);
+	} catch (err: any) {
+		throw new Error(`Failed to resume ATproto session for ${recipientDid}: ${err.message}`);
 	}
 
-	// Resolve the service account DID
-	const serviceProfile = await agent.getProfile({ actor: serviceHandle });
-	const serviceDid = serviceProfile.data.did;
+	let serviceDid: string;
+	try {
+		const serviceProfile = await agent.getProfile({ actor: serviceHandle });
+		serviceDid = serviceProfile.data.did;
+	} catch (err: any) {
+		throw new Error(`Failed to resolve service account DID for handle "${serviceHandle}": ${err.message}`);
+	}
 
-	// Get or create the convo between the recipient and the service account
-	const convoRes = await agent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
-	const convoId = convoRes.data.convo.id;
+	let convoId: string;
+	try {
+		const convoRes = await agent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
+		convoId = convoRes.data.convo.id;
+	} catch (err: any) {
+		throw new Error(`Failed to get/create convo between ${recipientDid} and ${serviceDid}: ${err.message}`);
+	}
 
-	await agent.api.chat.bsky.convo.sendMessage({
-		convoId,
-		message: { text: messageText },
-	});
+	try {
+		await agent.api.chat.bsky.convo.sendMessage({ convoId, message: { text: messageText } });
+	} catch (err: any) {
+		throw new Error(`Failed to send DM in convo ${convoId}: ${err.message}`);
+	}
 
 	console.log(`[worker:dm_notification] sent to ${recipientDid}: ${messageText.substring(0, 80)}`);
 }
 
-function buildDmMessage(
-	type: string,
-	threadTitle?: string,
-	authorHandle?: string
-): string {
+function buildDmMessage(type: string, threadTitle?: string, authorHandle?: string): string {
 	switch (type) {
-		case 'reply':
-			return `@${authorHandle} replied to your thread "${threadTitle}"`;
-		case 'quote':
-			return `@${authorHandle} quoted your post in "${threadTitle}"`;
-		case 'new_reply_in_thread':
-			return `New reply in "${threadTitle}"`;
-		default:
-			return 'You have a new notification';
+		case 'reply':             return `@${authorHandle} replied to your thread "${threadTitle}"`;
+		case 'quote':             return `@${authorHandle} quoted your post in "${threadTitle}"`;
+		case 'new_reply_in_thread': return `New reply in "${threadTitle}"`;
+		default:                  return 'You have a new notification';
 	}
 }
 
@@ -276,7 +314,7 @@ function getFrequencyWindow(frequency: string): number {
 	}
 }
 
-async function handleProfileSync(recipientDid: string, payload: any) {
+async function handleProfileSync(recipientDid: string, _payload: any) {
 	const user = await db.query.users.findFirst({
 		where: eq(users.did, recipientDid),
 		columns: { did: true, handle: true }
@@ -290,14 +328,10 @@ async function handleProfileSync(recipientDid: string, payload: any) {
 	);
 
 	if (!profileRes.ok) {
-		throw new Error(`Could not fetch profile for ${recipientDid}`);
+		throw new Error(`Could not fetch ATproto profile for ${recipientDid}: HTTP ${profileRes.status}`);
 	}
 
-	const profile = await profileRes.json() as {
-		handle: string;
-		displayName?: string;
-		avatar?: string;
-	};
+	const profile = await profileRes.json() as { handle: string; displayName?: string; avatar?: string };
 
 	await db
 		.update(users)
@@ -312,10 +346,10 @@ async function handleProfileSync(recipientDid: string, payload: any) {
 	console.log(`[worker:profile_sync] updated ${profile.handle} (${recipientDid})`);
 }
 
-/**
- * Auto-approve posts pending for more than 24 hours to prevent indefinite queue backlog.
- * Each approval is logged to mod_log for admin visibility.
- */
+// ---------------------------------------------------------------------------
+// Periodic tasks
+// ---------------------------------------------------------------------------
+
 async function autoApproveStalePosts() {
 	try {
 		const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -342,33 +376,48 @@ async function autoApproveStalePosts() {
 			});
 		}
 
-		console.log(`[worker] auto-approved ${stalePosts.length} posts (logged to mod_log)`);
-	} catch (err) {
-		console.error('[worker] auto-approve error:', err);
+		console.log(`[worker] auto-approved ${stalePosts.length} posts`);
+	} catch (err: any) {
+		await wlog('error', 'Auto-approve stale posts failed', { error: formatError(err) });
 	}
 }
 
-/**
- * Delete expired sessions. Supplements the probabilistic 1% cleanup in the web tier
- * with a guaranteed hourly sweep so sessions don't accumulate indefinitely.
- */
 async function cleanupExpiredSessions() {
 	try {
-		const result = await db
-			.delete(sessions)
-			.where(lt(sessions.expiresAt, new Date()));
-		console.log(`[worker] session cleanup complete`);
-	} catch (err) {
-		console.error('[worker] session cleanup error:', err);
+		await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
+		console.log('[worker] session cleanup complete');
+	} catch (err: any) {
+		await wlog('error', 'Session cleanup failed', { error: formatError(err) });
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatError(err: unknown): string {
+	if (err instanceof Error) {
+		return err.stack ? `${err.message}\n${err.stack}` : err.message;
+	}
+	return String(err);
+}
+
+/** Strip large/sensitive fields before logging payload context */
+function sanitizePayloadForLog(payload: any): any {
+	if (!payload || typeof payload !== 'object') return payload;
+	const { ...safe } = payload;
+	return safe;
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+
 async function startNotificationWorker() {
-	console.log('[worker] notification worker started');
+	await wlog('info', 'Notification worker started');
 
-	const pollInterval = 60 * 1000; // 60 seconds
+	const pollInterval = 60 * 1000;
 
-	// Initial poll
 	await processNotifications();
 	await autoApproveStalePosts();
 	await cleanupExpiredSessions();
@@ -394,7 +443,6 @@ main().catch((err) => {
 	process.exit(1);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
 	console.log('[worker] SIGTERM received, shutting down gracefully');
 	process.exit(0);

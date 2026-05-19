@@ -24,6 +24,7 @@
 				{ href: '/admin/threads', icon: '💬', label: 'Threads' },
 				{ href: '/admin/posts', icon: '📝', label: 'Posts' },
 				{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log' },
+				{ href: '/admin/notifications', icon: '🔔', label: 'Notifications' },
 				{ href: '/admin/query', icon: '🔍', label: 'SQL Queries' },
 			] as item}
 				<a

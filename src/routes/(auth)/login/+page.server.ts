@@ -20,7 +20,7 @@ export const actions: Actions = {
 		let authUrl: string;
 
 		try {
-			authUrl = await client.authorize(handle, { scope: 'atproto' });
+			authUrl = String(await client.authorize(handle, { scope: 'atproto' }));
 		} catch (err) {
 			// authorize() may throw a redirect-like object instead of returning
 			if (

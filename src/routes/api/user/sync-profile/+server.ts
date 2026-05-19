@@ -76,7 +76,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 	await db
 		.update(users)
 		.set({
-			handle,
+			...(handle !== null && { handle }),
 			displayName: finalDisplayName,
 			avatarUrl,
 			lastProfileSync: new Date(),
