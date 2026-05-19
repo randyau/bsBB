@@ -23,7 +23,8 @@ RUN apk add --no-cache bash
 # Copy built app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/drizzle.config.json ./
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/src ./src
 COPY --from=deps /app/node_modules ./node_modules
 COPY scripts ./scripts
 
