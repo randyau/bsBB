@@ -7,6 +7,8 @@
 
 	let isOpen = $state(false);
 	let searchQuery = $state('');
+	let searchInput = $state<HTMLInputElement | null>(null);
+	let triggerButton = $state<HTMLButtonElement | null>(null);
 
 	const commonEmojis = [
 		'😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
@@ -40,43 +42,73 @@
 		onEmojiSelect?.(emoji);
 		isOpen = false;
 		searchQuery = '';
+		triggerButton?.focus();
 	}
 
 	function togglePicker() {
 		isOpen = !isOpen;
+		if (isOpen) {
+			// Focus search input after DOM updates
+			setTimeout(() => searchInput?.focus(), 0);
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && isOpen) {
+			isOpen = false;
+			searchQuery = '';
+			triggerButton?.focus();
+		}
+	}
+
+	function handleOutsideClick(e: MouseEvent) {
+		if (isOpen && !(e.target as Element)?.closest('.emoji-picker-root')) {
+			isOpen = false;
+			searchQuery = '';
+		}
 	}
 </script>
 
-<div class="relative inline-block">
+<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+
+<div class="relative inline-block emoji-picker-root">
 	<button
 		type="button"
+		bind:this={triggerButton}
 		onclick={togglePicker}
 		class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-xl cursor-pointer transition-colors hover:bg-[rgb(var(--color-bg-secondary))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
-		title="Open emoji picker"
-		aria-label="Emoji picker"
+		aria-label="Insert emoji"
+		aria-haspopup="dialog"
+		aria-expanded={isOpen}
 	>
 		😊
 	</button>
 
 	{#if isOpen}
-		<div class="absolute bottom-full right-0 mb-2 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg z-50 p-3 w-64">
+		<div
+			role="dialog"
+			aria-label="Emoji picker"
+			aria-modal="true"
+			class="absolute bottom-full right-0 mb-2 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg shadow-lg z-50 p-3 w-64"
+		>
 			<!-- Search -->
 			<input
 				type="text"
 				placeholder="Search emojis..."
 				bind:value={searchQuery}
+				bind:this={searchInput}
 				class="w-full px-2 py-1 text-sm border border-[rgb(var(--color-border))] rounded mb-2 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
+				aria-label="Search emojis"
 				autocomplete="off"
 			/>
 
 			<!-- Emoji Grid -->
-			<div class="grid grid-cols-6 gap-1 max-h-64 overflow-y-auto">
+			<div class="grid grid-cols-6 gap-1 max-h-64 overflow-y-auto" aria-label="Emoji list">
 				{#each filteredEmojis as emoji (emoji)}
 					<button
 						type="button"
 						onclick={() => selectEmoji(emoji)}
 						class="p-2 text-xl hover:bg-[rgb(var(--color-bg-secondary))] rounded transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-primary))]"
-						title={emoji}
 						aria-label={emoji}
 					>
 						{emoji}
