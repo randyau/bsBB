@@ -21,7 +21,8 @@ export const actions: Actions = {
 			const url = await client.authorize(handle, { scope: 'atproto' });
 			redirect(302, url.toString());
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Unknown error';
+			console.error('OAuth authorize error:', err);
+			const message = err instanceof Error ? err.message : String(err);
 			return fail(400, { error: `Could not initiate login: ${message}` });
 		}
 	},
