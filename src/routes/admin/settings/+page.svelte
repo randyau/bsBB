@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import MarkdownHelp from '$components/MarkdownHelp.svelte';
 	import Toast from '$components/Toast.svelte';
+	import { enhance } from '$app/forms';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -49,7 +50,7 @@
 	<!-- Site Name Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">Site Name</h2>
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="site_name" />
 			<div>
 				<label for="site_name" class="form-label">Forum Name</label>
@@ -74,7 +75,7 @@
 	<!-- Homepage Announcement Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">Homepage Announcement</h2>
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="homepage_announcement" />
 			<div>
 				<label for="announcement" class="form-label">Announcement (Markdown)</label>
@@ -174,7 +175,7 @@
 		</form>
 
 		<!-- Custom CSS -->
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="custom_css" />
 			<label for="custom_css" class="form-label">Custom CSS</label>
 			<textarea
@@ -196,7 +197,7 @@
 	<!-- Favicon Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">Favicon</h2>
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="favicon_url" />
 			<label for="favicon_url" class="form-label">Favicon URL</label>
 			<input
@@ -225,7 +226,7 @@
 	<!-- robots.txt Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">robots.txt</h2>
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="robots_txt" />
 			<label for="robots_txt" class="form-label">robots.txt Content</label>
 			<textarea
@@ -249,7 +250,7 @@
 	<!-- Font Selection Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">Font Selection</h2>
-		<form method="POST" action="?/set" onsubmit={handleSubmit}>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
 			<input type="hidden" name="key" value="font_body" />
 			<label for="font_body" class="form-label">Body Font</label>
 			<select id="font_body" name="value" class="form-control">

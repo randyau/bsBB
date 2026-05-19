@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
@@ -144,7 +145,7 @@
 						<div class="text-sm text-[rgb(var(--color-text-muted))] font-mono">@{selectedUser.handle}</div>
 					</div>
 
-					<form method="POST" action="?/addRoleMember" class="flex gap-2">
+					<form method="POST" use:enhance action="?/addRoleMember" class="flex gap-2">
 						<input type="hidden" name="roleId" value={selectedRoleForMember} />
 						<input type="hidden" name="userDid" value={selectedUser.did} />
 						<button type="submit" class="btn btn-primary flex-1">Add Member</button>
@@ -166,7 +167,7 @@
 				{editingRole ? 'Edit Role' : 'Create New Role'}
 			</h2>
 
-			<form method="POST" action={editingRole ? '?/editRole' : '?/createRole'} class="space-y-4">
+			<form method="POST" use:enhance action={editingRole ? '?/editRole' : '?/createRole'} class="space-y-4">
 				{#if editingRole}
 					<input type="hidden" name="id" value={editingRole} />
 				{/if}
@@ -317,7 +318,7 @@
 															{member.displayName || member.handle}
 															<span class="text-[rgb(var(--color-text-muted))] font-mono text-xs">@{member.handle}</span>
 														</a>
-														<form method="POST" action="?/removeRoleMember" class="inline">
+														<form method="POST" use:enhance action="?/removeRoleMember" class="inline">
 															<input type="hidden" name="roleId" value={role.id} />
 															<input type="hidden" name="userDid" value={member.userDid} />
 															<button type="submit" class="text-xs text-red-600 hover:text-red-700 hover:underline">

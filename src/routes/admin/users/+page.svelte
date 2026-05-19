@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
@@ -62,24 +63,24 @@
 							<td class="px-4 py-3">
 								<div class="flex flex-col gap-2 text-xs">
 									{#if user.globalRole !== 'admin' && user.globalRole !== 'banned'}
-										<form method="POST" action="?/promote" class="inline" onsubmit={() => confirmPromote(user.handle)}>
+										<form method="POST" use:enhance action="?/promote" class="inline" onsubmit={() => confirmPromote(user.handle)}>
 											<input type="hidden" name="did" value={user.did} />
 											<button type="submit" class="text-amber-600 hover:underline font-semibold">Make Admin</button>
 										</form>
 									{:else if user.globalRole === 'admin'}
-										<form method="POST" action="?/demote" class="inline">
+										<form method="POST" use:enhance action="?/demote" class="inline">
 											<input type="hidden" name="did" value={user.did} />
 											<button type="submit" class="text-[rgb(var(--color-text-muted))] hover:underline">Remove Admin</button>
 										</form>
 									{/if}
 
 									{#if user.globalRole === 'banned'}
-										<form method="POST" action="?/unban" class="inline">
+										<form method="POST" use:enhance action="?/unban" class="inline">
 											<input type="hidden" name="did" value={user.did} />
 											<button type="submit" class="text-[rgb(var(--color-success))] hover:underline font-semibold">Unban</button>
 										</form>
 									{:else}
-										<form method="POST" action="?/ban" class="flex flex-col gap-1" onsubmit={() => confirmBan(user.handle)}>
+										<form method="POST" use:enhance action="?/ban" class="flex flex-col gap-1" onsubmit={() => confirmBan(user.handle)}>
 											<input type="hidden" name="did" value={user.did} />
 											<label for="ban-reason-{user.did}" class="text-[rgb(var(--color-text-muted))]">Ban reason (optional)</label>
 											<input

@@ -306,6 +306,44 @@ Then in the form:
 - **Secondary:** Use `.btn-secondary` for alternatives
 - **Disabled:** All support `:disabled` styling
 
+### CSRF Protection
+
+**All `<form method="POST">` elements must include the `use:enhance` directive.** This is SvelteKit's built-in CSRF protection mechanism. Without it, browsers will reject POST form submissions with a "Cross-site POST form submissions are forbidden" error.
+
+The `use:enhance` directive automatically includes a CSRF token in form submissions, ensuring security without manual token management.
+
+**Usage:**
+
+```svelte
+<script lang="ts">
+  import { enhance } from '$app/forms';
+</script>
+
+<!-- ✓ Correct: use:enhance included -->
+<form method="POST" action="?/updateSetting" use:enhance>
+  <input type="text" name="value" />
+  <button type="submit">Save</button>
+</form>
+
+<!-- ✗ Wrong: missing use:enhance → CSRF error -->
+<form method="POST" action="?/updateSetting">
+  <input type="text" name="value" />
+  <button type="submit">Save</button>
+</form>
+```
+
+**Key points:**
+- Import `enhance` from `$app/forms` once per component
+- Add `use:enhance` to every `<form method="POST">` element
+- Works with all form attributes (`action`, `onsubmit`, `class`, etc.)
+- Does not interfere with form submission logic or validation
+
+**Verification:**
+To find forms missing CSRF protection, search for:
+```bash
+grep -r 'method="POST"' src/routes --include="*.svelte" | grep -v use:enhance
+```
+
 ---
 
 ## Accessibility

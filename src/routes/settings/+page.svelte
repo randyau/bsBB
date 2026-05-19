@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import { enhance } from '$app/forms';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -85,7 +86,7 @@
 		<!-- Display name (editable) -->
 		<div>
 			<h2 class="text-lg font-semibold mb-3">Display Name</h2>
-			<form method="POST" action="?/updateDisplayName" class="space-y-3">
+			<form method="POST" use:enhance action="?/updateDisplayName" class="space-y-3">
 				<label for="displayName" class="form-label">Display Name</label>
 				<input
 					id="displayName"
@@ -106,7 +107,7 @@
 		<!-- Time Zone -->
 		<div class="border-t border-[rgb(var(--color-border))] pt-6">
 			<h2 class="text-lg font-semibold mb-3">Time Zone</h2>
-			<form method="POST" action="?/updateTimezone" class="space-y-3">
+			<form method="POST" use:enhance action="?/updateTimezone" class="space-y-3">
 				<label for="timezone" class="form-label">Time Zone (IANA identifier)</label>
 				<select
 					id="timezone"
@@ -146,7 +147,7 @@
 						Receive DM notifications when someone replies to your thread, quotes your post, or a moderator takes action on your content.
 					</p>
 
-					<form method="POST" action="?/updateNotificationPreferences" class="space-y-4">
+					<form method="POST" use:enhance action="?/updateNotificationPreferences" class="space-y-4">
 						<!-- Enable/Disable toggle -->
 						<div>
 							{#if notifyViaBluesky}
@@ -226,7 +227,7 @@
 						<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
 							Permanently delete the content of all your posts. Post stubs will remain to preserve quotes and links, but your text will be irretrievably removed.
 						</p>
-						<form method="POST" action="?/deleteAllPosts" onsubmit={confirmDeleteAllPosts}>
+						<form method="POST" use:enhance action="?/deleteAllPosts" onsubmit={confirmDeleteAllPosts}>
 							<input type="hidden" name="confirm" value="true" />
 							<button type="submit" class="btn btn-danger btn-sm">
 								Delete All Post Content
@@ -241,7 +242,7 @@
 							Permanently delete your account. Your identity and handle will be removed from the forum, but post stubs will remain. You can re-register with the same Bluesky account later.
 						</p>
 
-						<form method="POST" action="?/deleteAccount" onsubmit={confirmDeleteAccount} class="space-y-3">
+						<form method="POST" use:enhance action="?/deleteAccount" onsubmit={confirmDeleteAccount} class="space-y-3">
 							<input type="hidden" name="confirm" value="true" />
 							<div class="form-group">
 								<label for="confirmHandle" class="form-label text-sm">
