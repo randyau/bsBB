@@ -80,6 +80,21 @@ This interactive script:
 
 **Don't have SMTP yet?** Same: skip and configure later. The forum works without email; admins won't get email alerts.
 
+### Using a Subdomain?
+
+If you're deploying to a **subdomain** (e.g., `forum.example.com` instead of `example.com`), that works fine. Just enter it as your Public Base URL:
+
+```
+Public base URL? https://forum.example.com
+```
+
+This controls:
+- OAuth redirect URI: `https://forum.example.com/callback`
+- Client metadata: `https://forum.example.com/client-metadata.json`
+- Session cookies: automatically scoped to the subdomain
+
+Everything else (Bluesky bot, SMTP, DNS) works identically with subdomains.
+
 ---
 
 ## Step 4 — Configure DNS
