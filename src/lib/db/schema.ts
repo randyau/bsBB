@@ -225,6 +225,19 @@ export const notificationQueue = pgTable('notification_queue', {
 	status: text('status').notNull().default('pending'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	sentAt: timestamp('sent_at', { withTimezone: true }),
+	error: text('error'),
+	retryCount: integer('retry_count').notNull().default(0),
+});
+
+// ---------------------------------------------------------------------------
+// worker_log
+// ---------------------------------------------------------------------------
+export const workerLog = pgTable('worker_log', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	level: text('level').notNull(), // 'info' | 'warn' | 'error'
+	message: text('message').notNull(),
+	context: jsonb('context'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
