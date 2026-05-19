@@ -14,6 +14,6 @@ const keyPair = await subtle.generateKey(
 const privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
 const publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
 
-// Output with markers so setup.sh can extract them cleanly
-console.log('PRIVATE_JWK=' + JSON.stringify(privateJwk));
-console.log('PUBLIC_JWK=' + JSON.stringify(publicJwk));
+// Output one key per line (first private, then public)
+console.log(JSON.stringify(privateJwk));
+console.log(JSON.stringify(publicJwk));
