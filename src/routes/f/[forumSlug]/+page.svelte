@@ -5,7 +5,24 @@
 	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	const pageDescription = data.forum.description || `${data.stats.totalThreads} threads in the ${data.forum.name} forum.`;
+	const pageUrl = data.baseUrl + `/f/${data.forum.slug}`;
+	const pageTitle = `${data.forum.name} — ${data.siteName}`;
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={data.siteName} />
+	<meta property="og:title" content={data.forum.name} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="og:url" content={pageUrl} />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content={data.forum.name} />
+	<meta name="twitter:description" content={pageDescription} />
+</svelte:head>
 
 <div class="space-y-6 py-8">
 	<!-- Forum Header -->

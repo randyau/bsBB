@@ -2,7 +2,30 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	function stripHtml(html: string, maxLength = 200): string {
+		const stripped = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+		return stripped.length > maxLength ? stripped.slice(0, maxLength - 1) + '…' : stripped;
+	}
+
+	const pageDescription = data.announcementHtml
+		? stripHtml(data.announcementHtml)
+		: 'A community forum powered by Bluesky identity.';
+	const pageUrl = data.baseUrl + '/';
 </script>
+
+<svelte:head>
+	<title>{data.siteName}</title>
+	<meta name="description" content={pageDescription} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={data.siteName} />
+	<meta property="og:title" content={data.siteName} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="og:url" content={pageUrl} />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content={data.siteName} />
+	<meta name="twitter:description" content={pageDescription} />
+</svelte:head>
 
 <div class="space-y-6 py-8">
 	{#if data.flashAdmin}

@@ -214,7 +214,30 @@
 		modEditBody = '';
 		modEditReason = '';
 	}
+
+	function stripHtml(html: string, maxLength = 200): string {
+		const stripped = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+		return stripped.length > maxLength ? stripped.slice(0, maxLength - 1) + '…' : stripped;
+	}
+
+	const firstPost = data.posts[0];
+	const pageDescription = firstPost ? stripHtml(firstPost.bodyHtml) : data.thread.title;
+	const pageUrl = data.baseUrl + `/f/${data.forum.slug}/t/${data.thread.slug}`;
+	const pageTitle = `${data.thread.title} — ${data.siteName}`;
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<meta property="og:type" content="article" />
+	<meta property="og:site_name" content={data.siteName} />
+	<meta property="og:title" content={data.thread.title} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="og:url" content={pageUrl} />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content={data.thread.title} />
+	<meta name="twitter:description" content={pageDescription} />
+</svelte:head>
 
 <div class="space-y-6 py-8">
 	<!-- Breadcrumb & Header -->
