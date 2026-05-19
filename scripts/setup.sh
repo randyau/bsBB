@@ -49,7 +49,7 @@ fi
 echo ""
 echo "Generating P-256 JWK keypair..."
 KEYPAIR_JSON=$(node "$SCRIPT_DIR/gen-keypair.js")
-PRIVATE_JWK=$(echo "$KEYPAIR_JSON" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>console.log(JSON.parse(d).privateJwk))")
+PRIVATE_JWK=$(echo "$KEYPAIR_JSON" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).privateJwk)))")
 PUBLIC_JWK=$(echo "$KEYPAIR_JSON" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).publicJwk)))")
 echo "  Keypair generated."
 
