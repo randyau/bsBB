@@ -30,7 +30,7 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	}
 
 	const siteName = await getSetting('site_name', 'bsBB');
-	const key = await Key.import(privateKeyJwkObj);
+	const key = Key.fromJwk(privateKeyJwkObj);
 
 	_client = new NodeOAuthClient({
 		clientMetadata: {
