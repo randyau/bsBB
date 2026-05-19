@@ -5,6 +5,7 @@
 	import { enhance } from '$app/forms';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
+	let editingForumId = $state<string | null>(null);
 	let modUserId = $state('');
 	let selectedForumId = $state('');
 	let userSearchQuery = $state('');
@@ -83,6 +84,15 @@
 								{/if}
 							</td>
 							<td class="px-4 py-3 space-x-2 flex gap-2">
+								<button
+									type="button"
+									onclick={() => (editingForumId = editingForumId === forum.id ? null : forum.id)}
+									class="btn btn-sm btn-secondary"
+									aria-label="Edit {forum.name}"
+									title="Edit"
+								>
+									✎
+								</button>
 								<form method="POST" use:enhance action="?/reorder" class="inline">
 									<input type="hidden" name="forumId" value={forum.id} />
 									<input type="hidden" name="direction" value="up" />
@@ -95,6 +105,60 @@
 								</form>
 							</td>
 						</tr>
+
+						{#if editingForumId === forum.id}
+							<tr class="bg-[rgb(var(--color-bg-secondary))] border-b">
+								<td colspan="5" class="px-4 py-4">
+									<form method="POST" use:enhance action="?/editForum" class="space-y-4">
+										<input type="hidden" name="forumId" value={forum.id} />
+										<div class="grid grid-cols-2 gap-4">
+											<div class="form-group">
+												<label for="edit-name-{forum.id}" class="form-label">Forum Name</label>
+												<input
+													id="edit-name-{forum.id}"
+													type="text"
+													name="name"
+													value={forum.name}
+													required
+													class="form-control"
+												/>
+											</div>
+											<div class="form-group">
+												<label for="edit-parent-{forum.id}" class="form-label">Parent Forum</label>
+												<select id="edit-parent-{forum.id}" name="parentId" class="form-control">
+													<option value="">No parent (top-level)</option>
+													{#each data.forums as p (p.id)}
+														{#if p.id !== forum.id}
+															<option value={p.id} selected={forum.parentId === p.id}>{p.name}</option>
+														{/if}
+													{/each}
+												</select>
+											</div>
+										</div>
+										<div class="form-group">
+											<label for="edit-desc-{forum.id}" class="form-label">Description</label>
+											<textarea
+												id="edit-desc-{forum.id}"
+												name="description"
+												rows="3"
+												class="form-control form-textarea"
+												placeholder="Optional forum description"
+											>{forum.description}</textarea>
+										</div>
+										<div class="flex gap-2">
+											<button type="submit" class="btn btn-primary">Save</button>
+											<button
+												type="button"
+												onclick={() => (editingForumId = null)}
+												class="btn btn-secondary"
+											>
+												Cancel
+											</button>
+										</div>
+									</form>
+								</td>
+							</tr>
+						{/if}
 					{/each}
 				</tbody>
 			</table>
@@ -128,6 +192,16 @@
 							{/each}
 						</select>
 					</div>
+				</div>
+				<div class="form-group">
+					<label for="forumDescription" class="form-label">Description (optional)</label>
+					<textarea
+						id="forumDescription"
+						name="description"
+						rows="3"
+						class="form-control form-textarea"
+						placeholder="Brief description of this forum's purpose"
+					></textarea>
 				</div>
 				<button type="submit" class="btn btn-primary">Create Forum</button>
 			</form>

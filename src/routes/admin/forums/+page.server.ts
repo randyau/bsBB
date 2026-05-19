@@ -10,6 +10,7 @@ export const load: PageServerLoad = async () => {
 		.select({
 			id: forums.id,
 			name: forums.name,
+			description: forums.description,
 			slug: forums.slug,
 			parentId: forums.parentId,
 			sortOrder: forums.sortOrder,
@@ -302,6 +303,7 @@ export const actions: Actions = {
 		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
+		const description = String(form.get('description') ?? '').trim();
 		const parentId = String(form.get('parentId') ?? '').trim() || null;
 
 		if (!name || name.length < 2) {
@@ -321,6 +323,7 @@ export const actions: Actions = {
 			await db.insert(forums).values({
 				id,
 				name,
+				description,
 				slug,
 				parentId,
 				sortOrder
@@ -349,6 +352,59 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('createForum action error:', err);
 			return fail(500, { error: 'Failed to create forum' });
+		}
+	},
+
+	editForum: async ({ locals, request }) => {
+		if (!locals.user || locals.user.globalRole !== 'admin') return fail(403, { error: 'Admin access required' });
+		const form = await request.formData();
+		const forumId = String(form.get('forumId') ?? '').trim();
+		const name = String(form.get('name') ?? '').trim();
+		const description = String(form.get('description') ?? '').trim();
+		const parentId = String(form.get('parentId') ?? '').trim() || null;
+
+		if (!forumId || !name || name.length < 2) {
+			return fail(422, { error: 'Forum name must be at least 2 characters' });
+		}
+
+		try {
+			// Check forum exists
+			const forum = await db.query.forums.findFirst({
+				where: eq(forums.id, forumId),
+				columns: { id: true, parentId: true }
+			});
+
+			if (!forum) return fail(404, { error: 'Forum not found' });
+
+			// Prevent self-referential parent
+			if (parentId === forumId) {
+				return fail(422, { error: 'A forum cannot be its own parent' });
+			}
+
+			// Validate parent exists if specified
+			if (parentId) {
+				const parent = await db.query.forums.findFirst({
+					where: eq(forums.id, parentId),
+					columns: { id: true }
+				});
+				if (!parent) return fail(422, { error: 'Parent forum not found' });
+			}
+
+			await db.update(forums)
+				.set({ name, description, parentId })
+				.where(eq(forums.id, forumId));
+
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'edit_forum',
+				targetForumId: forumId,
+				reason: `Edited: name="${name}", parent=${parentId ? `"${parentId}"` : 'none'}`
+			});
+
+			return { success: true, action: 'editForum' };
+		} catch (err) {
+			console.error('editForum action error:', err);
+			return fail(500, { error: 'Failed to edit forum' });
 		}
 	}
 };
