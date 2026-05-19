@@ -2,6 +2,8 @@ node_modules/
 .env
 .env.backup
 .env.*.backup
+e:*
+elinux*
 logs/*.log
 client-metadata.json
 .svelte-kit/
