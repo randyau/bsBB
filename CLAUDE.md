@@ -4,9 +4,9 @@ This file contains the essential specification, architecture decisions, and desi
 
 ## Status
 
-✅ **Phases 1–10 Complete** — Production-ready forum with full features: auth, forums, posts, moderation, search, notifications, custom roles, user post management, unread tracking, thread subscriptions, timezone support, and comprehensive design system.
+✅ **Phases 1–13 Complete** — v1.0 launch-ready forum with full features: auth, forums, posts, moderation, search, notifications, custom roles, user post management, unread tracking, thread subscriptions, timezone support, approval queue, accessibility polish, and full deployment/ops documentation.
 
-**Current:** Ready for Phase 11 (Approval Queue). See ROADMAP.md for next steps.
+**Current:** v1.0 launch-ready. See ROADMAP.md for post-launch backlog.
 
 **Dev:** See "Dev Workflow" section below.
 
@@ -194,10 +194,10 @@ Only Caddy is exposed to the internet. All other services on internal network on
 
 ### Core Tables
 
-**`users`** — ATproto identity, cached profile, role, notification preferences, timezone
-**`forums`** — Hierarchical forum structure (parent_id for sub-forums)
+**`users`** — ATproto identity, cached profile, globalRole, notify preferences (type/frequency/bluesky), timezone, chat_session_encrypted
+**`forums`** — Hierarchical forum structure (parent_id for sub-forums, require_approval_days for spam gate)
 **`threads`** — Discussion threads (locked/pinned status, last_post_at for sorting)
-**`posts`** — Thread posts (markdown + sanitized HTML, reply_to_post_id for quotes, status for soft-delete)
+**`posts`** — Thread posts (markdown + sanitized HTML, reply_to_post_id for quotes, status for soft-delete, is_approved + rejection_reason for approval queue)
 **`post_revisions`** — Edit history (append-only snapshots)
 
 ### Permissions & Roles
@@ -213,6 +213,11 @@ Only Caddy is exposed to the internet. All other services on internal network on
 **`notification_queue`** — Async DM queue (pending/sent/failed status, payload JSONB)
 **`notification_subscriptions`** — Per-thread follow/mute (user_did + thread_id + type)
 **`thread_views`** — Last-viewed tracking (user_did + thread_id + last_viewed_at)
+
+### Inbox & Rate Limiting
+
+**`user_notifications`** — In-app notification inbox (always written, independent of DM opt-in; type: reply/quote/new_reply_in_thread/post_rejected)
+**`rate_limit_buckets`** — Token-bucket rate limiting by key (DID or IP), count + window_start
 
 ### Admin & Config
 
@@ -248,6 +253,12 @@ See ARCHITECTURE.md for full schema with column types and indexes.
 ---
 
 ## Notification System
+
+### In-App Inbox (always-on)
+
+- Written to `user_notifications` on every qualifying event, regardless of DM opt-in
+- Types: `reply`, `quote`, `new_reply_in_thread`, `post_rejected`
+- Users see their inbox without needing a Bluesky account connected
 
 ### Email (Admin/Moderator only)
 
