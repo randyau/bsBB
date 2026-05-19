@@ -48,9 +48,9 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "Generating P-256 JWK keypair..."
-mapfile -t KEYPAIR < <(node "$SCRIPT_DIR/gen-keypair.js")
-PRIVATE_JWK="${KEYPAIR[0]}"
-PUBLIC_JWK="${KEYPAIR[1]}"
+KEYPAIR_LINES=$(node "$SCRIPT_DIR/gen-keypair.js")
+PRIVATE_JWK=$(echo "$KEYPAIR_LINES" | grep "^ATPROTO_PRIVATE_KEY=" | cut -d'=' -f2-)
+PUBLIC_JWK=$(echo "$KEYPAIR_LINES" | grep "^ATPROTO_PUBLIC_KEY=" | cut -d'=' -f2-)
 echo "  Keypair generated."
 
 # ---------------------------------------------------------------------------
