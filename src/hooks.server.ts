@@ -19,19 +19,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Session hydration
 	const token = getSessionToken(event);
+	console.log('[hooks] session token present:', !!token, token?.substring(0, 20) + '...');
 	if (token) {
 		const result = await validateSession(token);
+		console.log('[hooks] session validation result:', !!result);
 		if (result) {
 			event.locals.user = result.user;
 			event.locals.sessionId = result.sessionId;
+			console.log('[hooks] user set:', result.user.did);
 		} else {
 			event.cookies.delete('session', { path: '/' });
 			event.locals.user = null;
 			event.locals.sessionId = null;
+			console.log('[hooks] invalid session, cookie deleted');
 		}
 	} else {
 		event.locals.user = null;
 		event.locals.sessionId = null;
+		console.log('[hooks] no session token');
 	}
 
 	// Banned user block — except /banned and /logout

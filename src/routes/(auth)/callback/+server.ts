@@ -26,17 +26,16 @@ export const GET: RequestHandler = async (event) => {
 		// Create our own session
 		const token = await createSession(did);
 		console.log('Session created, token:', token.substring(0, 20) + '...');
+
+		// Set cookie before redirect (setSessionCookie modifies event.cookies which affects the response)
 		setSessionCookie(event, token);
 		console.log('Session cookie set');
 
 		// Store flash message for first-admin banner in the URL
 		// Simple approach: redirect with a query param that the layout reads once
-		if (flashAdmin) {
-			console.log('Redirecting with firstAdmin=1');
-			redirect(302, '/?firstAdmin=1');
-		}
-		console.log('Redirecting to /');
-		redirect(302, '/');
+		const redirectUrl = flashAdmin ? '/?firstAdmin=1' : '/';
+		console.log('Redirecting to:', redirectUrl);
+		redirect(302, redirectUrl);
 	} catch (err) {
 		if ((err as { status?: number }).status === 302) throw err; // re-throw redirects
 		const message = err instanceof Error ? err.message : 'Unknown error';
