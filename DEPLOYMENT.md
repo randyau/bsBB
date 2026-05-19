@@ -150,6 +150,14 @@ dig +short yourforum.com
 
 ## Step 5 — Start Production Services
 
+**Quick start (manual):**
+
+```bash
+bash scripts/start-prod.sh
+```
+
+Or manually:
+
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
@@ -164,6 +172,8 @@ Check they're all running:
 ```bash
 docker compose -f docker-compose.prod.yml ps
 ```
+
+**For production deployment with auto-restart on reboot, see [Step 7b — Set Up as Systemd Service](#step-7b--set-up-as-systemd-service) below.**
 
 ---
 
@@ -185,6 +195,64 @@ After logging in:
 1. Go to **Admin → Forums** to set up your forum categories
 2. Go to **Admin → Settings** if you want to adjust visibility defaults
 3. Invite your community
+
+---
+
+---
+
+## Step 7b — Set Up as Systemd Service (Optional but Recommended)
+
+For production, set up bsBB as a systemd service so it automatically starts on boot and restarts if it crashes.
+
+### 1. Create the `forum` user (if not already created)
+
+```bash
+sudo useradd -m -s /bin/bash forum
+sudo usermod -aG docker forum
+```
+
+### 2. Ensure bsBB is owned by the forum user
+
+```bash
+sudo chown -R forum:forum /home/forum/bsBB
+```
+
+### 3. Install the systemd service file
+
+```bash
+sudo cp scripts/bsbb.service /etc/systemd/system/bsbb.service
+sudo systemctl daemon-reload
+```
+
+### 4. Enable and start the service
+
+```bash
+sudo systemctl enable bsbb.service
+sudo systemctl start bsbb.service
+```
+
+### 5. Verify it's running
+
+```bash
+sudo systemctl status bsbb.service
+```
+
+You should see `● bsbb.service - bsBB Forum` with `Active: active (running)`.
+
+### Monitor and troubleshoot
+
+```bash
+# View service logs
+sudo journalctl -u bsbb -f
+
+# Restart the service
+sudo systemctl restart bsbb
+
+# Stop the service
+sudo systemctl stop bsbb
+```
+
+The service will automatically restart bsBB if it crashes (up to 3 times in 60 seconds), and will start automatically when the server boots.
 
 ---
 
