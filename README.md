@@ -119,9 +119,9 @@ bsBB/
 │   │   ├── db/                 # Drizzle ORM schema, migrations, db instance
 │   │   ├── auth/               # Session management, ATproto OAuth, profile sync
 │   │   ├── abuse/              # Rate limiting
-│   │   ├── markdown/           # Markdown pipeline, OG fetch, slug generation
-│   │   ├── notifications/      # Email and Bluesky DM dispatch
-│   │   ├── crypto/             # AES-256 encryption for chat session tokens
+│   │   ├── markdown/           # Markdown pipeline, OG fetch, slug generation, client preview
+│   │   ├── notifications.ts    # In-app + DM notification helpers
+│   │   ├── email.ts            # Email dispatch (Nodemailer)
 │   │   └── permissions/        # canRead() and canPost() with forum permission chain
 │   ├── hooks.server.ts         # Session hydration, banned user redirect
 │   └── +layout.svelte          # Root layout with nav and theme toggle
@@ -138,18 +138,17 @@ bsBB/
 │   ├── seed.ts                 # Seed instance_settings + General forum
 │   ├── seed-dev-users.ts       # Seed fake users for dev login
 │   └── gen-keypair.js          # Generate ATproto OAuth keypair
-└── docs/
-    CLAUDE.md                   # Full spec and architecture decisions
-    PATTERNS.md                 # Code style and conventions
-    ARCHITECTURE.md             # Technical design and schema
-    DEPLOYMENT.md               # Production deployment guide
-    QUICKSTART.md               # Fast path: zero to running
-    UPGRADE.md                  # How to upgrade an existing instance
-    BACKUP.md                   # Backup and restore procedures
-    ADMIN_GUIDE.md              # Admin operations reference
-    USER_GUIDE.md               # User features reference
-    SCRIPTS.md                  # Helper scripts reference
-    ROADMAP.md                  # Phase history and status
+├── CLAUDE.md                   # Full spec and architecture decisions
+├── PATTERNS.md                 # Code style and conventions
+├── ARCHITECTURE.md             # Technical design and schema
+├── DEPLOYMENT.md               # Production deployment guide
+├── QUICKSTART.md               # Fast path: zero to running
+├── UPGRADE.md                  # How to upgrade an existing instance
+├── BACKUP.md                   # Backup and restore procedures
+├── ADMIN_GUIDE.md              # Admin operations reference
+├── USER_GUIDE.md               # User features reference
+├── SCRIPTS.md                  # Helper scripts reference
+└── ROADMAP.md                  # Phase history and status
 ```
 
 ### Running Tests
@@ -163,7 +162,7 @@ npm run check      # TypeScript + Svelte type check
 ### Updating Database Schema
 
 1. Edit `src/lib/db/schema.ts`
-2. Generate a migration: `npx drizzle-kit generate`
+2. Generate a migration: `npm run db:generate`
 3. Review the generated SQL in `src/lib/db/migrations/`
 4. Apply it: `npm run db:migrate`
 
@@ -189,8 +188,8 @@ npm run preview   # Test the production build locally
 ### Forum Permissions
 
 - **Role hierarchy:** `guest` → `member` → `moderator` → `admin`
-- **Global roles** (`users.global_role`): `member`, `admin`, `banned`
-- **Per-forum roles** (`user_forum_roles`): `moderator`
+- **Global roles** (`users.global_role`): `member`, `moderator`, `admin`, `banned`
+- **Per-forum roles** (`user_forum_roles`): `moderator` (forum-specific assignment)
 - **Permission inheritance:** walks up the forum parent chain until explicit permissions are found
 
 ### Content & Markdown

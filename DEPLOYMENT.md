@@ -96,7 +96,7 @@ bash scripts/setup.sh
 This interactive script:
 
 1. Generates a P-256 keypair for ATproto OAuth
-2. Generates random secrets for sessions and encryption
+2. Generates a random `SESSION_SECRET`
 3. Prompts you for your configuration
 4. Writes a complete `.env` file
 5. Writes `docker/caddy-static/client-metadata.json`

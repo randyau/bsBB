@@ -1,6 +1,6 @@
 # CLAUDE.md — ATproto Forum Project
 
-This file contains the essential specification, architecture decisions, and design rationale needed to work on this project. For detailed implementation history, see HISTORY.md.
+This file contains the essential specification, architecture decisions, and design rationale needed to work on this project.
 
 ## Status
 
@@ -156,8 +156,8 @@ The forum is intended to be open sourced so that others can self-host it. All se
 
 - SvelteKit (same codebase as backend via server actions)
 - CSS: Tailwind CSS v4 with CSS custom properties for light/dark theming
-- Markdown editor: Plain `<textarea>` with live client-side preview via `markdown-it` (no CodeMirror or rich editor)
-- Shared components: AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead, ThemeToggle
+- Markdown editor: Plain `<textarea>` with live client-side preview via `markdown-it` + DOMPurify (no CodeMirror or rich editor)
+- Shared components: AdminPageShell, Pagination, EmptyState, Breadcrumb, ConfirmModal, UserTypeahead, ThemeToggle, EmojiPicker, MarkdownToolbar, Toast, TableSearch
 
 ### Infrastructure
 
@@ -168,7 +168,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | Prod services | app + worker + db + caddy (4 services) |
 | Dev services | db only — app runs via `npm run dev` |
 | HTTPS | Caddy automatic Let's Encrypt |
-| Reverse proxy | Caddy (also serves `client-metadata.json` as static file) |
+| Reverse proxy | Caddy (serves `client-metadata.json` as static file; proxies everything else to app) |
 | Backups | Daily `pg_dump` → Cloudflare R2 or Backblaze B2 via cron, 7-day rolling |
 
 ### Docker Compose Services
@@ -194,7 +194,7 @@ Only Caddy is exposed to the internet. All other services on internal network on
 
 ### Core Tables
 
-**`users`** — ATproto identity, cached profile, globalRole, notify preferences (type/frequency/bluesky), timezone, chat_session_encrypted
+**`users`** — ATproto identity, cached profile, globalRole (`admin|moderator|member|banned`), notify preferences (type/frequency/bluesky), timezone
 **`forums`** — Hierarchical forum structure (parent_id for sub-forums, require_approval_days for spam gate)
 **`threads`** — Discussion threads (locked/pinned status, last_post_at for sorting)
 **`posts`** — Thread posts (markdown + sanitized HTML, reply_to_post_id for quotes, status for soft-delete, is_approved + rejection_reason for approval queue)
@@ -230,17 +230,14 @@ See ARCHITECTURE.md for full schema with column types and indexes.
 
 ## ATproto OAuth Architecture
 
-### Two Tiers of Auth Scope
+### Auth Scope
 
-**Tier 1 — Identity only (all users at login)**
+**Identity only (all users at login)**
 - Scope: `atproto`
 - Used for: signing in, verifying identity, reading profile
 - No write access to user's PDS
 
-**Tier 2 — Identity + chat (opt-in notification users)**
-- Scope: `atproto transition:chat.bsky`
-- Requested lazily when user enables Bluesky DM notifications in their profile
-- Tokens stored encrypted in `users.chat_session_encrypted`
+> **Note:** An earlier design stored per-user chat tokens (`chat_session_encrypted`) to send DMs on behalf of users. This was removed. DM notifications are now sent entirely by the forum service account using its App Password credentials — no additional OAuth scope is requested from users.
 
 ### Client Metadata
 
@@ -333,13 +330,13 @@ SETUP_COMPLETE=true
 
 These must be in place from day one:
 
-- `SameSite=Strict` on all session cookies
+- `SameSite=Lax` on session cookies (Strict breaks ATproto OAuth redirects back from the PDS)
 - Content Security Policy headers (declared in `svelte.config.js`, NOT `hooks.server.ts`)
 - All markdown sanitized server-side via `rehype-sanitize` **before storage**
 - Drizzle parameterized queries throughout — no raw string concatenation
 - Rate limiting at HTTP layer: by DID post-auth, by IP pre-auth
 - DIDs as all user foreign keys — never handles
-- `chat_session_encrypted` tokens encrypted at rest (AES-256)
+- Service account App Password stored only in env vars; never in DB
 - Postgres and app containers not exposed outside Docker network
 - Mod action log is append-only — no delete route
 
@@ -353,94 +350,9 @@ These must be in place from day one:
 
 ---
 
-## User Safety Guardrails
-
-### Confirmation Dialogs for Irreversible Actions
-
-**All actions that destroy, permanently delete, or irreversibly modify data must have a confirmation dialog:**
-
-```typescript
-function confirmDelete(): boolean {
-  return confirm(
-    'Permanently delete this post?\n\n' +
-    'This will irreversibly clear all content. The post stub will remain ' +
-    'for quotes/links, but content cannot be recovered.\n\n' +
-    'This action cannot be undone.'
-  );
-}
-```
-
-**Message guidelines:**
-- Be specific: state what will happen and whether it's reversible
-- Use "irreversible" / "cannot be undone" for permanent operations
-- Use "removed from view" / "can be restored" for soft-delete
-- Keep it 2-3 sentences max
-
-### Button Styling
-
-- **Destructive:** Always use `.btn-danger` (red) to signal severity
-- **Primary:** Use `.btn-primary` for main CTA
-- **Secondary:** Use `.btn-secondary` for alternatives
-- **Disabled:** All support `:disabled` styling
-
-### Audit Trail
-
-All irreversible operations logged in `mod_log` with:
-- The user/moderator who took the action
-- What action was taken
-- Optional reason field
-- Timestamp
-- Target resource (post ID, user DID, etc.)
-
----
-
 ## Deployment
 
-### First-Run Setup
-
-`scripts/setup.sh` automates deployment setup:
-
-1. Generates P-256 JWK keypair via `scripts/gen-keypair.js`
-2. Writes private key to `.env`
-3. Generates `client-metadata.json` with public key + config
-4. Prompts for service account handle + App Password; validates via API
-5. Prompts for SMTP credentials; sends test email
-6. Prompts for default forum visibility (`public` or `members-only`)
-7. Writes `SETUP_COMPLETE=true` to `.env`
-8. All output logged to `logs/setup.log`
-9. First user to log in is auto-promoted to admin (one-time only)
-
-### Deployment Workflow
-
-```bash
-# On the server
-git pull
-docker compose -f docker-compose.prod.yml build app worker
-docker compose -f docker-compose.prod.yml up -d
-```
-
-Two-minute deploy. Rolling restart acceptable at this scale.
-
-### Backup Strategy
-
-```bash
-# Daily at 2am — adjust project name and bucket
-0 2 * * * docker compose -f /path/to/docker-compose.prod.yml exec -T db \
-  pg_dump -U forum forum | gzip | \
-  rclone rcat r2:forum-backups/$(date +\%Y-\%m-\%d).sql.gz
-```
-
-Keep 7 days rolling. Use `rclone` configured for R2 or B2.
-
-### Full Recovery
-
-1. Provision new instance, point DNS
-2. Clone repo
-3. Copy `.env` and latest backup
-4. `docker compose -f docker-compose.prod.yml up -d`
-5. `gunzip < backup.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U forum forum`
-
-Total time: under 30 minutes.
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the full production deployment guide, **[BACKUP.md](BACKUP.md)** for backup/restore procedures, and **[UPGRADE.md](UPGRADE.md)** for upgrading an existing instance.
 
 ---
 
@@ -458,7 +370,7 @@ Total time: under 30 minutes.
 | Dynamic client-metadata | Stateless app across instances |
 | Notifications opt-in | Bluesky users sensitive to spam; trust > reach |
 | Plain textarea editor | Simple; preview via server endpoint eliminates client library |
-| Button-toggled preview | Authoritative server-rendered preview (no client markdown lib) |
+| Live client-side preview | `markdown-it` + DOMPurify on every keystroke; server pipeline is authoritative at submit |
 | `pg_dump` backups | Infrastructure minimal; R2/B2 cheap and reliable |
 | Custom sessions | 32-byte token + SHA-256, ~50 lines, simple and proven |
 
@@ -473,9 +385,14 @@ Total time: under 30 minutes.
 | **PATTERNS.md** | Code patterns, style guide, conventions (read before coding) |
 | **ARCHITECTURE.md** | Technical design, full database schema, APIs, stack decisions |
 | **SCRIPTS.md** | Helper scripts reference — when to use each script and what it does |
+| **QUICKSTART.md** | From zero to running locally in 5 minutes |
 | **DEPLOYMENT.md** | Production deployment guide |
-| **ROADMAP.md** | Phase roadmap (Phases 11–13) and future work |
+| **BACKUP.md** | Backup strategies, restore procedures, disaster recovery |
+| **UPGRADE.md** | How to upgrade between versions |
+| **ADMIN_GUIDE.md** | Admin operations: users, roles, forums, moderation |
+| **USER_GUIDE.md** | End-user guide: posting, search, notifications, settings |
+| **ROADMAP.md** | Phase roadmap and post-launch backlog |
+| **FUTURE_IMPROVEMENTS.md** | Prioritized post-v1.0 feature backlog |
 | **GUARDRAILS.md** | AI engineering operational rules |
-| **HISTORY.md** | Implementation history (Phases 1–10, 80+ commits) |
 
 ---

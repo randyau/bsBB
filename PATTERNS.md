@@ -394,17 +394,18 @@ All modals must include ARIA attributes:
 All markdown rendered server-side using `unified` + `remark`:
 
 ```typescript
-import { renderMarkdownServer } from '$lib/markdown/server';
+import { renderMarkdown } from '$lib/markdown';
 
-const html = await renderMarkdownServer(markdownText);
+const html = await renderMarkdown(markdownText);
 // Automatically sanitized via rehype-sanitize before storage
 ```
 
 ### Editor UX
 
 - Plain `<textarea>` for editing
-- Preview toggled via button, rendered server-side via `POST /api/preview`
-- No client-side markdown dependency; preview always authoritative
+- Live preview on every keystroke via `renderMarkdownClient()` (`markdown-it` + DOMPurify, client-side)
+- Server pipeline (`renderMarkdown()`) is authoritative at submit — client preview is for UX only
+- `POST /api/preview` endpoint exists but is not used by the UI
 
 ---
 
@@ -424,49 +425,6 @@ const html = await renderMarkdownServer(markdownText);
 - Users: 50 items/page (default)
 - Show current page + total to user
 - Disable "Previous" / "Next" at boundaries
-
----
-
-## Git and Commits
-
-### Commit Messages
-
-- Imperative mood: "Add feature" not "Added feature"
-- First line ≤ 50 characters
-- Reference issue/task if applicable
-- Include reasoning in body if non-obvious
-
-Example:
-
-```
-Add datetime formatting style guide
-
-Document formatTime/formatDate/formatAbsoluteTime usage.
-Add formatDate() for date-only use cases.
-Updated imports across codebase.
-
-Resolves: design consistency in datetime rendering
-```
-
-### Code Review
-
-- All PRs require review
-- CI must pass (tests, type check)
-- Accessibility and theme-safety checks encouraged
-
----
-
-## File Size Guidelines
-
-| Item | Limit | Action |
-|---|---|---|
-| Source file | 300 lines | Propose split |
-| Function | 40 lines | Extract helper |
-| Test file | 400 lines | Split by scenario |
-| Nesting depth | 4 levels | Extract function |
-| Function parameters | 5 | Use options object |
-
-When approaching a limit, propose a split before continuing.
 
 ---
 

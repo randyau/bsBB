@@ -66,7 +66,7 @@ To quote a specific post in your reply:
 
 ### Markdown Formatting
 
-Posts use Markdown. A live preview updates as you type (click the Preview button). Common formatting:
+Posts use Markdown. A live preview updates as you type. Common formatting:
 
 ```
 **bold text**
@@ -201,7 +201,7 @@ author:theirhandle.bsky.social
 
 - Your Bluesky handle, display name, and avatar are publicly visible on all your posts
 - Your email is never collected or stored
-- Your Bluesky account tokens are stored encrypted — the forum cannot access your Bluesky account beyond what you authorized
+- The forum does not store your Bluesky OAuth tokens beyond what is needed to establish your session
 - Notification DMs are sent from the forum's bot account — your DMs with it are between you and the bot
 
 ---

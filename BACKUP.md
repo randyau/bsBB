@@ -178,7 +178,7 @@ Use this when recovering to a completely fresh server.
 4. **Restore your `.env` file:**
    Copy your backed-up `.env` to the project root. Also restore `docker/caddy-static/client-metadata.json`.
    
-   If you don't have your `.env`, you can re-run `bash scripts/setup.sh` — but you'll need to generate new secrets, and existing user sessions will be invalidated. Bluesky DM chat tokens will also need to be re-authorized by users.
+   If you don't have your `.env`, you can re-run `bash scripts/setup.sh` — but you'll need to generate new secrets, and existing user sessions will be invalidated.
 
 5. **Point DNS to the new server's IP.** (May take a few minutes to propagate.)
 

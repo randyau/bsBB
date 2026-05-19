@@ -20,7 +20,7 @@ docker compose -f docker-compose.prod.yml exec db \
 
 ## Admin Dashboard
 
-The admin dashboard is at `/admin`. It's only accessible to users with `global_role = 'admin'`.
+The admin dashboard is at `/admin`. It's accessible to users with `global_role = 'admin'` or `global_role = 'moderator'` (global moderator).
 
 Sections:
 
@@ -29,8 +29,10 @@ Sections:
 | **Users** | View, ban, promote, or manage any user's posts |
 | **Forums** | Create, rename, reorder, and configure forums and sub-forums |
 | **Threads** | Lock, unlock, pin, or move threads across forums |
+| **Posts** | View and manage posts across all forums |
 | **Roles** | Create custom roles, assign them to users |
 | **Approval Queue** | Review and approve/reject posts from new accounts |
+| **Notifications** | Notification worker debug log — delivery errors, retry counts |
 | **Mod Log** | Audit trail of all moderation actions |
 | **SQL Query** | Run SELECT queries against the database (read-only) |
 
@@ -242,10 +244,10 @@ SELECT created_at, moderator_did, action, reason
 FROM mod_log ORDER BY created_at DESC LIMIT 20;
 
 -- Pending approval queue
-SELECT p.id, u.handle, p.created_at, LEFT(p.content_markdown, 100)
+SELECT p.id, u.handle, p.created_at, LEFT(p.body_markdown, 100)
 FROM posts p
 JOIN users u ON u.did = p.author_did
-WHERE p.is_approved = false AND p.status = 'visible'
+WHERE p.is_approved = false AND p.status = 'active'
 ORDER BY p.created_at;
 ```
 

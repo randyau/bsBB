@@ -109,9 +109,10 @@ npx tsx scripts/seed-dev-users.ts
 - `DEV_AUTH_ENABLED=true` in `.env.local` (automatic via `npm run dev:setup`)
 
 **Test users created:**
-- `did:example:alice` (admin)
-- `did:example:bob` (member)
-- `did:example:charlie` (member)
+- `did:example:dev-admin` → handle `dev-admin.test` (admin)
+- `did:example:dev-moderator` → handle `dev-moderator.test` (member; per-forum mod role set separately)
+- `did:example:dev-member` → handle `dev-member.test` (member)
+- `did:example:dev-banned` → handle `dev-banned.test` (banned)
 
 ---
 

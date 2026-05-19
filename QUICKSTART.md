@@ -42,12 +42,11 @@ npm install
 cp .env.example .env
 ```
 
-Open `.env` and fill in the two secrets:
+Open `.env` and fill in the session secret:
 ```env
 SESSION_SECRET=anything-at-least-32-characters-long
-ENCRYPTION_KEY=anything-else-at-least-32-characters
 ```
-Generate real random values with: `openssl rand -hex 32` (run twice)
+Generate a real random value with: `openssl rand -hex 32`
 
 **3. Start everything:**
 ```bash
@@ -108,9 +107,8 @@ cp .env.example .env
 Edit `.env` (use `nano .env` or open the file from VS Code):
 ```env
 SESSION_SECRET=anything-at-least-32-characters-long
-ENCRYPTION_KEY=anything-else-at-least-32-characters
 ```
-Generate real random values: `openssl rand -hex 32`
+Generate a real random value: `openssl rand -hex 32`
 
 **3. Start everything:**
 ```bash
