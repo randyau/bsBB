@@ -48,5 +48,6 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		themeOverrideCss,
 		customCss: settings.custom_css,
 		fontBody: settings.font_body,
+		baseUrl: process.env.PUBLIC_BASE_URL ?? '',
 	};
 };
