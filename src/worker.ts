@@ -243,16 +243,25 @@ async function handleDmNotification(recipientDid: string, payload: any) {
 	const serviceDid = serviceAgent.session?.did;
 	if (!serviceDid) throw new Error('Service account session has no DID after login');
 
+	// Chat methods are served by api.bsky.chat, not bsky.social — proxy header required
+	const chatHeaders = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' };
+
 	let convoId: string;
 	try {
-		const convoRes = await serviceAgent.api.chat.bsky.convo.getConvoForMembers({ members: [recipientDid, serviceDid] });
+		const convoRes = await serviceAgent.api.chat.bsky.convo.getConvoForMembers(
+			{ members: [recipientDid, serviceDid] },
+			{ headers: chatHeaders }
+		);
 		convoId = convoRes.data.convo.id;
 	} catch (err: any) {
 		throw new Error(`Failed to get/create convo between ${recipientDid} and ${serviceDid}: ${err.message}`);
 	}
 
 	try {
-		await serviceAgent.api.chat.bsky.convo.sendMessage({ convoId, message: { text: messageText } });
+		await serviceAgent.api.chat.bsky.convo.sendMessage(
+			{ convoId, message: { text: messageText } },
+			{ headers: chatHeaders }
+		);
 	} catch (err: any) {
 		throw new Error(`Failed to send DM in convo ${convoId}: ${err.message}`);
 	}

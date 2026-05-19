@@ -319,9 +319,6 @@ DATABASE_URL=postgresql://forum:forum@localhost:5432/forum   # dev
 # Sessions
 SESSION_SECRET=<random 32+ byte string>
 
-# Encryption (for chat_session_encrypted column)
-ENCRYPTION_KEY=<random 32-byte hex string>
-
 # App
 PUBLIC_BASE_URL=https://yourforum.com
 SETUP_COMPLETE=true

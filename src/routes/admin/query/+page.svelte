@@ -14,7 +14,7 @@
 			<p class="font-semibold text-[rgb(var(--color-warning-text,var(--color-text)))]">Security notice</p>
 			<p class="mt-1 text-[rgb(var(--color-text-secondary))]">
 				This tool executes raw SQL and returns all matching rows. Results may include sensitive data
-				including session token hashes and encrypted chat tokens. All queries are logged to the
+				including session token hashes. All queries are logged to the
 				moderation audit log.
 			</p>
 		</div>

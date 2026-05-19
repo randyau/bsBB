@@ -50,7 +50,6 @@ Open `.env` and set at minimum:
 ```env
 # Generate with: openssl rand -hex 32
 SESSION_SECRET=your-random-secret-here
-ENCRYPTION_KEY=your-other-random-secret-here
 ```
 
 Leave `DATABASE_URL` as-is — it matches the dev database container.

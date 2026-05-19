@@ -177,7 +177,6 @@ export const actions: Actions = {
 				avatarUrl: null,
 				globalRole: 'member',
 				notifyViaBluesky: false,
-				chatSessionEncrypted: null
 			}).where(eq(users.did, locals.user.did));
 
 			// Delete all sessions for this user
