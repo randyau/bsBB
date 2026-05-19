@@ -1,7 +1,25 @@
 @import "tailwindcss";
 
 /* Typography Scale — independent of theme */
+/* Dark theme vars on bare :root prevent white flash when data-theme hasn't been set yet */
 :root {
+	/* Dark theme defaults (matches :root[data-theme="dark"] below) */
+	--color-primary: 96 165 250;
+	--color-primary-dark: 59 130 246;
+	--color-primary-light: 147 197 253;
+	--color-bg: 17 24 39;
+	--color-bg-secondary: 31 41 55;
+	--color-bg-tertiary: 55 65 81;
+	--color-text: 243 244 246;
+	--color-text-secondary: 209 213 219;
+	--color-text-muted: 156 163 175;
+	--color-border: 75 85 99;
+	--color-border-light: 55 65 81;
+	--color-success: 52 211 153;
+	--color-warning: 251 191 36;
+	--color-error: 248 113 113;
+	--color-deleted: 107 114 128;
+
 	/* Type scale */
 	--text-xs: 0.75rem;
 	--text-sm: 0.875rem;
