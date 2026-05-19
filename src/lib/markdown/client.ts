@@ -5,7 +5,7 @@ import { emojify } from 'node-emoji';
 const md = new MarkdownIt({
 	html: false,
 	breaks: true,
-	linkify: true,
+	linkify: false,
 	typographer: false,
 });
 
