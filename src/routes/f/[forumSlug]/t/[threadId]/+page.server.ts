@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions } from '$lib/db/schema';
+import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions, piiRemovalRequests } from '$lib/db/schema';
 import { eq, and, sql, ne, inArray, count } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { canRead, canPost } from '$lib/permissions/index.js';
@@ -513,5 +513,40 @@ export const actions: Actions = {
 			));
 
 		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
+	},
+
+	requestPiiRemoval: async ({ locals, request, params }) => {
+		if (!locals.user) return fail(401, { error: 'Must be signed in' });
+
+		const form = await request.formData();
+		const postId = String(form.get('postId') ?? '').trim();
+		const reason = String(form.get('reason') ?? '').trim();
+
+		if (!postId) return fail(422, { error: 'Post ID required' });
+		if (!reason) return fail(422, { error: 'Reason is required — describe the PII in this post' });
+
+		const [post] = await db.select({ id: posts.id, status: posts.status })
+			.from(posts)
+			.where(eq(posts.id, postId))
+			.limit(1);
+
+		if (!post) return fail(404, { error: 'Post not found' });
+		if (post.status === 'deleted') return fail(422, { error: 'Post content is already wiped' });
+
+		// Prevent duplicate pending requests for the same post
+		const existing = await db.select({ id: piiRemovalRequests.id })
+			.from(piiRemovalRequests)
+			.where(and(eq(piiRemovalRequests.postId, postId), eq(piiRemovalRequests.status, 'pending')))
+			.limit(1);
+
+		if (existing.length > 0) return fail(422, { error: 'A removal request for this post is already pending' });
+
+		await db.insert(piiRemovalRequests).values({
+			postId,
+			requesterDid: locals.user.did,
+			reason,
+		});
+
+		return { success: true, action: 'requestPiiRemoval' };
 	},
 };

@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { posts, threads, users, modLog, forums } from '$lib/db/schema';
+import { posts, threads, users, modLog, forums, postRevisions } from '$lib/db/schema';
 import { eq, desc, ilike, and, or, inArray, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 
@@ -137,14 +137,19 @@ export const actions: Actions = {
 		if (!postId) return fail(422, { error: 'Post ID is required' });
 
 		try {
-			// Clear content and mark as deleted
-			await db.update(posts).set({
-				status: 'deleted',
-				bodyMarkdown: '',
-				bodyHtml: '',
-				linkMetadata: null,
-				replyToPostId: null
-			}).where(eq(posts.id, postId));
+			await db.transaction(async (tx) => {
+				// Purge revision history before wiping post
+				await tx.delete(postRevisions).where(eq(postRevisions.postId, postId));
+
+				// Clear content and mark as deleted
+				await tx.update(posts).set({
+					status: 'deleted',
+					bodyMarkdown: '',
+					bodyHtml: '',
+					linkMetadata: null,
+					replyToPostId: null
+				}).where(eq(posts.id, postId));
+			});
 
 			await db.insert(modLog).values({
 				moderatorDid: locals.user!.did,

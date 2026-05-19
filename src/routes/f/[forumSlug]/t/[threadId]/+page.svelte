@@ -24,6 +24,9 @@
 	let modEditPreviewHtml: string = $state('');
 	let modEditReason: string = $state('');
 	let isModEditSaving: boolean = $state(false);
+	let piiRequestPostId: string | null = $state(null);
+	let piiRequestReason: string = $state('');
+	let piiRequestSubmitting: boolean = $state(false);
 
 	function updateReplyPreview() {
 		previewHtml = renderMarkdownClient(replyBody);
@@ -437,6 +440,17 @@
 								</button>
 							{/if}
 
+							{#if data.user && post.status === 'active'}
+								<button
+									type="button"
+									onclick={() => { piiRequestPostId = post.id; piiRequestReason = ''; }}
+									class="text-xs text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-error))] hover:underline"
+									aria-label="Request PII removal for post by {post.authorHandle}"
+								>
+									Report PII
+								</button>
+							{/if}
+
 							{#if data.canModerate}
 								<details class="relative">
 									<summary class="cursor-pointer text-xs bg-[rgb(var(--color-bg-tertiary))] hover:bg-[rgb(var(--color-border))] text-[rgb(var(--color-text-secondary))] px-2 py-1 rounded list-none select-none" aria-label="Post moderation actions">
@@ -659,4 +673,68 @@
 			{/if}
 		</div>
 	{/if}
+</div>
+
+<!-- PII Removal Request Modal -->
+{#if piiRequestPostId}
+	<div
+		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="pii-modal-title"
+	>
+		<div class="box max-w-md w-full mx-4">
+			<h2 id="pii-modal-title" class="text-lg font-semibold mb-2">Request PII Removal</h2>
+			<p class="text-sm text-[rgb(var(--color-text-muted))] mb-4">
+				Use this only for posts containing personally identifiable information (real name, address, phone number, etc.) that should be permanently erased. Moderators will review and, if approved, will wipe the post content and its full edit history.
+			</p>
+			{#if form?.error && !piiRequestSubmitting}
+				<div class="alert alert-error mb-3 text-sm">{form.error}</div>
+			{/if}
+			<form
+				method="POST"
+				action="?/requestPiiRemoval"
+				use:enhance={() => {
+					piiRequestSubmitting = true;
+					return async ({ update }) => {
+						await update();
+						piiRequestSubmitting = false;
+						if (!form?.error) piiRequestPostId = null;
+					};
+				}}
+			>
+				<input type="hidden" name="postId" value={piiRequestPostId} />
+				<label for="pii-reason" class="block text-sm font-medium mb-1">
+					Describe the PII in this post <span aria-hidden="true">*</span>
+				</label>
+				<textarea
+					id="pii-reason"
+					name="reason"
+					bind:value={piiRequestReason}
+					rows="4"
+					required
+					maxlength="1000"
+					placeholder="e.g. Contains my full name and home address in the third paragraph"
+					class="form-control w-full mb-4"
+				></textarea>
+				<div class="flex gap-3 justify-end">
+					<button
+						type="button"
+						onclick={() => { piiRequestPostId = null; piiRequestReason = ''; }}
+						class="btn btn-secondary"
+					>
+						Cancel
+					</button>
+					<button
+						type="submit"
+						disabled={piiRequestSubmitting || !piiRequestReason.trim()}
+						class="btn btn-danger"
+					>
+						{piiRequestSubmitting ? 'Submitting…' : 'Submit request'}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
 </div>
