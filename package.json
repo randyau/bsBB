@@ -15,7 +15,10 @@
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bash scripts/migrate.sh",
-		"worker": "tsx src/worker.ts"
+		"worker": "tsx src/worker.ts",
+		"docker:build": "bash scripts/docker-rebuild.sh",
+		"docker:restart": "bash scripts/docker-restart.sh",
+		"docker:stop": "bash scripts/docker-stop.sh"
 	},
 	"devDependencies": {
 		"@sveltejs/kit": "^2.57.0",
