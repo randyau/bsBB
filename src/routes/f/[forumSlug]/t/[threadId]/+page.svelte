@@ -6,8 +6,7 @@
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import EmptyState from '$components/EmptyState.svelte';
 	import Pagination from '$components/Pagination.svelte';
-	import MarkdownHelp from '$components/MarkdownHelp.svelte';
-	import EmojiPicker from '$components/EmojiPicker.svelte';
+	import MarkdownToolbar from '$components/MarkdownToolbar.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -616,15 +615,10 @@
 					<!-- Body textarea/preview -->
 					<div>
 						<label for="reply-body" class="block text-sm font-semibold mb-2">Your reply (Markdown)</label>
-						<MarkdownHelp class="mb-3" />
 
 						<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 							<!-- Editor -->
 							<div>
-								<div class="flex items-center justify-between mb-2">
-									<label for="reply-body" class="text-xs text-[rgb(var(--color-text-muted))] font-medium">Write</label>
-									<EmojiPicker onEmojiSelect={(emoji) => replyBody += emoji} />
-								</div>
 								<textarea
 									id="reply-body"
 									name="body"
@@ -635,12 +629,7 @@
 									rows="6"
 									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
 								></textarea>
-								<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1" aria-live="polite" aria-atomic="true">
-									{replyBody.length} / 50,000 characters
-									{#if replyBody.length > 45000}
-										<span class="text-[rgb(var(--color-warning))] font-semibold">(approaching limit)</span>
-									{/if}
-								</p>
+								<MarkdownToolbar value={replyBody} onEmojiSelect={(emoji) => replyBody += emoji} />
 							</div>
 
 							<!-- Live Preview -->
