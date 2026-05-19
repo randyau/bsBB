@@ -30,49 +30,69 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 	}
 
 	const siteName = await getSetting('site_name', 'bsBB');
-	const key = Key.fromJwk(privateKeyJwkObj);
+	console.log('[ATproto] Parsed JWK keys:', Object.keys(privateKeyJwkObj));
+	console.log('[ATproto] JWK kty:', (privateKeyJwkObj as any).kty);
 
-	_client = new NodeOAuthClient({
-		clientMetadata: {
-			client_id: clientId,
-			client_name: `${siteName} Forum`,
-			client_uri: baseUrl,
-			redirect_uris: [`${baseUrl}/callback`],
-			scope: 'atproto',
-			grant_types: ['authorization_code', 'refresh_token'],
-			response_types: ['code'],
-			token_endpoint_auth_method: 'private_key_jwt',
-			token_endpoint_auth_signing_alg: 'ES256',
-			jwks: {
-				keys: [{ ...privateKeyJwkObj, use: 'sig', alg: 'ES256' }],
+	let key;
+	try {
+		key = Key.fromJwk(privateKeyJwkObj);
+		console.log('[ATproto] Created key:', typeof key, 'isActive:', (key as any).isActive);
+		console.log('[ATproto] Key prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(key)).slice(0, 10));
+	} catch (err) {
+		console.error('[ATproto] Failed to create key from JWK:', err);
+		throw err;
+	}
+
+	try {
+		console.log('[ATproto] Creating Keyset with key...');
+		const keyset = new Keyset([key]);
+		console.log('[ATproto] Keyset created successfully');
+
+		_client = new NodeOAuthClient({
+			clientMetadata: {
+				client_id: clientId,
+				client_name: `${siteName} Forum`,
+				client_uri: baseUrl,
+				redirect_uris: [`${baseUrl}/callback`],
+				scope: 'atproto',
+				grant_types: ['authorization_code', 'refresh_token'],
+				response_types: ['code'],
+				token_endpoint_auth_method: 'private_key_jwt',
+				token_endpoint_auth_signing_alg: 'ES256',
+				jwks: {
+					keys: [{ ...privateKeyJwkObj, use: 'sig', alg: 'ES256' }],
+				},
+				dpop_bound_access_tokens: true,
+				application_type: 'web',
 			},
-			dpop_bound_access_tokens: true,
-			application_type: 'web',
-		},
-		keyset: new Keyset([key]),
-		stateStore: {
-			async get(key: string) {
-				return stateStore.get(key);
+			keyset,
+			stateStore: {
+				async get(key: string) {
+					return stateStore.get(key);
+				},
+				async set(key: string, value: NodeSavedState) {
+					stateStore.set(key, value);
+				},
+				async del(key: string) {
+					stateStore.delete(key);
+				},
 			},
-			async set(key: string, value: NodeSavedState) {
-				stateStore.set(key, value);
+			sessionStore: {
+				async get(sub: string) {
+					return sessionStore.get(sub);
+				},
+				async set(sub: string, value: NodeSavedSession) {
+					sessionStore.set(sub, value);
+				},
+				async del(sub: string) {
+					sessionStore.delete(sub);
+				},
 			},
-			async del(key: string) {
-				stateStore.delete(key);
-			},
-		},
-		sessionStore: {
-			async get(sub: string) {
-				return sessionStore.get(sub);
-			},
-			async set(sub: string, value: NodeSavedSession) {
-				sessionStore.set(sub, value);
-			},
-			async del(sub: string) {
-				sessionStore.delete(sub);
-			},
-		},
-	});
+		});
+	} catch (err) {
+		console.error('[ATproto] Failed to create client:', err);
+		throw err;
+	}
 
 	return _client;
 }
