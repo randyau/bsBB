@@ -1,14 +1,17 @@
 <script lang="ts">
-	let theme = $state<'light' | 'dark'>('dark');
+	import { onMount } from 'svelte';
 
-	$effect(() => {
+	let theme = $state<'light' | 'dark'>('light');
+
+	onMount(() => {
+		// Read actual theme from DOM on mount
 		theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'dark';
 	});
 
 	function toggle() {
 		theme = theme === 'dark' ? 'light' : 'dark';
 		document.documentElement.setAttribute('data-theme', theme);
-		document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Strict`;
+		document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
 	}
 </script>
 
