@@ -125,6 +125,7 @@ cat > "$ENV_FILE" <<EOF
 # ATproto OAuth Client
 ATPROTO_CLIENT_ID=${CLIENT_ID}
 ATPROTO_PRIVATE_KEY=$(echo "$PRIVATE_JWK" | tr -d '\n')
+ATPROTO_PUBLIC_KEY=$(echo "$PUBLIC_JWK" | tr -d '\n')
 
 # ATproto Service/Notification Account
 ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
