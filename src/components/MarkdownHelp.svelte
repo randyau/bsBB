@@ -36,6 +36,10 @@
 					<td class="py-1 px-2">Clickable link</td>
 				</tr>
 				<tr class="border-t border-[rgb(var(--color-border))]">
+					<td class="py-1 px-2 font-mono">![alt](url)</td>
+					<td class="py-1 px-2">Embed image</td>
+				</tr>
+				<tr class="border-t border-[rgb(var(--color-border))]">
 					<td class="py-1 px-2 font-mono">> quote</td>
 					<td class="py-1 px-2">Block quote</td>
 				</tr>
