@@ -47,7 +47,6 @@ export async function getAtprotoClient(): Promise<NodeOAuthClient> {
 			response_types: ['code'],
 			token_endpoint_auth_method: 'private_key_jwt',
 			token_endpoint_auth_signing_alg: 'ES256',
-			jwks: keyset.publicJwks,
 			dpop_bound_access_tokens: true,
 			application_type: 'web',
 		},
