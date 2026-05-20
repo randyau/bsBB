@@ -103,8 +103,8 @@
 									{post.threadTitle}
 								</a>
 							</h3>
-							<p class="text-xs text-[rgb(var(--color-text-muted))]" title={formatTimeWithAbsolute(post.createdAt).absolute}>
-								in <span class="font-mono">{post.forumName}</span> • {formatTimeWithAbsolute(post.createdAt).relative}
+							<p class="text-xs text-[rgb(var(--color-text-muted))]" title={formatTimeWithAbsolute(post.createdAt, data.user?.timezone).absolute}>
+								in <span class="font-mono">{post.forumName}</span> • {formatTimeWithAbsolute(post.createdAt, data.user?.timezone).relative}
 								{#if post.editedAt}
 									• edited
 								{/if}

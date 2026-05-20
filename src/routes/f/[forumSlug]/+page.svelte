@@ -88,7 +88,7 @@
 						</td>
 						<td class="py-3 px-4 align-top text-right whitespace-nowrap">
 							<p class="text-sm font-semibold">{thread.postCount} post{thread.postCount !== 1 ? 's' : ''}</p>
-							<p class="text-xs text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(thread.lastPostAt)}</p>
+							<p class="text-xs text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(thread.lastPostAt, data.user?.timezone)}</p>
 						</td>
 					</tr>
 				{/each}

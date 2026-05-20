@@ -65,7 +65,7 @@
 					{#each data.entries as entry (entry.id)}
 						<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
 							<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-secondary))]">
-						<span>{formatTimeDisplay(entry.createdAt)}</span>
+						<span>{formatTimeDisplay(entry.createdAt, data.user?.timezone)}</span>
 							</td>
 							<td class="px-4 py-3 font-mono text-xs">
 								<a href="/user/{entry.moderatorHandle}" class="link hover:underline">{entry.moderatorHandle}</a>

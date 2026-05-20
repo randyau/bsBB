@@ -90,7 +90,7 @@
 							<p class="text-sm leading-snug">{notifLabel(notif)}</p>
 						{/if}
 						<p class="text-xs text-[rgb(var(--color-text-muted))] mt-0.5">
-							{formatTimeDisplay(notif.createdAt)}
+							{formatTimeDisplay(notif.createdAt, data.user?.timezone)}
 						</p>
 					</div>
 					{#if !notif.isRead}

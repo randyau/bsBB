@@ -45,7 +45,7 @@
 							<span class="text-[rgb(var(--color-text-muted))] mx-1">({post.forumName})</span>
 						</div>
 						<div class="text-xs text-[rgb(var(--color-text-muted))] whitespace-nowrap">
-							{formatTimeDisplay(post.createdAt)}
+							{formatTimeDisplay(post.createdAt, data.user?.timezone)}
 						</div>
 					</div>
 

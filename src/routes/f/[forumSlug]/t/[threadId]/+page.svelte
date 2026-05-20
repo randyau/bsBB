@@ -395,14 +395,14 @@
 
 						<div class="flex flex-col items-end gap-2">
 							<div class="text-sm text-[rgb(var(--color-text-muted))] text-right">
-								<p><span class="text-sm">{formatTimeDisplay(post.createdAt)}</span></p>
+								<p><span class="text-sm">{formatTimeDisplay(post.createdAt, data.user?.timezone)}</span></p>
 								{#if post.editedAt}
 									
 									<a
 										href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
 										class="text-xs italic link"
 									>
-										edited {formatTimeDisplay(post.editedAt)} (history)
+										edited {formatTimeDisplay(post.editedAt, data.user?.timezone)} (history)
 									</a>
 								{/if}
 							</div>
@@ -458,7 +458,7 @@
 										⋯
 									</summary>
 									<div class="absolute right-0 mt-1 bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded shadow-lg z-10 min-w-[160px]">
-										{#if post.status === 'active' && data.canModerate && post.authorDid !== data.user.did}
+										{#if post.status === 'active' && data.canModerate && post.authorDid !== data.user?.did}
 											<button
 												type="button"
 												onclick={() => startModEdit(post.id)}

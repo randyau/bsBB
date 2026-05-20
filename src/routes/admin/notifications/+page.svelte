@@ -132,7 +132,7 @@
 						{#each data.failed as row (row.id)}
 							<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
 								<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-secondary))] whitespace-nowrap">
-									{formatTimeDisplay(row.createdAt)}
+									{formatTimeDisplay(row.createdAt, data.user?.timezone)}
 								</td>
 								<td class="px-4 py-3 font-mono text-xs">
 									{#if row.recipientHandle}
@@ -234,7 +234,7 @@
 						{#each data.workerErrors as entry (entry.id)}
 							<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-secondary))]">
 								<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-secondary))] whitespace-nowrap">
-									{formatTimeDisplay(entry.createdAt)}
+									{formatTimeDisplay(entry.createdAt, data.user?.timezone)}
 								</td>
 								<td class="px-4 py-3">
 									<span class="inline-block px-2 py-0.5 rounded text-xs font-semibold {entry.level === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}">

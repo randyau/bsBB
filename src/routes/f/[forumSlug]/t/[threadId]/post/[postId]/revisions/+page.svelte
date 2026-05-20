@@ -42,7 +42,7 @@
 							<p class="font-semibold">
 								Edited by <span class="font-mono">@{revision.editorHandle}</span>
 							</p>
-							<p class="text-sm text-[rgb(var(--color-text-secondary))]">{formatTimeDisplay(revision.createdAt)}</p>
+							<p class="text-sm text-[rgb(var(--color-text-secondary))]">{formatTimeDisplay(revision.createdAt, data.user?.timezone)}</p>
 						</div>
 						<div class="text-[rgb(var(--color-text-muted))]">
 							{selectedRevisionId === revision.id ? '▼' : '▶'}
@@ -89,9 +89,9 @@
 
 		<!-- Original Post Info -->
 		<div class="box-secondary">
-			<p class="text-sm"><strong>Original post:</strong> Created {formatTimeDisplay(data.post.createdAt)}</p>
+			<p class="text-sm"><strong>Original post:</strong> Created {formatTimeDisplay(data.post.createdAt, data.user?.timezone)}</p>
 			{#if data.post.editedAt}
-				<p class="text-sm mt-1"><strong>Last edited:</strong> {formatTimeDisplay(data.post.editedAt)}</p>
+				<p class="text-sm mt-1"><strong>Last edited:</strong> {formatTimeDisplay(data.post.editedAt, data.user?.timezone)}</p>
 			{/if}
 		</div>
 	{/if}

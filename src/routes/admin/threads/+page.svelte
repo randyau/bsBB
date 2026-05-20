@@ -149,7 +149,7 @@
 							</td>
 							<td class="px-4 py-3 text-center">{thread.postCount}</td>
 							<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-muted))]">
-								<span>{formatTimeDisplay(thread.lastPostAt)}</span>
+								<span>{formatTimeDisplay(thread.lastPostAt, data.user?.timezone)}</span>
 							</td>
 							<td class="px-4 py-3 space-x-1">
 								{#if thread.isLocked}

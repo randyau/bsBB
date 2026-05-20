@@ -195,7 +195,7 @@
 					>
 						<p class="font-semibold mb-1">{post.threadTitle}</p>
 						<p class="text-xs text-[rgb(var(--color-text-muted))] mb-2">
-							in <span class="font-mono">{post.forumName}</span> · <span>{formatTimeDisplay(post.createdAt)}</span>
+							in <span class="font-mono">{post.forumName}</span> · <span>{formatTimeDisplay(post.createdAt, data.user?.timezone)}</span>
 						</p>
 						<p class="text-sm line-clamp-2 text-[rgb(var(--color-text-secondary))]">
 							{post.bodyPreview}

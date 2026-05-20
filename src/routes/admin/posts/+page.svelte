@@ -209,7 +209,7 @@
 								<a href="/user/{post.authorHandle}" class="link hover:underline">{post.authorHandle}</a>
 							</td>
 							<td class="px-4 py-3 text-xs text-[rgb(var(--color-text-muted))]">
-								<span>{formatTimeDisplay(post.createdAt)}</span>
+								<span>{formatTimeDisplay(post.createdAt, data.user?.timezone)}</span>
 							</td>
 							<td class="px-4 py-3 text-xs font-mono text-[rgb(var(--color-text))] max-w-xs truncate">
 								{post.bodyMarkdown.substring(0, 50)}{post.bodyMarkdown.length > 50 ? '…' : ''}

@@ -20,25 +20,32 @@ export function formatDate(date: Date | string): string {
 	return `${year}-${month}-${day}`;
 }
 
-export function formatAbsoluteTime(date: Date | string, timeZoneOffset?: number): string {
+export function formatAbsoluteTime(date: Date | string, timezone?: string): string {
 	const d = new Date(date);
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	const hours = String(d.getHours()).padStart(2, '0');
-	const minutes = String(d.getMinutes()).padStart(2, '0');
-
-	return `${year}-${month}-${day} ${hours}:${minutes}`;
+	const fmt = new Intl.DateTimeFormat('en-CA', {
+		timeZone: timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false,
+	});
+	// en-CA gives "YYYY-MM-DD, HH:MM" — normalise to "YYYY-MM-DD HH:MM"
+	return fmt.format(d).replace(', ', ' ');
 }
 
-export function formatTimeWithAbsolute(date: Date | string): { relative: string; absolute: string } {
+export function formatTimeWithAbsolute(
+	date: Date | string,
+	timezone?: string,
+): { relative: string; absolute: string } {
 	return {
 		relative: formatTime(date),
-		absolute: formatAbsoluteTime(date),
+		absolute: formatAbsoluteTime(date, timezone),
 	};
 }
 
-export function formatTimeDisplay(date: Date | string): string {
-	const time = formatTimeWithAbsolute(date);
+export function formatTimeDisplay(date: Date | string, timezone?: string): string {
+	const time = formatTimeWithAbsolute(date, timezone);
 	return `${time.absolute} (${time.relative})`;
 }

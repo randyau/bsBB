@@ -114,7 +114,7 @@
 							</p>
 						</div>
 						<div class="text-right text-xs text-muted whitespace-nowrap">
-							<span>{formatTimeDisplay(result.createdAt)}</span>
+							<span>{formatTimeDisplay(result.createdAt, data.user?.timezone)}</span>
 						</div>
 					</div>
 

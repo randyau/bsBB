@@ -44,7 +44,7 @@
 						<span class="mx-1">·</span>
 						post by <span class="font-medium">{req.authorDisplayName || req.authorHandle}</span>
 						<span class="mx-1">·</span>
-						posted {formatTimeDisplay(req.postCreatedAt)}
+						posted {formatTimeDisplay(req.postCreatedAt, data.user?.timezone)}
 					</div>
 
 					<!-- Request metadata -->
@@ -52,7 +52,7 @@
 						<span class="text-[rgb(var(--color-text-muted))]">Requested by</span>
 						<span class="font-medium">{req.requesterHandle}</span>
 						<span class="text-[rgb(var(--color-text-muted))] mx-1">·</span>
-						<span class="text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(req.createdAt)}</span>
+						<span class="text-[rgb(var(--color-text-muted))]">{formatTimeDisplay(req.createdAt, data.user?.timezone)}</span>
 					</div>
 
 					<!-- Requester's stated reason -->
