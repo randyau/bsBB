@@ -62,14 +62,29 @@ class CapturingTransport(httpx.BaseTransport):
 # Synthetic API responses (what bsky.social would return)
 # ---------------------------------------------------------------------------
 
+MOCK_PDS_URL = "https://testpds.us-east.host.bsky.network"
+
 MOCK_RESPONSES = [
-    # 1. createSession
+    # 1. createSession — includes didDoc so _atproto_login extracts the PDS URL.
+    # The PDS URL is a per-account shard, NOT bsky.social. Chat requests must
+    # go to this URL; bsky.social's entrypoint returns MethodNotImplemented.
     {
         "json": {
             "accessJwt": "test-access-jwt",
             "refreshJwt": "test-refresh-jwt",
             "handle": "notifications.test.bsky.social",
             "did": "did:plc:serviceaccount",
+            "didDoc": {
+                "@context": ["https://www.w3.org/ns/did/v1"],
+                "id": "did:plc:serviceaccount",
+                "service": [
+                    {
+                        "id": "#atproto_pds",
+                        "type": "AtprotoPersonalDataServer",
+                        "serviceEndpoint": MOCK_PDS_URL,
+                    }
+                ],
+            },
         }
     },
     # 2. getConvoForMembers
@@ -143,10 +158,11 @@ def main():
     print("Expected sequence:")
     print("  1. POST https://bsky.social/xrpc/com.atproto.server.createSession")
     print("     body: {identifier, password}")
-    print("  2. GET  https://bsky.social/xrpc/chat.bsky.convo.getConvoForMembers")
+    print(f"  2. GET  {MOCK_PDS_URL}/xrpc/chat.bsky.convo.getConvoForMembers")
     print("     headers: Authorization: Bearer ..., atproto-proxy: did:web:api.bsky.chat#bsky_chat")
     print("     params: members repeated for recipient + service account")
-    print("  3. POST https://bsky.social/xrpc/chat.bsky.convo.sendMessage")
+    print("     NOTE: URL uses PDS shard from didDoc, NOT bsky.social")
+    print(f"  3. POST {MOCK_PDS_URL}/xrpc/chat.bsky.convo.sendMessage")
     print("     headers: Authorization: Bearer ..., atproto-proxy: did:web:api.bsky.chat#bsky_chat")
     print("     body: {convoId, message: {text}}")
 
@@ -170,11 +186,13 @@ def main():
         if "authorization" in r1["headers"]:
             errors.append("Request 1 (createSession) should NOT have Authorization header")
 
-        # Request 2: getConvoForMembers
+        # Request 2: getConvoForMembers — must target the PDS shard, not bsky.social
         if r2["method"] != "GET":
             errors.append(f"Request 2: expected GET, got {r2['method']}")
         if "chat.bsky.convo.getConvoForMembers" not in r2["url"]:
             errors.append(f"Request 2: wrong URL: {r2['url']}")
+        if not r2["url"].startswith(MOCK_PDS_URL):
+            errors.append(f"Request 2: URL must use PDS shard ({MOCK_PDS_URL}), got: {r2['url']}")
         if "authorization" not in r2["headers"]:
             errors.append("Request 2: missing Authorization header")
         elif not r2["headers"]["authorization"].startswith("Bearer "):
@@ -188,11 +206,13 @@ def main():
         if "did:plc:serviceaccount" not in decoded_url:
             errors.append(f"Request 2: service account DID not in URL params: {decoded_url}")
 
-        # Request 3: sendMessage
+        # Request 3: sendMessage — must also target the PDS shard
         if r3["method"] != "POST":
             errors.append(f"Request 3: expected POST, got {r3['method']}")
         if "chat.bsky.convo.sendMessage" not in r3["url"]:
             errors.append(f"Request 3: wrong URL: {r3['url']}")
+        if not r3["url"].startswith(MOCK_PDS_URL):
+            errors.append(f"Request 3: URL must use PDS shard ({MOCK_PDS_URL}), got: {r3['url']}")
         if "authorization" not in r3["headers"]:
             errors.append("Request 3: missing Authorization header")
         if r3["headers"].get("atproto-proxy") != "did:web:api.bsky.chat#bsky_chat":

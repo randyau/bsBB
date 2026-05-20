@@ -401,11 +401,16 @@ docker compose -f docker-compose.prod.yml logs worker
 Check that `ATPROTO_SERVICE_HANDLE`, `ATPROTO_SERVICE_APP_PASSWORD`, and SMTP vars are all set in `.env`.
 
 The worker is a Python 3.12 process (`worker/worker.py`). It makes three HTTP calls to Bluesky per DM:
-1. `POST /xrpc/com.atproto.server.createSession` — App Password login
-2. `GET /xrpc/chat.bsky.convo.getConvoForMembers` — get/create conversation (requires `atproto-proxy` header)
-3. `POST /xrpc/chat.bsky.convo.sendMessage` — send the message
+1. `POST https://bsky.social/xrpc/com.atproto.server.createSession` — App Password login; response includes a `didDoc` with the account's real PDS URL
+2. `GET <pds_url>/xrpc/chat.bsky.convo.getConvoForMembers` — get/create conversation (requires `atproto-proxy: did:web:api.bsky.chat#bsky_chat` header)
+3. `POST <pds_url>/xrpc/chat.bsky.convo.sendMessage` — send the message
 
-If DMs are failing with auth errors, verify the App Password is still valid in the Bluesky account settings. If the API call structure needs updating, run `python worker/test_parity.py` to compare against what the official TypeScript SDK sends.
+**Important:** calls 2 and 3 must go to the account's actual PDS shard (extracted from the `didDoc` in step 1), not to `bsky.social` directly. Sending to `bsky.social` returns `MethodNotImplemented` because its load balancer does not honour the `atproto-proxy` header.
+
+If DMs are failing, check:
+- App Password is still valid and has "Allow access to your direct messages" enabled (Bluesky Settings → App Passwords)
+- `ATPROTO_SERVICE_HANDLE` and `ATPROTO_SERVICE_APP_PASSWORD` are set correctly in `.env`
+- Run `python worker/test_parity.py` to verify the request structure matches the TypeScript SDK
 
 ---
 

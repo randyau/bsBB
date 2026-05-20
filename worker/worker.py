@@ -148,11 +148,18 @@ def _atproto_login(client: httpx.Client) -> tuple[str, str, str]:
 
 
 class DMBlockedError(Exception):
-    """Raised when bsky.social returns 501 for chat.bsky.convo.getConvoForMembers.
+    """Raised when the PDS returns 501 for chat.bsky.convo.getConvoForMembers.
 
-    Despite the HTTP 501 status, this maps to lexicon-level errors such as
+    The Bluesky chat lexicon uses HTTP 501 to signal recipient-side blocks:
     MessagesDisabled, NotFollowedBySender, BlockedActor, or AccountSuspended.
     This is a permanent failure for this recipient — do not retry.
+
+    Note: an earlier version of this worker sent chat requests to the
+    bsky.social entrypoint (hardcoded) rather than the account's actual PDS
+    shard. That also produced 501 (MethodNotImplemented) because bsky.social's
+    load balancer does not honour the atproto-proxy header. The fix is in
+    _atproto_login: it now extracts the real PDS URL from the didDoc returned
+    by createSession and uses that for all subsequent chat calls.
     """
 
 
@@ -181,8 +188,10 @@ def send_dm(recipient_did: str, text: str) -> None:
        Body: {convoId: <id from step 2>, message: {text: <text>}}
 
     If Bluesky changes their chat API:
-    - Re-run test_parity.py to capture what the TS SDK sends
-    - Update this function to match
+    - Re-run test_parity.py to verify the request structure still matches the TS SDK
+    - test_parity.py does NOT cover PDS URL discovery (it mocks createSession);
+      verify _atproto_login still extracts the correct didDoc service entry if
+      the createSession response shape changes
     """
     with httpx.Client() as client:
         access_jwt, service_did, pds_url = _atproto_login(client)
