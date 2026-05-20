@@ -1,15 +1,32 @@
 <script lang="ts">
 	import EmojiPicker from './EmojiPicker.svelte';
+	import AssetPicker from './AssetPicker.svelte';
 
 	interface Props {
 		value: string;
 		maxlength?: number;
 		onEmojiSelect: (emoji: string) => void;
+		onAssetSelect?: (reference: string) => void;
+		canUseAssets?: boolean;
 	}
 
-	const { value, maxlength = 50000, onEmojiSelect }: Props = $props();
+	const {
+		value,
+		maxlength = 50000,
+		onEmojiSelect,
+		onAssetSelect,
+		canUseAssets = false,
+	}: Props = $props();
 
 	let markdownOpen = $state(false);
+	let assetPickerOpen = $state(false);
+
+	function handleAssetSelect(reference: string) {
+		if (onAssetSelect) {
+			onAssetSelect(reference);
+		}
+		assetPickerOpen = false;
+	}
 </script>
 
 <div class="mt-1">
@@ -26,6 +43,16 @@
 				Markdown Reference
 			</button>
 			<EmojiPicker {onEmojiSelect} />
+			{#if canUseAssets}
+				<button
+					type="button"
+					onclick={() => (assetPickerOpen = true)}
+					class="text-sm text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] rounded"
+					title="Insert asset"
+				>
+					📎 Asset
+				</button>
+			{/if}
 		</div>
 		<p class="text-xs text-[rgb(var(--color-text-muted))]" aria-live="polite" aria-atomic="true">
 			{value.length} / {maxlength.toLocaleString()} characters
@@ -93,3 +120,11 @@
 		</div>
 	{/if}
 </div>
+
+{#if canUseAssets}
+	<AssetPicker
+		isOpen={assetPickerOpen}
+		onClose={() => (assetPickerOpen = false)}
+		onSelect={handleAssetSelect}
+	/>
+{/if}
