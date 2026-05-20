@@ -310,7 +310,8 @@ only ~150 lines instead of 400+.
 - [ ] `users.test.ts` passes — upsert, profile sync scheduling.
 
 **Modifying `src/lib/db/schema.ts`:**
-- [ ] Drizzle migration generated and reviewed before applying.
+- [ ] Migration generated with `npm run db:generate` — never hand-written (see Rule 21).
+- [ ] Snapshot file `meta/<tag>_snapshot.json` is present and staged alongside the SQL.
 - [ ] All existing query helpers typecheck (`tsc --noEmit`).
 - [ ] No FK references `users.handle`.
 
@@ -326,7 +327,6 @@ only ~150 lines instead of 400+.
 **Modifying notification worker (`worker/worker.py` or `src/lib/notifications.ts`):**
 - [ ] `notifications.test.ts` passes.
 - [ ] Rate limit test: second DM to same recipient within 1 hour is suppressed.
-- [ ] If Bluesky DM HTTP calls changed: run `python worker/test_parity.py` and confirm all assertions pass.
 
 **All changes:** run `npm test` and `npx tsc --noEmit` before marking complete.
 
@@ -477,6 +477,25 @@ curl -H "Cookie: session=<token>" http://localhost:5173/admin
 - No per-user ATproto tokens are stored. DM notifications are sent by the forum service account only (`ATPROTO_SERVICE_APP_PASSWORD`).
 - DPoP, PAR, and token refresh are handled entirely by `@atproto/oauth-client-node`. Do not reimplement.
 - Rate limiting: Drizzle parameterized queries throughout — no raw string concatenation in SQL.
+
+---
+
+## Rule 21: Drizzle Migrations Must Be Generated, Not Hand-Written
+
+**Never write migration SQL or journal entries by hand.** Always use:
+
+```bash
+npm run db:generate   # runs drizzle-kit generate
+```
+
+This produces three artifacts that must all be committed together:
+1. `src/lib/db/migrations/<tag>.sql` — the SQL to apply
+2. `src/lib/db/migrations/meta/<tag>_snapshot.json` — the schema snapshot Drizzle uses to track state
+3. `src/lib/db/migrations/meta/_journal.json` — updated journal entry
+
+**Why snapshots matter:** Drizzle uses snapshots to know what it has already applied. A migration committed without its snapshot file will appear to succeed on production (`drizzle-kit migrate` exits 0) but the table may never be created if the migration was previously recorded in `__drizzle_migrations` from a partial/failed run. This is a silent data loss failure — no error, missing table.
+
+A pre-commit hook at `.git/hooks/pre-commit` enforces this: it rejects any commit that stages a new `.sql` migration file without a corresponding snapshot. If you bypass the hook (`--no-verify`), you are accepting responsibility for verifying the snapshot manually.
 
 ---
 

@@ -410,7 +410,6 @@ The worker is a Python 3.12 process (`worker/worker.py`). It makes three HTTP ca
 If DMs are failing, check:
 - App Password is still valid and has "Allow access to your direct messages" enabled (Bluesky Settings → App Passwords)
 - `ATPROTO_SERVICE_HANDLE` and `ATPROTO_SERVICE_APP_PASSWORD` are set correctly in `.env`
-- Run `python worker/test_parity.py` to verify the request structure matches the TypeScript SDK
 
 ---
 

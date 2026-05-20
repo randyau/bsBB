@@ -30,6 +30,7 @@ following tables or columns change, review this file for required updates:
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import sys
@@ -163,12 +164,33 @@ class DMBlockedError(Exception):
     """
 
 
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _build_facets(text: str) -> list[dict]:
+    """Return app.bsky.richtext.facet link facets for every URL found in text.
+
+    ATproto facet byte offsets are UTF-8 byte positions, not character indices.
+    """
+    encoded = text.encode("utf-8")
+    facets = []
+    for m in _URL_RE.finditer(text):
+        byte_start = len(text[: m.start()].encode("utf-8"))
+        byte_end = len(text[: m.end()].encode("utf-8"))
+        facets.append(
+            {
+                "index": {"byteStart": byte_start, "byteEnd": byte_end},
+                "features": [{"$type": "app.bsky.richtext.facet#link", "uri": m.group()}],
+            }
+        )
+    return facets
+
+
 def send_dm(recipient_did: str, text: str) -> None:
     """
     Send a Bluesky DM from the service account to recipient_did.
 
-    HTTP call sequence (verified to be identical to the @atproto/api TypeScript SDK
-    via test_parity.py — see that file for how to re-verify after any changes here):
+    HTTP call sequence:
 
     1. POST https://bsky.social/xrpc/com.atproto.server.createSession
        No auth. Body: {identifier, password}
@@ -185,14 +207,17 @@ def send_dm(recipient_did: str, text: str) -> None:
 
     3. POST <pds_url>/xrpc/chat.bsky.convo.sendMessage
        Same headers as step 2.
-       Body: {convoId: <id from step 2>, message: {text: <text>}}
+       Body: {convoId: <id from step 2>, message: {text: <text>, facets: [...]}}
+       Facets mark URL byte ranges so Bluesky clients render them as clickable links.
 
-    If Bluesky changes their chat API:
-    - Re-run test_parity.py to verify the request structure still matches the TS SDK
-    - test_parity.py does NOT cover PDS URL discovery (it mocks createSession);
-      verify _atproto_login still extracts the correct didDoc service entry if
-      the createSession response shape changes
-    """
+    If Bluesky changes their chat API, verify _atproto_login still extracts the
+    correct PDS URL from the didDoc returned by createSession.
+"""
+    facets = _build_facets(text)
+    message: dict = {"text": text}
+    if facets:
+        message["facets"] = facets
+
     with httpx.Client() as client:
         access_jwt, service_did, pds_url = _atproto_login(client)
         auth_headers = {
@@ -219,7 +244,7 @@ def send_dm(recipient_did: str, text: str) -> None:
 
         resp = client.post(
             f"{pds_url}/xrpc/chat.bsky.convo.sendMessage",
-            json={"convoId": convo_id, "message": {"text": text}},
+            json={"convoId": convo_id, "message": message},
             headers=auth_headers,
             timeout=10,
         )

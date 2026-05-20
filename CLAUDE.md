@@ -281,7 +281,6 @@ See ARCHITECTURE.md for full schema with column types and indexes.
 - Uses PostgreSQL `FOR UPDATE SKIP LOCKED` for safe distributed processing
 - Sends Bluesky DMs via raw XRPC HTTP calls (no SDK) with service account App Password credentials
 - Web tier remains stateless; can scale independently
-- `worker/test_parity.py` verifies the Python worker makes identical HTTP calls to the Bluesky API as the TypeScript SDK did — re-run it if the Bluesky DM code changes
 
 ### Service Account (Forum Bot)
 
