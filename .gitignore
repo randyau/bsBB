@@ -24,3 +24,7 @@ venv/
 *~
 .DS_Store
 .claude/
+
+# Uploaded assets
+uploads/assets/*
+!uploads/assets/.gitkeep
