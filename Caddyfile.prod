@@ -4,6 +4,11 @@
 		file_server
 	}
 
+	handle /assets/* {
+		root * /app/uploads
+		file_server
+	}
+
 	reverse_proxy app:3000
 
 	header {

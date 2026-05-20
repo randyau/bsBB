@@ -22,6 +22,8 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - SETUP_COMPLETE=${SETUP_COMPLETE:-true}
+    volumes:
+      - app_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -82,6 +84,7 @@ services:
     volumes:
       - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - ./docker/caddy-static:/srv/static:ro
+      - app_uploads:/app/uploads:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
@@ -94,6 +97,7 @@ services:
 
 volumes:
   db_data:
+  app_uploads:
   caddy_data:
   caddy_config:
 
