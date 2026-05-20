@@ -177,6 +177,60 @@ bsBB doesn't include built-in content policy tools beyond what's described above
 
 ---
 
+## Asset Management
+
+Admins can upload images, PDFs, and other files for use across the forum: in site settings (favicon, branding), in forum announcements, and as downloadable resources.
+
+### Uploading Assets
+
+1. Go to **Admin → Assets**
+2. Either drag-and-drop a file or click "Choose File"
+3. File is uploaded immediately and appears in the list below
+4. File type and size are validated server-side (max 50 MB; images, PDFs, archives, text)
+
+### Using Assets in Settings
+
+When editing forum settings (favicon, homepage announcement, custom CSS), you can reference uploaded assets instead of external URLs:
+
+- Use the asset picker (📎 Asset button) in the markdown editor to insert asset references
+- Or manually type the reference: `[filename](asset:logo)` for links, `![alt](asset:logo)` for images
+- Asset references are resolved to `/assets/slug` when rendered
+
+Example: Upload a favicon image, then in **Settings → Favicon**, use:
+```
+![favicon](asset:my-logo-abc123)
+```
+
+### Using Assets in Content
+
+Moderators and users can reference assets in posts and announcements using the same syntax:
+- `[download PDF](asset:report-pdf)`
+- `![team photo](asset:team-2025)`
+
+The asset picker appears in any markdown editor if you have admin access.
+
+### Managing Uploaded Assets
+
+From **Admin → Assets**, for each file you can:
+
+| Action | Purpose |
+|---|---|
+| **Ref** | Copy just the slug (for advanced use) |
+| **Img** | Copy as `![filename](asset:slug)` markdown (images only) |
+| **Link** | Copy as `[filename](asset:slug)` markdown (any file) |
+| **✏️** | Rename the file (changes display name, not storage slug) |
+| **×** | Delete the file permanently |
+
+**Warning:** Deleting an asset breaks all markdown references to it. Search your forum first to see where it's used.
+
+### Storage and Backups
+
+- **Dev:** Files stored locally in `uploads/assets/`
+- **Prod:** Files stored in Docker volume `app_uploads`, persisted across restarts
+- **Backups:** The `app_uploads` volume is included in daily backups (see [BACKUP.md](BACKUP.md))
+
+---
+
 ## Instance Settings
 
 A few settings are stored in the `instance_settings` table and aren't yet exposed through the admin UI. You can view and modify them with the SQL query interface at **Admin → SQL Query**, or directly via `psql`:
