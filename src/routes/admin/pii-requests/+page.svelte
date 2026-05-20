@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import { formatTimeDisplay } from '$lib/utils/time';
+	import AdminPageShell from '$components/AdminPageShell.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -10,17 +12,10 @@
 	let submitting: boolean = $state(false);
 </script>
 
-<svelte:head>
-	<title>PII Removal Requests</title>
-</svelte:head>
-
-<div class="p-8 max-w-4xl mx-auto space-y-6">
-	<div>
-		<h1 class="page-title">PII Removal Requests</h1>
-		<p class="text-[rgb(var(--color-text-muted))] text-sm mt-1">
-			Requests to permanently erase post content and full edit history due to personally identifiable information. These requests do not expire.
-		</p>
-	</div>
+<AdminPageShell title="PII Removal Requests">
+	<p class="text-[rgb(var(--color-text-muted))] text-sm mb-4">
+		Requests to permanently erase post content and full edit history due to personally identifiable information. These requests do not expire.
+	</p>
 
 	{#if form?.error}
 		<div class="alert alert-error text-sm">{form.error}</div>
@@ -33,9 +28,7 @@
 	{/if}
 
 	{#if data.requests.length === 0}
-		<div class="box text-center text-[rgb(var(--color-text-muted))] py-12">
-			No pending PII removal requests.
-		</div>
+		<EmptyState message="No pending PII removal requests." />
 	{:else}
 		<div class="space-y-4">
 			{#each data.requests as req (req.id)}
@@ -153,4 +146,4 @@
 			{/each}
 		</div>
 	{/if}
-</div>
+</AdminPageShell>

@@ -19,7 +19,7 @@
 		{ href: '/admin/threads', icon: '💬', label: 'Threads', adminOnly: false },
 		{ href: '/admin/posts', icon: '📝', label: 'Posts', adminOnly: false },
 		{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log', adminOnly: false },
-		{ href: '/mod/pii-requests', icon: '🔒', label: 'PII Requests', adminOnly: false },
+		{ href: '/admin/pii-requests', icon: '🔒', label: 'PII Requests', adminOnly: false },
 		{ href: '/admin/forums', icon: '🗂️', label: 'Forums', adminOnly: true },
 		{ href: '/admin/roles', icon: '🏷️', label: 'Roles', adminOnly: true },
 		{ href: '/admin/settings', icon: '⚙️', label: 'Settings', adminOnly: true },

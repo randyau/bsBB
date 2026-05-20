@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import TableSearch from '$components/TableSearch.svelte';
 	import AdminPageShell from '$components/AdminPageShell.svelte';
+	import EmptyState from '$components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -338,9 +339,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="card text-center text-[rgb(var(--color-text-muted))] py-8">
-			<p>No roles yet. Create one above.</p>
-		</div>
+		<EmptyState message="No roles yet. Create one above." />
 	{/if}
 	</div>
 </AdminPageShell>
