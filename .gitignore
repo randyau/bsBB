@@ -11,6 +11,13 @@ client-metadata.json
 build/
 .env.local
 coverage/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
 # IDE and editor temp files
 *.swp
 *.swo

@@ -379,7 +379,7 @@ npm run build  # Verify build succeeds
 ```bash
 bash scripts/verify-tests.sh  # Full test suite
 npm run build  # Build production bundle
-# Then: docker compose -f docker-compose.prod.yml build app worker
+# Then: docker compose -f docker-compose.prod.yml build app worker  # app=Node, worker=Python
 # Then: docker compose -f docker-compose.prod.yml up -d
 ```
 

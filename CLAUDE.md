@@ -52,7 +52,7 @@ Requires `DEV_AUTH_ENABLED=true` (set automatically by `npm run dev:setup`). Onl
 | `npm run db:generate` | Generate new migration from schema changes | [Drizzle](#) |
 | `npm run check` | TypeScript + Svelte type check | [svelte-kit sync](#) |
 | `npm run build` | Build production bundle | [SvelteKit](#) |
-| `npm run worker` | Run notification worker (if testing separately) | [src/worker.ts](#) |
+| `python worker/worker.py` | Run notification worker locally (DB must be running) | [worker/worker.py](#) |
 
 For detailed explanations and step-by-step guides, see **[SCRIPTS.md](SCRIPTS.md)**.
 
@@ -176,7 +176,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 **Production** (`docker-compose.prod.yml` at project root):
 
 1. **`app`** — SvelteKit container, built from `Dockerfile.prod`, internal network only
-2. **`worker`** — Same image, runs `npx tsx src/worker.ts` — notification queue processor
+2. **`worker`** — Python 3.12 image (`worker/Dockerfile`), runs `worker/worker.py` — notification queue processor
 3. **`db`** — PostgreSQL 17 Alpine, data on named volume, internal network only
 4. **`caddy`** — Reverse proxy (uses `Caddyfile.prod`), ports 80/443 exposed, automatic HTTPS via Let's Encrypt
 
@@ -276,11 +276,12 @@ See ARCHITECTURE.md for full schema with column types and indexes.
 
 ### Notification Worker
 
-- **Separate process** from web tier (`src/worker.ts` in its own container)
+- **Separate process** from web tier (`worker/worker.py` in its own container — Python 3.12, not Node)
 - Polls `notification_queue` every 60 seconds for `status = 'pending'`
 - Uses PostgreSQL `FOR UPDATE SKIP LOCKED` for safe distributed processing
-- Sends via `@atproto/api` chat methods with service account credentials
+- Sends Bluesky DMs via raw XRPC HTTP calls (no SDK) with service account App Password credentials
 - Web tier remains stateless; can scale independently
+- `worker/test_parity.py` verifies the Python worker makes identical HTTP calls to the Bluesky API as the TypeScript SDK did — re-run it if the Bluesky DM code changes
 
 ### Service Account (Forum Bot)
 

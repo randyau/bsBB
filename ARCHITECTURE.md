@@ -675,16 +675,29 @@ Only one URL per post. If inside code block or inline in a sentence, not detecte
 
 ### Worker
 
-`src/worker.ts` — runs as a **separate process** (its own Docker container). Not embedded in the web tier.
+`worker/worker.py` — Python 3.12 process running as its own Docker container (`worker/Dockerfile`). Not embedded in the web tier. Dependencies: `psycopg[binary]` (PostgreSQL), `httpx` (HTTP); everything else is Python stdlib.
 
 Worker loop (every 60 seconds):
-1. Query `notification_queue WHERE status = 'pending' ORDER BY created_at LIMIT 50`
-2. For each: check per-recipient rate limit (no more than 1 DM/hour per recipient)
-3. Send via `@atproto/api` using `ATPROTO_SERVICE_APP_PASSWORD` credentials (forum service account only — no user tokens)
-4. Mark `sent` or `failed` with `sent_at` and `error` (if failed)
-5. Write structured log to `worker_log` table (accessible at `/admin/notifications`)
+1. Query `notification_queue WHERE status = 'pending' ORDER BY created_at LIMIT 10` with `FOR UPDATE SKIP LOCKED`
+2. For each: check per-recipient frequency window (immediate=10m, hourly=1h, daily=24h)
+3. Dispatch by type: `dm_notification` → Bluesky DM via App Password; `moderator_alert` → SMTP email; `welcome_dm` → Bluesky DM; `profile_sync` → ATproto public API → update `users`
+4. Mark `sent` or `failed` with `sent_at` and `error`; increment `retry_count` on failure
+5. Write warn/error entries to `worker_log` table (accessible at `/admin/notifications`)
 
-Errors are stored in `notification_queue.error` and `retry_count` is incremented. Worker logs all activity to the `worker_log` table for admin visibility.
+Periodic tasks also run in the same loop: auto-approve stale posts every 10 minutes; delete expired sessions every hour.
+
+> **Schema dependency** — `worker/worker.py` queries these tables directly with raw SQL (no ORM). If any of the following tables or columns change, check `worker/worker.py` for required updates:
+>
+> | Table | Columns used |
+> |---|---|
+> | `notification_queue` | `id`, `recipient_did`, `type`, `payload`, `status`, `created_at`, `sent_at`, `error`, `retry_count` |
+> | `users` | `did`, `handle`, `notify_via_bluesky`, `notification_type`, `notification_frequency`, `display_name`, `avatar_url`, `last_profile_sync` |
+> | `posts` | `id`, `thread_id`, `is_approved`, `status`, `created_at` |
+> | `threads` | `id`, `last_post_at` |
+> | `mod_log` | `moderator_did`, `action`, `target_post_id`, `reason` |
+> | `sessions` | `id`, `expires_at` |
+> | `worker_log` | `level`, `message`, `context`, `created_at` |
+> | `instance_settings` | `key`, `value` |
 
 ### Email (admin/mod alerts only)
 
@@ -827,7 +840,7 @@ app    — SvelteKit Node container (×N); internal network only; PORT=3000
          Stateless: config from env vars only, no local files
          Serves web requests + OAuth callbacks + /client-metadata.json (dynamic)
          
-worker — Node process (×M); internal network only; runs src/worker.ts
+worker — Python 3.12 process; internal network only; runs worker/worker.py
          Executes background tasks via PostgreSQL FOR UPDATE SKIP LOCKED
          Scales independently of web tier; no shared state
          

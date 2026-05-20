@@ -26,7 +26,7 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 
 **Recommended: Hetzner CX22** (x86_64, 2 vCPU, 4GB RAM, ~€4/mo)
 
-**Minimum: 2 vCPU, 4 GB RAM.** Docker overhead alone (~850 MB for dockerd + containerd) plus PostgreSQL, the app, worker, and Caddy leaves under 1 GB headroom on a 2 GB machine — avoid 2 GB VPS options.
+**Minimum: 2 vCPU, 2 GB RAM.** The Python worker (~30 MB idle) replaced the previous Node.js worker, significantly reducing baseline memory. A 2 GB VPS is viable; a 4 GB VPS is comfortable.
 
 Other good options: Hetzner CAX11 (ARM64, 2 vCPU, 4GB RAM, ~€3.29/mo), DigitalOcean Basic ($18/mo, 2 vCPU/4GB), any Ubuntu 22.04+ VPS with ≥4 GB RAM.
 
@@ -313,7 +313,7 @@ See [UPGRADE.md](UPGRADE.md) for the full upgrade guide. Short version:
 
 ```bash
 git pull
-docker compose -f docker-compose.prod.yml build app worker
+docker compose -f docker-compose.prod.yml build app worker  # app=Node, worker=Python (separate images)
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec app npm run db:migrate
 ```
@@ -399,6 +399,13 @@ docker compose -f docker-compose.prod.yml logs worker
 ```
 
 Check that `ATPROTO_SERVICE_HANDLE`, `ATPROTO_SERVICE_APP_PASSWORD`, and SMTP vars are all set in `.env`.
+
+The worker is a Python 3.12 process (`worker/worker.py`). It makes three HTTP calls to Bluesky per DM:
+1. `POST /xrpc/com.atproto.server.createSession` — App Password login
+2. `GET /xrpc/chat.bsky.convo.getConvoForMembers` — get/create conversation (requires `atproto-proxy` header)
+3. `POST /xrpc/chat.bsky.convo.sendMessage` — send the message
+
+If DMs are failing with auth errors, verify the App Password is still valid in the Bluesky account settings. If the API call structure needs updating, run `python worker/test_parity.py` to compare against what the official TypeScript SDK sends.
 
 ---
 

@@ -37,14 +37,13 @@ services:
 
   worker:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
-    command: npx tsx src/worker.ts
+      context: ./worker
+      dockerfile: Dockerfile
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-forum}:${DB_PASSWORD}@db:5432/${DB_NAME:-forum}
       - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
       - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}

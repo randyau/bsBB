@@ -323,9 +323,10 @@ only ~150 lines instead of 400+.
 - [ ] `markdown.test.ts` passes.
 - [ ] Sanitization test: `<script>` tags in input produce no `<script>` in output.
 
-**Modifying notification worker (`src/worker.ts` or `src/lib/notifications.ts`):**
+**Modifying notification worker (`worker/worker.py` or `src/lib/notifications.ts`):**
 - [ ] `notifications.test.ts` passes.
 - [ ] Rate limit test: second DM to same recipient within 1 hour is suppressed.
+- [ ] If Bluesky DM HTTP calls changed: run `python worker/test_parity.py` and confirm all assertions pass.
 
 **All changes:** run `npm test` and `npx tsc --noEmit` before marking complete.
 
