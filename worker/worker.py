@@ -131,6 +131,15 @@ def _atproto_login(client: httpx.Client) -> tuple[str, str]:
     return data["accessJwt"], data["did"]
 
 
+class DMBlockedError(Exception):
+    """Raised when bsky.social returns 501 for chat.bsky.convo.getConvoForMembers.
+
+    Despite the HTTP 501 status, this maps to lexicon-level errors such as
+    MessagesDisabled, NotFollowedBySender, BlockedActor, or AccountSuspended.
+    This is a permanent failure for this recipient — do not retry.
+    """
+
+
 def send_dm(recipient_did: str, text: str) -> None:
     """
     Send a Bluesky DM from the service account to recipient_did.
@@ -174,6 +183,13 @@ def send_dm(recipient_did: str, text: str) -> None:
             headers=auth_headers,
             timeout=10,
         )
+        if resp.status_code == 501:
+            body = resp.text
+            raise DMBlockedError(
+                f"Recipient {recipient_did} cannot receive DMs from this account "
+                f"(MessagesDisabled, NotFollowedBySender, BlockedActor, or AccountSuspended) — "
+                f"response body: {body}"
+            )
         resp.raise_for_status()
         convo_id = resp.json()["convo"]["id"]
 
@@ -415,6 +431,19 @@ def process_notifications(conn: psycopg.Connection) -> None:
                     )
                 conn.commit()
                 log.info("sent notification %s (%s) to %s", notif_id, ntype, recipient_did)
+
+            except DMBlockedError as exc:
+                log.info("skipped (recipient cannot receive DMs): %s", recipient_did)
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "UPDATE notification_queue SET status = 'skipped', error = %s, "
+                            "sent_at = now() WHERE id = %s",
+                            (str(exc), notif_id),
+                        )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
 
             except Exception as exc:
                 error_msg = str(exc)
