@@ -397,13 +397,16 @@
 							<div class="text-sm text-[rgb(var(--color-text-muted))] text-right">
 								<p><span class="text-sm">{formatTimeDisplay(post.createdAt, data.user?.timezone)}</span></p>
 								{#if post.editedAt}
-									
-									<a
-										href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
-										class="text-xs italic link"
-									>
-										edited {formatTimeDisplay(post.editedAt, data.user?.timezone)} (history)
-									</a>
+									{#if data.canViewRevisions}
+										<a
+											href="/f/{data.forum.slug}/t/{data.thread.slug}/post/{post.id}/revisions"
+											class="text-xs italic link"
+										>
+											edited {formatTimeDisplay(post.editedAt, data.user?.timezone)} (history)
+										</a>
+									{:else}
+										<span class="text-xs italic">edited {formatTimeDisplay(post.editedAt, data.user?.timezone)}</span>
+									{/if}
 								{/if}
 							</div>
 
@@ -593,6 +596,32 @@
 						<div class="prose-content">
 							{@html post.bodyHtml}
 						</div>
+						<!-- Link Preview -->
+						{#if post.linkMetadata}
+							{@const meta = post.linkMetadata as { url: string; title: string | null; description: string | null; imageUrl: string | null }}
+							<div class="mt-3 border border-[rgb(var(--color-border))] rounded-lg overflow-hidden">
+								{#if meta.imageUrl}
+									<img src={meta.imageUrl} alt="" class="w-full max-h-48 object-cover" loading="lazy" />
+								{/if}
+								<div class="px-3 py-2">
+									{#if meta.title}
+										<a href={meta.url} target="_blank" rel="noopener noreferrer" class="font-semibold text-sm text-[rgb(var(--color-primary))] hover:underline line-clamp-2">{meta.title}</a>
+									{:else}
+										<a href={meta.url} target="_blank" rel="noopener noreferrer" class="font-semibold text-sm text-[rgb(var(--color-primary))] hover:underline break-all">{meta.url}</a>
+									{/if}
+									{#if meta.description}
+										<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1 line-clamp-2">{meta.description}</p>
+									{/if}
+									<p class="text-xs text-[rgb(var(--color-text-muted))] mt-1 break-all">{meta.url}</p>
+								</div>
+								{#if data.user && (post.authorDid === data.user.did || data.canModerate)}
+									<form method="POST" use:enhance action="?/removePreview" class="px-3 pb-2">
+										<input type="hidden" name="postId" value={post.id} />
+										<button type="submit" class="text-xs text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-error))] hover:underline">Remove preview</button>
+									</form>
+								{/if}
+							</div>
+						{/if}
 					{/if}
 				</div>
 			{/each}
@@ -626,7 +655,7 @@
 				{/if}
 
 
-				<form method="POST" use:enhance action="?/reply" class="space-y-4">
+				<form method="POST" use:enhance={() => async ({ result, update }) => { await update(); if (result.type === 'redirect' || result.type === 'success') replyBody = ''; }} action="?/reply" class="space-y-4">
 
 					<!-- Body textarea/preview -->
 					<div>

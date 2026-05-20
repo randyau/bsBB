@@ -3,8 +3,15 @@ import { db } from '$lib/db';
 import { posts, postRevisions, users, threads, forums } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
+import { getSetting } from '$lib/settings.js';
+import { isModerator } from '$lib/auth/roles.js';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
+	const visibility = await getSetting('revision_history_visibility', 'public');
+	if (visibility === 'moderator' && !isModerator(locals.user)) {
+		throw error(403, 'Edit history is only visible to moderators');
+	}
+
 	// Load forum
 	const forum = await db.query.forums.findFirst({
 		where: eq(forums.slug, params.forumSlug)

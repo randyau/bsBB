@@ -253,6 +253,29 @@
 		</form>
 	</section>
 
+	<!-- Post Edit History Section -->
+	<section class="mb-8 card p-6">
+		<h2 class="text-xl font-bold mb-4">Post Edit History</h2>
+		<form method="POST" action="?/set" onsubmit={handleSubmit} use:enhance>
+			<input type="hidden" name="key" value="revision_history_visibility" />
+			<label for="revision_history_visibility" class="form-label">Who can view post edit history?</label>
+			<select id="revision_history_visibility" name="value" class="form-control">
+				<option value="public" selected={data.settings.revision_history_visibility !== 'moderator'}>
+					Everyone (public)
+				</option>
+				<option value="moderator" selected={data.settings.revision_history_visibility === 'moderator'}>
+					Moderators and admins only
+				</option>
+			</select>
+			<p class="text-xs text-[rgb(var(--color-text-muted))] mt-2">
+				Controls whether the "edited (history)" link is visible to all users or restricted to moderators and admins.
+			</p>
+			<button type="submit" class="btn btn-primary mt-4" disabled={submitting}>
+				{submitting ? 'Saving...' : 'Save'}
+			</button>
+		</form>
+	</section>
+
 	<!-- Font Selection Section -->
 	<section class="mb-8 card p-6">
 		<h2 class="text-xl font-bold mb-4">Font Selection</h2>

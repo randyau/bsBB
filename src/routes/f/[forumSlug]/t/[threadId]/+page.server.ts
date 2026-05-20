@@ -9,6 +9,7 @@ import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { checkAbuse } from '$lib/abuse/index.js';
 import { enqueueProfileSync, enqueueDmNotification } from '$lib/notifications.js';
+import { getSetting } from '$lib/settings.js';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Find forum by slug first
@@ -55,6 +56,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			authorDid: posts.authorDid,
 			bodyMarkdown: posts.bodyMarkdown,
 			bodyHtml: posts.bodyHtml,
+			linkMetadata: posts.linkMetadata,
 			replyToPostId: posts.replyToPostId,
 			status: posts.status,
 			isApproved: posts.isApproved,
@@ -165,6 +167,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		userSubscription = (sub?.subscriptionType as 'follow' | 'mute') ?? null;
 	}
 
+	const revisionHistoryVisibility = await getSetting('revision_history_visibility', 'public');
+	const canViewRevisions = revisionHistoryVisibility === 'public' || canModerate;
+
 	return {
 		forum,
 		thread,
@@ -172,6 +177,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		posts: enrichedPosts,
 		canPost: userCanPost,
 		canModerate,
+		canViewRevisions,
 		user: locals.user ?? null,
 		userSubscription,
 		page: safePage,
@@ -547,5 +553,50 @@ export const actions: Actions = {
 		});
 
 		return { success: true, action: 'requestPiiRemoval' };
+	},
+
+	removePreview: async ({ locals, params, request }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+
+		const form = await request.formData();
+		const postId = String(form.get('postId') ?? '').trim();
+		if (!postId) return fail(422, { error: 'Post ID required' });
+
+		const [forum] = await db.select().from(forums).where(eq(forums.slug, params.forumSlug)).limit(1);
+		if (!forum) throw error(404, 'Forum not found');
+
+		const [thread] = await db.select().from(threads)
+			.where(and(eq(threads.forumId, forum.id), eq(threads.slug, params.threadId)))
+			.limit(1);
+		if (!thread) throw error(404, 'Thread not found');
+
+		const [post] = await db.select({ id: posts.id, authorDid: posts.authorDid })
+			.from(posts)
+			.where(and(eq(posts.id, postId), eq(posts.threadId, thread.id)))
+			.limit(1);
+		if (!post) return fail(404, { error: 'Post not found' });
+
+		const actorIsMod = isModerator(locals.user) || await (async () => {
+			const [forumRole] = await db.select().from(userForumRoles)
+				.where(and(eq(userForumRoles.userDid, locals.user!.did), eq(userForumRoles.forumId, forum.id)))
+				.limit(1);
+			return forumRole?.role === 'moderator';
+		})();
+
+		if (post.authorDid !== locals.user.did && !actorIsMod) {
+			return fail(403, { error: 'Not allowed' });
+		}
+
+		await db.update(posts).set({ linkMetadata: null }).where(eq(posts.id, postId));
+
+		if (actorIsMod && post.authorDid !== locals.user.did) {
+			await db.insert(modLog).values({
+				moderatorDid: locals.user.did,
+				action: 'remove_link_preview',
+				targetPostId: postId,
+			});
+		}
+
+		throw redirect(303, `/f/${forum.slug}/t/${thread.slug}`);
 	},
 };

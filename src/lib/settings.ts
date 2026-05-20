@@ -11,6 +11,7 @@ export const DEFAULTS = {
 	favicon_url: '',
 	robots_txt: 'User-agent: *\nDisallow:\n',
 	font_body: 'system',
+	revision_history_visibility: 'public', // 'public' | 'moderator'
 } as const;
 
 type SettingKey = keyof typeof DEFAULTS;
