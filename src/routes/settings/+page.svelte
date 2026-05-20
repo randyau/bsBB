@@ -62,7 +62,17 @@
 	{/if}
 
 	{#if form?.success}
-		<div class="alert alert-success mb-4">✓ Display name updated</div>
+		<div class="alert alert-success mb-4">
+			✓ {form.action === 'updateDisplayName'
+				? 'Display name updated'
+				: form.action === 'updateTimezone'
+					? 'Time zone updated'
+					: form.action === 'toggleNotifications'
+						? 'Notification status changed'
+						: form.action === 'updateNotificationPreferences'
+							? 'Notification preferences updated'
+							: 'Settings updated'}
+		</div>
 	{/if}
 
 	<div class="card space-y-6">

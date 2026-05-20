@@ -35,7 +35,7 @@ export const actions: Actions = {
 				.set({ displayName: displayName || null })
 				.where(eq(users.did, locals.user.did));
 
-			return { success: true };
+			return { success: true, action: 'updateDisplayName' };
 		} catch (err) {
 			console.error('updateDisplayName error:', err);
 			return fail(500, { error: 'Failed to update display name' });
@@ -66,7 +66,7 @@ export const actions: Actions = {
 				});
 			}
 
-			return { success: true, notifyViaBluesky: enabled };
+			return { success: true, action: 'toggleNotifications', notifyViaBluesky: enabled };
 		} catch (err) {
 			console.error('toggleNotifications error:', err);
 			return fail(500, { error: 'Failed to update notification settings' });
@@ -98,7 +98,7 @@ export const actions: Actions = {
 				.set({ notificationType, notificationFrequency })
 				.where(eq(users.did, locals.user.did));
 
-			return { success: true };
+			return { success: true, action: 'updateNotificationPreferences' };
 		} catch (err) {
 			console.error('updateNotificationPreferences error:', err);
 			return fail(500, { error: 'Failed to update notification preferences' });
@@ -130,7 +130,7 @@ export const actions: Actions = {
 				.set({ timezone })
 				.where(eq(users.did, locals.user.did));
 
-			return { success: true };
+			return { success: true, action: 'updateTimezone' };
 		} catch (err) {
 			console.error('updateTimezone error:', err);
 			return fail(500, { error: 'Failed to update timezone' });
