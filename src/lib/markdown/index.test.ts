@@ -207,6 +207,47 @@ describe('renderMarkdown — markdown to sanitized HTML', () => {
 		});
 	});
 
+	describe('asset reference resolution', () => {
+		it('resolves asset references in links', async () => {
+			const html = await renderMarkdown('[download](asset:report-pdf)');
+			expect(html).toContain('href="/assets/report-pdf"');
+			expect(html).toContain('download</a>');
+		});
+
+		it('resolves asset references in images', async () => {
+			const html = await renderMarkdown('![logo](asset:my-logo)');
+			expect(html).toContain('src="/assets/my-logo"');
+			expect(html).toContain('alt="logo"');
+		});
+
+		it('resolves multiple asset references', async () => {
+			const html = await renderMarkdown('[file1](asset:doc1) and ![img](asset:pic1) and [file2](asset:doc2)');
+			expect(html).toContain('href="/assets/doc1"');
+			expect(html).toContain('src="/assets/pic1"');
+			expect(html).toContain('href="/assets/doc2"');
+		});
+
+		it('handles asset references with special characters in slug', async () => {
+			const html = await renderMarkdown('[report](asset:annual-report-2025-abc123)');
+			expect(html).toContain('href="/assets/annual-report-2025-abc123"');
+		});
+
+		it('preserves regular URLs unchanged', async () => {
+			const html = await renderMarkdown('[link](https://example.com)');
+			expect(html).toContain('href="https://example.com"');
+			expect(html).not.toContain('/assets/');
+		});
+
+		it('case-insensitive asset prefix', async () => {
+			const html1 = await renderMarkdown('[link](asset:slug)');
+			const html2 = await renderMarkdown('[link](ASSET:slug)');
+			const html3 = await renderMarkdown('[link](Asset:slug)');
+			expect(html1).toContain('href="/assets/slug"');
+			expect(html2).toContain('href="/assets/slug"');
+			expect(html3).toContain('href="/assets/slug"');
+		});
+	});
+
 	describe('edge cases', () => {
 		it('handles empty markdown', async () => {
 			const html = await renderMarkdown('');
