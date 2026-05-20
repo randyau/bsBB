@@ -140,7 +140,7 @@ This interactive script:
 If you're deploying to a **subdomain** (e.g., `forum.example.com` instead of `example.com`), that works fine. Just enter it as your Public Base URL:
 
 ```
-Public base URL? https://forum.example.com
+PUBLIC_BASE_URL=https://forum.example.com
 ```
 
 This controls:
@@ -191,6 +191,25 @@ dig +short yourforum.com
 ```
 
 Or use `nslookup yourforum.com` if `dig` is not installed. Do not start services until this resolves correctly — Caddy's automatic HTTPS will fail if DNS is not pointing at the server.
+
+
+---
+## (Optional) Set up Bluesky Notification account
+
+Once you create a Bluesky account for sending notifications, you need to fill out a proper profile so that people know that it is a bot. How you specifically do so is up to you.
+
+Doing this helps people, **and the Bluesky Moderation Team**, know that your account is not a spam account. Otherwise the bot may be banned or blocked from using DMs. (As us how we know.)
+
+Info you may consider sharing:
+
+* Link to your forum
+* A profile picture
+* How this is an opt-in feature
+* How users can disable it in your notification settings
+
+If you do get an issue with the moderator team, sending an email explaining the situation can resolve it.
+
+
 
 ---
 
