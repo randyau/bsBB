@@ -117,8 +117,14 @@ def get_setting(conn: psycopg.Connection, key: str, default: str = "") -> str:
 # ATproto DM
 # ---------------------------------------------------------------------------
 
-def _atproto_login(client: httpx.Client) -> tuple[str, str]:
-    """Login with App Password. Returns (access_jwt, service_did)."""
+def _atproto_login(client: httpx.Client) -> tuple[str, str, str]:
+    """Login with App Password. Returns (access_jwt, service_did, pds_url).
+
+    pds_url is the account's actual PDS endpoint from the didDoc service list.
+    This may differ from bsky.social (e.g. a Bluesky-hosted shard like
+    https://puffball.us-east.host.bsky.network). The atproto-proxy header is
+    only honoured by the account's own PDS, not by bsky.social's entrypoint.
+    """
     if not ATPROTO_SERVICE_HANDLE or not ATPROTO_SERVICE_APP_PASSWORD:
         raise RuntimeError("ATPROTO_SERVICE_HANDLE and ATPROTO_SERVICE_APP_PASSWORD must be set")
     resp = client.post(
@@ -128,7 +134,17 @@ def _atproto_login(client: httpx.Client) -> tuple[str, str]:
     )
     resp.raise_for_status()
     data = resp.json()
-    return data["accessJwt"], data["did"]
+
+    # Extract the PDS URL from the didDoc returned by createSession.
+    # Fall back to bsky.social if absent (shouldn't happen for normal accounts).
+    pds_url = ATPROTO_BSKY_SOCIAL
+    did_doc = data.get("didDoc", {})
+    for svc in did_doc.get("service", []):
+        if svc.get("id") in ("#atproto_pds", "atproto_pds"):
+            pds_url = svc["serviceEndpoint"].rstrip("/")
+            break
+
+    return data["accessJwt"], data["did"], pds_url
 
 
 class DMBlockedError(Exception):
@@ -151,17 +167,16 @@ def send_dm(recipient_did: str, text: str) -> None:
        No auth. Body: {identifier, password}
        Response: {accessJwt, did, ...}
 
-    2. GET https://bsky.social/xrpc/chat.bsky.convo.getConvoForMembers
+    2. GET <pds_url>/xrpc/chat.bsky.convo.getConvoForMembers
           ?members=<recipient_did>&members=<service_did>
        Headers: Authorization: Bearer <accessJwt>
                 atproto-proxy: did:web:api.bsky.chat#bsky_chat
                 atproto-accept-labelers: did:plc:ar7c4by46qjdydhdevvrndac;redact
-       Note: the atproto-proxy header routes this request through bsky.social to
-       the chat service (api.bsky.chat). Without it the endpoint does not exist.
-       The atproto-accept-labelers header is injected by the TS SDK on all
-       authenticated requests; we mirror it here so the two workers are identical.
+       Note: pds_url comes from the didDoc in the createSession response, NOT
+       hardcoded bsky.social. The atproto-proxy header is only honoured by the
+       account's own PDS shard; bsky.social's entrypoint returns MethodNotImplemented.
 
-    3. POST https://bsky.social/xrpc/chat.bsky.convo.sendMessage
+    3. POST <pds_url>/xrpc/chat.bsky.convo.sendMessage
        Same headers as step 2.
        Body: {convoId: <id from step 2>, message: {text: <text>}}
 
@@ -170,7 +185,7 @@ def send_dm(recipient_did: str, text: str) -> None:
     - Update this function to match
     """
     with httpx.Client() as client:
-        access_jwt, service_did = _atproto_login(client)
+        access_jwt, service_did, pds_url = _atproto_login(client)
         auth_headers = {
             "Authorization": f"Bearer {access_jwt}",
             "atproto-proxy": ATPROTO_CHAT_PROXY,
@@ -178,7 +193,7 @@ def send_dm(recipient_did: str, text: str) -> None:
         }
 
         resp = client.get(
-            f"{ATPROTO_BSKY_SOCIAL}/xrpc/chat.bsky.convo.getConvoForMembers",
+            f"{pds_url}/xrpc/chat.bsky.convo.getConvoForMembers",
             params={"members": [recipient_did, service_did]},
             headers=auth_headers,
             timeout=10,
@@ -194,7 +209,7 @@ def send_dm(recipient_did: str, text: str) -> None:
         convo_id = resp.json()["convo"]["id"]
 
         resp = client.post(
-            f"{ATPROTO_BSKY_SOCIAL}/xrpc/chat.bsky.convo.sendMessage",
+            f"{pds_url}/xrpc/chat.bsky.convo.sendMessage",
             json={"convoId": convo_id, "message": {"text": text}},
             headers=auth_headers,
             timeout=10,
