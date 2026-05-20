@@ -181,6 +181,23 @@ agent.login({ identifier: '$ATPROTO_SERVICE_HANDLE', password: '$ATPROTO_SERVICE
 " 2>/dev/null || echo "  (Skipping validation — @atproto/api not available yet)"
 
 # ---------------------------------------------------------------------------
+# Docker maintenance cron
+# ---------------------------------------------------------------------------
+echo ""
+echo "Setting up weekly Docker cleanup cron..."
+
+CRON_JOB="0 3 * * 0 docker image prune -f && docker builder prune --keep-storage 2GB -f"
+CRON_COMMENT="# bsBB: weekly Docker image and build-cache prune (Sundays 3am)"
+
+# Add only if not already present
+if ! crontab -l 2>/dev/null | grep -qF "bsBB: weekly Docker"; then
+  ( crontab -l 2>/dev/null; echo "$CRON_COMMENT"; echo "$CRON_JOB" ) | crontab -
+  echo "  ✓ Weekly Docker prune cron installed (Sundays 3am)"
+else
+  echo "  ✓ Weekly Docker prune cron already installed"
+fi
+
+# ---------------------------------------------------------------------------
 # Done
 # ---------------------------------------------------------------------------
 echo ""

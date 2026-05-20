@@ -36,8 +36,14 @@ fi
 echo -e "${GREEN}✓ .env file found${NC}\n"
 
 # Rebuild images (while old containers are still running)
+# Note: --no-cache is intentionally omitted. Each --no-cache run writes fresh
+# build cache entries without reading old ones, causing unbounded cache growth.
+# Layer caching is correct here: base images are pinned by digest in the
+# Dockerfiles, and application code changes invalidate downstream layers
+# automatically. Run `docker builder prune -f` manually if you suspect stale
+# cached layers from a changed base image.
 echo -e "${YELLOW}3. Building Docker images (this may take a minute)...${NC}"
-if docker compose -f docker-compose.prod.yml build --no-cache app worker; then
+if docker compose -f docker-compose.prod.yml build app worker; then
   echo -e "${GREEN}✓ Images built${NC}"
 else
   echo -e "${RED}✗ Build failed — leaving existing containers running${NC}"
@@ -58,8 +64,17 @@ else
   exit 1
 fi
 
+# Clean up images and build cache left behind by this rebuild.
+# --no-cache rebuilds accumulate dangling images (old versions of the same
+# named image) and stale build cache entries. Prune them now while we know
+# the new images are healthy.
+echo -e "\n${YELLOW}6. Pruning dangling images and build cache...${NC}"
+docker image prune -f > /dev/null
+docker builder prune --keep-storage 2GB -f > /dev/null
+echo -e "${GREEN}✓ Pruned${NC}"
+
 # Wait for app to be healthy
-echo -e "\n${YELLOW}6. Waiting for services to be ready...${NC}"
+echo -e "\n${YELLOW}7. Waiting for services to be ready...${NC}"
 for i in {1..60}; do
   if docker compose -f docker-compose.prod.yml ps | grep -q "healthy\|Up"; then
     echo -e "${GREEN}✓ Services are ready${NC}"
