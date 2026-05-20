@@ -39,7 +39,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			forumName: forums.name,
 			authorHandle: users.handle,
 			authorDisplayName: users.displayName,
-			requesterHandle: users.handle,
 		})
 		.from(piiRemovalRequests)
 		.innerJoin(posts, eq(piiRemovalRequests.postId, posts.id))
