@@ -42,6 +42,7 @@
 	"dependencies": {
 		"@atproto/api": "^0.19.18",
 		"@atproto/oauth-client-node": "^0.3.17",
+		"@emoji-mart/data": "^1.2.1",
 		"@sveltejs/adapter-node": "^5.5.4",
 		"dompurify": "^3.4.3",
 		"drizzle-orm": "^0.45.2",
