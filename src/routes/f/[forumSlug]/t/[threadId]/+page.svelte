@@ -7,6 +7,7 @@
 	import EmptyState from '$components/EmptyState.svelte';
 	import Pagination from '$components/Pagination.svelte';
 	import MarkdownToolbar from '$components/MarkdownToolbar.svelte';
+	import { canAccessAssets } from '$lib/assets';
 
 	let { data, form }: { data: PageData; form: ActionData | undefined } = $props();
 
@@ -674,7 +675,12 @@
 									rows="6"
 									class="w-full px-3 py-2 border border-[rgb(var(--color-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))] font-mono text-sm"
 								></textarea>
-								<MarkdownToolbar value={replyBody} onEmojiSelect={(emoji) => replyBody += emoji} />
+								<MarkdownToolbar
+									value={replyBody}
+									onEmojiSelect={(emoji) => (replyBody += emoji)}
+									canUseAssets={canAccessAssets(data.user)}
+									onAssetSelect={(ref) => (replyBody += ref)}
+								/>
 							</div>
 
 							<!-- Live Preview -->

@@ -316,3 +316,19 @@ export const rateLimitBuckets = pgTable('rate_limit_buckets', {
 	count: integer('count').notNull().default(0),
 	windowStart: timestamp('window_start', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// admin_assets (admin-uploaded files: images, PDFs, etc.)
+// ---------------------------------------------------------------------------
+export const adminAssets = pgTable('admin_assets', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	slug: text('slug').notNull().unique(),
+	originalFilename: text('original_filename').notNull(),
+	mimeType: text('mime_type').notNull(),
+	size: integer('size').notNull(),
+	uploadedByDid: text('uploaded_by_did')
+		.notNull()
+		.references(() => users.did),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

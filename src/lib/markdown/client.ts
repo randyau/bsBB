@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 import { emojify } from 'node-emoji';
+import { resolveAssetReferences } from '$lib/assets';
 
 const md = new MarkdownIt({
 	html: false,
@@ -15,6 +16,10 @@ export function renderMarkdownClient(markdown: string): string {
 	try {
 		// Pre-process: expand quote markers to placeholder (will be replaced on server)
 		let processed = markdown.replace(/>!quote\s+([a-f0-9-]+)/g, '> **[Post quoted — will show author on submit]**');
+
+		// Pre-process: resolve asset references before parsing
+		// This ensures markdown-it recognizes them as valid URLs
+		processed = resolveAssetReferences(processed);
 
 		// Parse markdown to HTML
 		let html = md.render(processed);

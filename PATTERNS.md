@@ -176,6 +176,100 @@ await db.insert(posts).values({
 
 ---
 
+## Assets (Admin-Uploaded Files)
+
+Admins can upload images, PDFs, and other files for use in settings and post content. Assets are stored on disk and served by Caddy, with metadata tracked in the database.
+
+### Upload an Asset (Server Action)
+
+Assets are uploaded via the `/admin/assets` route:
+
+```svelte
+<script lang="ts">
+  import { enhance } from '$app/forms';
+  
+  let file: File | null = null;
+  
+  async function handleUpload() {
+    const form = new FormData();
+    form.append('file', file!);
+    
+    const response = await fetch('?/uploadAsset', {
+      method: 'POST',
+      body: form,
+    });
+    const result = await response.json();
+    
+    if (result.data?.success) {
+      console.log('Uploaded:', result.data.slug, result.data.url);
+    }
+  }
+</script>
+
+<input type="file" bind:files={[file]} />
+<button onclick={handleUpload}>Upload</button>
+```
+
+### Reference Assets in Markdown
+
+Asset references use the `asset:slug` syntax and are resolved to `/assets/slug` URLs:
+
+```markdown
+<!-- Image -->
+![logo](asset:my-logo)
+
+<!-- Link/download -->
+[Annual Report](asset:2025-report-pdf)
+```
+
+**How it works:**
+1. Admin writes `asset:slug` in markdown editor
+2. Asset picker (📎 Asset button in toolbar) shows available assets
+3. Markdown is stored with asset references intact
+4. Server-side and client-side rendering resolve `asset:slug` → `/assets/slug`
+5. Caddy serves files with proper cache headers
+
+### Asset Utilities
+
+```typescript
+import { generateAssetSlug, resolveAssetReferences, canAccessAssets, getAssetUrl } from '$lib/assets';
+
+// Generate unique slug from filename
+const slug = generateAssetSlug('my-document.pdf');  // "my-document-abc123"
+
+// Resolve asset references in text/HTML
+const resolved = resolveAssetReferences('[link](asset:doc)');  // "[link](/assets/doc)"
+
+// Get asset URL directly
+const url = getAssetUrl('logo');  // "/assets/logo"
+
+// Check admin permission
+if (canAccessAssets(user)) {
+  // Show upload UI
+}
+```
+
+### File Size Limits and Allowed Types
+
+- **Max size:** 50 MB per file
+- **Allowed types:** Images (JPEG, PNG, GIF, WebP), PDFs, ZIPs, archives, text files
+- **Validation:** Happens server-side in `/admin/assets/+page.server.ts`
+
+### Storage and Deployment
+
+**Development:**
+- Files stored in `uploads/assets/` directory (local)
+- Served directly via Node/SvelteKit
+
+**Production (Docker):**
+- Files stored in named volume `app_uploads`
+- App container mounts at `/app/uploads`
+- Caddy mounts as read-only at `/app/uploads` and serves via `/assets/*`
+- Volume persists across restarts
+- Include in backups (see [BACKUP.md](BACKUP.md))
+
+---
+
 ## Component Structure
 
 ### Props and Type Safety

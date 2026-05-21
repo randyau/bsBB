@@ -4,6 +4,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import { emojify } from 'node-emoji';
+import { resolveAssetReferences } from '$lib/assets';
 import { posts, users } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import type { db } from '$lib/db';
@@ -45,12 +46,16 @@ export async function renderMarkdown(markdown: string, database?: Db): Promise<s
 	// Expand quote markers first
 	const expanded = await expandQuoteMarkers(markdown, database);
 
+	// Pre-process: resolve asset references before parsing
+	// This ensures markdown-it recognizes them as valid URLs
+	const preprocessed = resolveAssetReferences(expanded);
+
 	const result = await unified()
 		.use(remarkParse)
 		.use(remarkRehype)
 		.use(rehypeSanitize)
 		.use(rehypeStringify)
-		.process(expanded);
+		.process(preprocessed);
 
 	let html = String(result);
 

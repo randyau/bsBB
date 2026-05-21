@@ -85,6 +85,13 @@
       "when": 1747872000000,
       "tag": "0011_pii_removal_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1747958400000,
+      "tag": "0012_admin_assets",
+      "breakpoints": true
     }
   ]
 }
