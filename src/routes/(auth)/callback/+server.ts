@@ -1,4 +1,4 @@
-import { redirect, error } from '@sveltejs/kit';
+import { redirect, error, isRedirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
 import { createSession, setSessionCookie } from '$lib/auth/session.js';
@@ -93,7 +93,7 @@ export const GET: RequestHandler = async (event) => {
 		redirect(302, redirectUrl);
 	} catch (err) {
 		// Re-throw SvelteKit's redirect error (throws when redirect() is called)
-		if ((err as { status?: number }).status === 302) throw err;
+		if (isRedirect(err)) throw err;
 		const message = err instanceof Error ? err.message : 'Unknown error';
 		console.error('Callback error:', message);
 		error(500, `Authentication failed: ${message}`);

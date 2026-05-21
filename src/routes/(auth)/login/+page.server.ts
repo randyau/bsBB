@@ -16,10 +16,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Please enter your Bluesky handle.' });
 		}
 
-		const client = await getAtprotoClient();
 		let authUrl: string;
 
 		try {
+			const client = await getAtprotoClient();
 			authUrl = String(await client.authorize(handle, { scope: 'atproto' }));
 		} catch (err) {
 			// authorize() may throw a redirect-like object instead of returning
