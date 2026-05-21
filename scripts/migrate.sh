@@ -41,5 +41,9 @@ fi
 
 echo "Running migrations against: $DATABASE_URL"
 cd "$PROJECT_ROOT"
-npx drizzle-kit migrate
-echo "Migrations complete."
+if npx drizzle-kit migrate; then
+  echo "✓ Migrations complete."
+else
+  echo "✗ Migration failed — check output above." >&2
+  exit 1
+fi
