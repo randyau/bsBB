@@ -49,21 +49,40 @@ npm run dev:setup
 
 **What it does:**
 - Detects local vs. Docker environment
-- Runs `drizzle-kit migrate` with correct DATABASE_URL
-- Works from WSL, native shell, or `docker exec`
+- Delegates to the running app container on prod (where `drizzle-kit` is installed)
+- Runs `drizzle-kit migrate` with the correct `DATABASE_URL`
+- Prints `✓ Migrations complete.` on success, or an error with recovery hint on failure
 
 **Command:**
 ```bash
 npm run db:migrate
 ```
 
-**Equivalent commands** (don't use these directly, use npm script instead):
-```bash
-# From WSL/native shell with DATABASE_URL set:
-drizzle-kit migrate --config drizzle.config.ts
+**Expected output (nothing to apply):**
+```
+Running migrations against: postgresql://...
+[✓] applying migrations...
+✓ Migrations complete.
+```
 
-# From Docker container:
-docker compose -f docker-compose.prod.yml exec db drizzle-kit migrate
+> **Note:** The `NOTICE: schema "drizzle" already exists` and `relation "__drizzle_migrations" already exists` messages are normal — Drizzle creates these if they don't exist. They do not indicate a problem.
+
+---
+
+### `npm run db:stamp` — Repair Empty Migration Tracking Table
+**File:** `scripts/stamp-migrations.sh` → `scripts/stamp-migrations.ts`  
+**When to use:** When `__drizzle_migrations` is empty but the schema already exists (see [Known Issue](#known-issue-drizzle-migration-tracking) below)
+
+**What it does:**
+- Uses drizzle-orm's own `readMigrationFiles` to compute the correct hash for each migration
+- Inserts a record into `drizzle.__drizzle_migrations` for each migration not already tracked
+- Safe to re-run — skips migrations already recorded
+- Delegates to the app container on prod (same as `db:migrate`)
+
+**Command:**
+```bash
+npm run db:stamp
+npm run db:migrate  # verify — should report nothing to apply
 ```
 
 ---
@@ -363,9 +382,16 @@ npm run dev:setup  # Sets DATABASE_URL, starts DB, runs migrations, seeds users,
 
 ### After Pulling New Code
 ```bash
-npm install  # If package.json changed
-npm run db:migrate  # If migrations added
-npm run dev  # Restart dev server
+npm install        # If package.json changed
+npm run db:migrate # If migrations added
+npm run dev        # Restart dev server
+```
+
+### After First Deploy / Fresh Container with Existing Database
+If you rebuilt the container against a DB that already has the schema (e.g., after migrating from a previous setup), the migration tracking table may be empty. Run stamp first:
+```bash
+npm run db:stamp    # Populates __drizzle_migrations with correct hashes
+npm run db:migrate  # Should now report nothing to apply
 ```
 
 ### Before Committing
@@ -408,6 +434,26 @@ Scripts use these env vars (usually set by parent script):
 
 ---
 
+## Known Issue: Drizzle Migration Tracking
+
+**Symptom:** `npm run db:migrate` appears to run but `drizzle.__drizzle_migrations` remains empty. The app fails on startup with a 500 error querying tables that should exist. Re-running `db:migrate` makes no difference.
+
+**Root cause:** Drizzle runs all pending migrations in a single transaction. If any migration uses bare `CREATE TABLE` (without `IF NOT EXISTS`) and the table already exists, that statement throws, the whole transaction rolls back — including the tracking inserts into `__drizzle_migrations` — and nothing is recorded. This leaves the table perpetually empty, so every subsequent `db:migrate` call retries all migrations and fails again.
+
+This affects this project because migrations 0000–0009 predate the `IF NOT EXISTS` convention and are non-idempotent. The tracking table ends up empty if the schema was ever applied outside of Drizzle's control (e.g., restored from a backup, or applied via raw SQL).
+
+**Fix:**
+```bash
+npm run db:stamp    # Inserts correct hash records for all already-applied migrations
+npm run db:migrate  # Now sees all migrations as recorded — applies only new ones
+```
+
+If the app is also reporting a 500 on a specific page, the relevant table may also be missing. Apply it manually via `psql`, then stamp.
+
+**Prevention:** New migrations should always use `IF NOT EXISTS` for `CREATE TABLE` and `ADD COLUMN IF NOT EXISTS` for `ALTER TABLE`, so that re-running is always a no-op.
+
+---
+
 ## Troubleshooting
 
 ### Script Fails with "npm not found"
@@ -433,6 +479,23 @@ npm run dev:setup
 ```bash
 npm ci  # Clean install
 npm run db:migrate
+```
+
+### `db:migrate` runs but tables are still missing / 500 errors after deploy
+**Cause:** `drizzle.__drizzle_migrations` is empty — see [Known Issue](#known-issue-drizzle-migration-tracking) above.  
+**Fix:**
+```bash
+npm run db:stamp
+npm run db:migrate
+```
+If a specific table is still missing after stamping, apply it manually via `psql` using the SQL from `src/lib/db/migrations/<migration>.sql`.
+
+### `db:stamp` or `db:migrate` reports "No such file or directory" inside container
+**Cause:** The container image was built before the script was added to the repo.  
+**Fix:** Rebuild the container to include the new scripts, then re-run:
+```bash
+npm run docker:build
+npm run db:stamp
 ```
 
 ### "DEV_AUTH_ENABLED not set"
