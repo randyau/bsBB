@@ -64,7 +64,10 @@
 				<div class="box hover:shadow-md transition">
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex-1">
-							<h2 class="text-xl font-semibold">
+							<h2 class="flex items-center gap-2 text-xl font-semibold">
+								{#if forum.hasUnread}
+									<div class="unread-dot flex-shrink-0"><span class="sr-only">Unread posts</span></div>
+								{/if}
 								<a href="/f/{forum.slug}" class="text-[rgb(var(--color-primary))] hover:underline">
 									{forum.name}
 								</a>

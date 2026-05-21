@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db';
-import { forums, threads } from '$lib/db/schema';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { forums, threads, threadViews } from '$lib/db/schema';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { canRead } from '$lib/permissions';
 import { getSetting } from '$lib/settings';
 import { renderMarkdown } from '$lib/markdown';
@@ -34,6 +34,33 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		});
 	}
 
+	// Compute per-forum unread status for logged-in users
+	const forumUnreadSet = new Set<string>();
+	if (locals.user && readableForums.length > 0) {
+		const forumIds = readableForums.map((f) => f.id);
+		const unreadForums = await db
+			.select({ forumId: threads.forumId })
+			.from(threads)
+			.leftJoin(
+				threadViews,
+				and(
+					eq(threadViews.threadId, threads.id),
+					eq(threadViews.userDid, locals.user.did),
+				),
+			)
+			.where(
+				and(
+					inArray(threads.forumId, forumIds),
+					sql`(${threadViews.lastViewedAt} IS NULL OR ${threads.lastPostAt} > ${threadViews.lastViewedAt})`,
+				),
+			)
+			.groupBy(threads.forumId);
+
+		for (const row of unreadForums) {
+			if (row.forumId) forumUnreadSet.add(row.forumId);
+		}
+	}
+
 	// Check if first admin was just promoted
 	const flashAdmin = url.searchParams.has('firstAdmin');
 
@@ -42,7 +69,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const announcementHtml = announcementMarkdown ? await renderMarkdown(announcementMarkdown, db) : '';
 
 	return {
-		forums: readableForums,
+		forums: readableForums.map((f) => ({ ...f, hasUnread: forumUnreadSet.has(f.id) })),
 		flashAdmin,
 		announcementHtml,
 	};
