@@ -30,27 +30,9 @@
 	});
 
 	$effect(() => {
-		if (form) {
-			if (form.error) {
-				toastMessage = form.error;
-				toastType = 'error';
-			} else if (form.success) {
-				toastMessage = 'Success!';
-				toastType = 'success';
-				// Refresh assets list after successful action
-				if (form.slug) {
-					const newAsset = {
-						slug: form.slug,
-						url: form.url,
-						originalFilename: form.filename,
-						mimeType: '',
-						size: 0,
-						createdAt: new Date(),
-						id: '',
-					};
-					assets = [newAsset, ...assets];
-				}
-			}
+		if (form?.error) {
+			toastMessage = form.error;
+			toastType = 'error';
 		}
 	});
 
@@ -148,7 +130,7 @@
 	}
 
 	function copyAsReference(slug: string) {
-		copyToClipboard(slug);
+		copyToClipboard(`asset:${slug}`);
 	}
 
 	function startRename(asset: Asset) {
@@ -248,6 +230,7 @@
 					type="file"
 					class="hidden"
 					id="file-input"
+					accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,application/zip,application/x-rar-compressed,application/gzip,application/x-7z-compressed,text/plain"
 					onchange={handleFileInput}
 					disabled={isUploading}
 				/>
@@ -257,7 +240,7 @@
 			{/if}
 		</div>
 		<p class="text-xs text-[rgb(var(--color-text-muted))] mt-4">
-			Supported: Images (JPEG, PNG, GIF, WebP), PDFs, ZIP files, and archives
+			Supported: Images (JPEG, PNG, GIF, WebP, SVG), PDFs, plain text, and archives (ZIP, RAR, GZ, 7Z)
 		</p>
 	</section>
 
@@ -285,7 +268,16 @@
 							<tr class="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-tertiary))]">
 								<td class="py-3 px-4">
 									<div class="flex items-center gap-2">
-										<span>{getFileIcon(asset.mimeType)}</span>
+										{#if asset.mimeType.startsWith('image/')}
+											<img
+												src={asset.url}
+												alt=""
+												class="asset-thumb"
+												loading="lazy"
+											/>
+										{:else}
+											<span aria-hidden="true">{getFileIcon(asset.mimeType)}</span>
+										{/if}
 										{#if renamingSlug === asset.slug}
 											<input
 												type="text"
@@ -324,7 +316,8 @@
 											<button
 												class="btn btn-sm"
 												onclick={() => copyAsReference(asset.slug)}
-												title="Copy asset reference"
+												title="Copy asset reference (asset:slug)"
+												aria-label="Copy asset reference for {asset.originalFilename}"
 											>
 												Ref
 											</button>
@@ -333,6 +326,7 @@
 													class="btn btn-sm"
 													onclick={() => copyAsMarkdownImage(asset)}
 													title="Copy as markdown image"
+													aria-label="Copy {asset.originalFilename} as markdown image"
 												>
 													Img
 												</button>
@@ -341,6 +335,7 @@
 												class="btn btn-sm"
 												onclick={() => copyAsMarkdownLink(asset)}
 												title="Copy as markdown link"
+												aria-label="Copy {asset.originalFilename} as markdown link"
 											>
 												Link
 											</button>
@@ -348,6 +343,7 @@
 												class="btn btn-sm"
 												onclick={() => startRename(asset)}
 												title="Rename"
+												aria-label="Rename {asset.originalFilename}"
 											>
 												✏️
 											</button>
@@ -355,6 +351,7 @@
 												class="btn btn-sm btn-danger"
 												onclick={() => (selectedAssetToDelete = asset.slug)}
 												title="Delete"
+												aria-label="Delete {asset.originalFilename}"
 											>
 												×
 											</button>
@@ -389,5 +386,14 @@
 	.btn-sm {
 		padding: 0.375rem 0.75rem;
 		font-size: 0.875rem;
+	}
+
+	.asset-thumb {
+		width: 2.5rem;
+		height: 2.5rem;
+		object-fit: cover;
+		border-radius: 4px;
+		border: 1px solid rgb(var(--color-border));
+		flex-shrink: 0;
 	}
 </style>

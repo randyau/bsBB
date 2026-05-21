@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 
 	interface Asset {
 		id: string;
@@ -48,16 +47,12 @@
 		error = '';
 
 		try {
-			const response = await fetch('/admin/assets');
+			const response = await fetch('/admin/assets/data.json');
 			if (!response.ok) throw new Error('Failed to load assets');
-
-			// Parse HTML to extract assets data (this is a workaround since we're on a page)
-			const html = await response.text();
-			// In a real implementation, this would use an API endpoint
-			// For now, we assume assets are available from the page data
-			isLoading = false;
+			assets = await response.json();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load assets';
+		} finally {
 			isLoading = false;
 		}
 	}
@@ -130,7 +125,11 @@
 								onclick={() => selectAsset(asset.slug, asset.originalFilename, asset.mimeType)}
 								title={asset.originalFilename}
 							>
-								<div class="asset-icon">{getFileIcon(asset.mimeType)}</div>
+								{#if asset.mimeType.startsWith('image/')}
+									<img src={asset.url} alt="" class="asset-thumb" loading="lazy" />
+								{:else}
+									<div class="asset-icon" aria-hidden="true">{getFileIcon(asset.mimeType)}</div>
+								{/if}
 								<div class="asset-info">
 									<div class="asset-name">{asset.originalFilename}</div>
 									<div class="asset-meta">{formatBytes(asset.size)}</div>
@@ -244,6 +243,14 @@
 
 	.asset-icon {
 		font-size: 2rem;
+	}
+
+	.asset-thumb {
+		width: 3rem;
+		height: 3rem;
+		object-fit: cover;
+		border-radius: 4px;
+		border: 1px solid rgb(var(--color-border));
 	}
 
 	.asset-info {

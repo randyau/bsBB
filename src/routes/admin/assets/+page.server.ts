@@ -1,17 +1,16 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/db';
 import { adminAssets } from '$lib/db/schema';
-import { generateAssetSlug, getAssetUrl, canAccessAssets } from '$lib/assets';
+import { generateAssetSlug, getAssetUrl, canAccessAssets, SLUG_PATTERN } from '$lib/assets';
 import { eq } from 'drizzle-orm';
 import { writeFileSync, unlinkSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const UPLOADS_DIR = join(__dirname, '../../../../uploads/assets');
+const UPLOADS_DIR = join(process.cwd(), 'uploads/assets');
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_FILENAME_LENGTH = 255;
 const ALLOWED_MIME_TYPES = new Set([
 	'image/jpeg',
 	'image/png',
@@ -33,6 +32,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const assets = await db.query.adminAssets.findMany({
 		orderBy: (table, { desc }) => desc(table.createdAt),
+		limit: 500,
 	});
 
 	return {
@@ -94,9 +94,8 @@ export const actions: Actions = {
 			} catch {
 				/* ignore */
 			}
-			return {
-				error: `Failed to upload: ${err instanceof Error ? err.message : 'Unknown error'}`,
-			};
+			console.error('Asset upload failed:', err);
+			return { error: 'Upload failed. Please try again.' };
 		}
 	},
 
@@ -112,19 +111,25 @@ export const actions: Actions = {
 			return { error: 'No slug provided' };
 		}
 
-		try {
-			// Delete from DB first
-			await db.delete(adminAssets).where(eq(adminAssets.slug, slug));
+		if (!SLUG_PATTERN.test(slug)) {
+			return { error: 'Invalid slug' };
+		}
 
-			// Then delete file
+		try {
+			// Delete file first — if this fails the DB record is untouched and the asset is still accessible
 			const filePath = join(UPLOADS_DIR, slug);
-			unlinkSync(filePath);
+			try {
+				unlinkSync(filePath);
+			} catch {
+				// File already missing — proceed to clean up the DB record
+			}
+
+			await db.delete(adminAssets).where(eq(adminAssets.slug, slug));
 
 			return { success: true };
 		} catch (err) {
-			return {
-				error: `Failed to delete: ${err instanceof Error ? err.message : 'Unknown error'}`,
-			};
+			console.error('Asset delete failed:', err);
+			return { error: 'Delete failed. Please try again.' };
 		}
 	},
 
@@ -141,17 +146,32 @@ export const actions: Actions = {
 			return { error: 'Missing slug or filename' };
 		}
 
+		if (!SLUG_PATTERN.test(slug)) {
+			return { error: 'Invalid slug' };
+		}
+
+		const trimmedFilename = newFilename.trim();
+		if (!trimmedFilename) {
+			return { error: 'Filename cannot be empty' };
+		}
+		if (trimmedFilename.length > MAX_FILENAME_LENGTH) {
+			return { error: `Filename too long (max ${MAX_FILENAME_LENGTH} characters)` };
+		}
+		// Reject control characters, null bytes, and path separators
+		if (/[\x00-\x1f\x7f/\\]/.test(trimmedFilename)) {
+			return { error: 'Filename contains invalid characters' };
+		}
+
 		try {
 			await db
 				.update(adminAssets)
-				.set({ originalFilename: newFilename, updatedAt: new Date() })
+				.set({ originalFilename: trimmedFilename, updatedAt: new Date() })
 				.where(eq(adminAssets.slug, slug));
 
 			return { success: true };
 		} catch (err) {
-			return {
-				error: `Failed to rename: ${err instanceof Error ? err.message : 'Unknown error'}`,
-			};
+			console.error('Asset rename failed:', err);
+			return { error: 'Rename failed. Please try again.' };
 		}
 	},
 };

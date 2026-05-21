@@ -4,6 +4,7 @@
 	import { renderMarkdownClient } from '$lib/markdown/client';
 	import Breadcrumb from '$components/Breadcrumb.svelte';
 	import MarkdownToolbar from '$components/MarkdownToolbar.svelte';
+	import { canAccessAssets } from '$lib/assets';
 
 	type FormData = (ActionData & { title?: string; body?: string }) | undefined;
 
@@ -84,7 +85,13 @@
 						rows="12"
 						class="form-control form-textarea"
 					></textarea>
-					<MarkdownToolbar value={bodyValue} maxlength={BODY_MAX} onEmojiSelect={(emoji) => bodyValue += emoji} />
+					<MarkdownToolbar
+					value={bodyValue}
+					maxlength={BODY_MAX}
+					onEmojiSelect={(emoji) => (bodyValue += emoji)}
+					canUseAssets={canAccessAssets(data.user)}
+					onAssetSelect={(ref) => (bodyValue += ref)}
+				/>
 				</div>
 
 				<!-- Live Preview -->

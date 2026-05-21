@@ -8,26 +8,27 @@ import {
 
 describe('Asset Utilities', () => {
 	describe('generateAssetSlug', () => {
-		it('converts filename to lowercase slug', () => {
+		it('converts filename to lowercase slug with extension', () => {
 			const slug = generateAssetSlug('MyFile.pdf');
-			expect(slug).toMatch(/^myfile-[a-z0-9]{6}$/);
+			expect(slug).toMatch(/^myfile-[a-z0-9]{6}\.pdf$/);
 		});
 
 		it('replaces spaces and special characters with dashes', () => {
 			const slug = generateAssetSlug('My Document (2025).pdf');
-			expect(slug).toMatch(/^my-document-2025-[a-z0-9]{6}$/);
+			expect(slug).toMatch(/^my-document-2025-[a-z0-9]{6}\.pdf$/);
 		});
 
 		it('removes leading/trailing dashes', () => {
 			const slug = generateAssetSlug('---test---.pdf');
-			expect(slug).toMatch(/^test-[a-z0-9]{6}$/);
+			expect(slug).toMatch(/^test-[a-z0-9]{6}\.pdf$/);
 		});
 
 		it('limits sanitized part to 50 chars', () => {
 			const longName = 'a'.repeat(100) + '.pdf';
 			const slug = generateAssetSlug(longName);
-			const [base] = slug.split('-').slice(0, -1).join('-').split('-');
-			expect(base.length).toBeLessThanOrEqual(50);
+			expect(slug).toMatch(/\.pdf$/);
+			const base = slug.replace(/\.[^.]+$/, '');
+			expect(base.length).toBeLessThanOrEqual(57); // 50 chars + dash + 6 timestamp chars
 		});
 
 		it('generates random slug for empty filenames', () => {
@@ -40,9 +41,13 @@ describe('Asset Utilities', () => {
 			expect(slug).toMatch(/^readme-[a-z0-9]{6}$/);
 		});
 
+		it('handles multi-dot filenames correctly', () => {
+			const slug = generateAssetSlug('report.2025.final.pdf');
+			expect(slug).toMatch(/^report-2025-final-[a-z0-9]{6}\.pdf$/);
+		});
+
 		it('includes timestamp suffix for uniqueness', async () => {
 			const slug1 = generateAssetSlug('test.pdf');
-			// Wait 1ms to ensure different timestamp
 			await new Promise((r) => setTimeout(r, 1));
 			const slug2 = generateAssetSlug('test.pdf');
 			expect(slug1).not.toBe(slug2);
@@ -67,6 +72,12 @@ describe('Asset Utilities', () => {
 			const text = 'Download [file](asset:my-report-2025-abc123)';
 			const resolved = resolveAssetReferences(text);
 			expect(resolved).toBe('Download [file](/assets/my-report-2025-abc123)');
+		});
+
+		it('handles asset references with file extensions', () => {
+			const text = '![logo](asset:my-logo-abc123.jpg) and [doc](asset:report-def456.pdf)';
+			const resolved = resolveAssetReferences(text);
+			expect(resolved).toBe('![logo](/assets/my-logo-abc123.jpg) and [doc](/assets/report-def456.pdf)');
 		});
 
 		it('is case-insensitive for asset prefix', () => {
