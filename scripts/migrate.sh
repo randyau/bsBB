@@ -44,6 +44,11 @@ cd "$PROJECT_ROOT"
 if npx drizzle-kit migrate; then
   echo "✓ Migrations complete."
 else
+  echo "" >&2
   echo "✗ Migration failed — check output above." >&2
+  echo "" >&2
+  echo "  If drizzle.__drizzle_migrations is empty but the schema already exists," >&2
+  echo "  run: npm run db:stamp" >&2
+  echo "  Then re-run: npm run db:migrate" >&2
   exit 1
 fi
