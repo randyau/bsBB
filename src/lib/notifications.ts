@@ -8,6 +8,9 @@
 import { db } from './db';
 import { notificationQueue, userNotifications, users, notificationSubscriptions } from './db/schema';
 import { eq, and, lt, sql } from 'drizzle-orm';
+import { logger as rootLogger } from './logger.js';
+
+const log = rootLogger.child({ module: 'notifications' });
 
 const INBOX_MAX_PER_USER = 100;
 const INBOX_MAX_AGE_DAYS = 30;
@@ -95,7 +98,7 @@ export async function enqueueModerationAlert(
 		});
 	}
 
-	console.log(`[notifications] enqueued moderator alert: ${action} by ${moderatorHandle}`);
+	log.info({ action, moderatorHandle }, 'enqueued moderator alert');
 }
 
 /**
@@ -137,7 +140,7 @@ export async function enqueueDmNotification(
 				type: 'dm_notification',
 				payload: { notificationType, ...payload, timestamp: new Date().toISOString() }
 			});
-			console.log(`[notifications] enqueued DM (followed thread): ${notificationType} to ${recipientDid}`);
+			log.info({ notificationType, recipientDid }, 'enqueued DM (followed thread)');
 			return;
 		}
 	}
@@ -156,7 +159,7 @@ export async function enqueueDmNotification(
 		payload: { notificationType, ...payload, timestamp: new Date().toISOString() }
 	});
 
-	console.log(`[notifications] enqueued DM: ${notificationType} to ${recipientDid}`);
+	log.info({ notificationType, recipientDid }, 'enqueued DM');
 }
 
 /**
@@ -172,5 +175,5 @@ export async function enqueueProfileSync(userDid: string) {
 		}
 	});
 
-	console.log(`[notifications] enqueued profile sync for ${userDid}`);
+	log.info({ userDid }, 'enqueued profile sync');
 }

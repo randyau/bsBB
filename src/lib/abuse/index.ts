@@ -1,5 +1,8 @@
 import { db } from '$lib/db';
 import { sql } from 'drizzle-orm';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'abuse' });
 
 // All call sites must use this function; no inline rate-limit checks anywhere else.
 
@@ -80,7 +83,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 
 		return { allowed: true };
 	} catch (err) {
-		console.error('[abuse check error]', String(err));
+		log.error({ err, type: ctx.type }, 'abuse check DB error; failing closed in production');
 		// In production, fail closed (deny) to prevent abuse during DB issues.
 		// In development, fail open (allow) to avoid blocking during setup/testing.
 		if (process.env.NODE_ENV === 'production') {
