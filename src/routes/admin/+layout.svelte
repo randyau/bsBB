@@ -15,15 +15,16 @@
 
 	const navItems = [
 		{ href: '/admin/approval-queue', icon: '⏳', label: 'Approval Queue', adminOnly: false },
+		{ href: '/admin/pii-requests', icon: '🔒', label: 'PII Requests', adminOnly: false },
 		{ href: '/admin/users', icon: '👥', label: 'Users', adminOnly: false },
+		{ href: '/admin/roles', icon: '🏷️', label: 'Roles', adminOnly: true },
+		{ href: '/admin/forums', icon: '🗂️', label: 'Forums', adminOnly: true },
 		{ href: '/admin/threads', icon: '💬', label: 'Threads', adminOnly: false },
 		{ href: '/admin/posts', icon: '📝', label: 'Posts', adminOnly: false },
 		{ href: '/admin/mod-log', icon: '📋', label: 'Mod Log', adminOnly: false },
-		{ href: '/admin/pii-requests', icon: '🔒', label: 'PII Requests', adminOnly: false },
-		{ href: '/admin/assets', icon: '🖼️', label: 'Assets', adminOnly: true },
-		{ href: '/admin/forums', icon: '🗂️', label: 'Forums', adminOnly: true },
-		{ href: '/admin/roles', icon: '🏷️', label: 'Roles', adminOnly: true },
+		{ separator: true, adminOnly: false },
 		{ href: '/admin/settings', icon: '⚙️', label: 'Settings', adminOnly: true },
+		{ href: '/admin/assets', icon: '🖼️', label: 'Assets', adminOnly: true },
 		{ href: '/admin/notifications', icon: '🔔', label: 'Notifications', adminOnly: true },
 		{ href: '/admin/query', icon: '🔍', label: 'SQL Queries', adminOnly: true },
 	].filter(item => !item.adminOnly || isAdmin);
@@ -35,16 +36,20 @@
 			<h2 class="text-lg font-bold mb-6 text-[rgb(var(--color-text))]">{isAdmin ? 'Admin Panel' : 'Mod Panel'}</h2>
 			<nav class="space-y-2 flex-1 overflow-y-auto" aria-label="Admin navigation">
 				{#each navItems as item}
-					<a
-						href={item.href}
-						class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]"
-						class:bg-[rgb(var(--color-bg-tertiary))]={isActive(item.href)}
-						class:font-semibold={isActive(item.href)}
-						aria-current={isActive(item.href) ? 'page' : undefined}
-						onclick={() => (drawerOpen = false)}
-					>
-						<span aria-hidden="true">{item.icon}</span> {item.label}
-					</a>
+					{#if item.separator}
+						<div class="my-4 border-t border-[rgb(var(--color-border))]"></div>
+					{:else}
+						<a
+							href={item.href}
+							class="block px-4 py-2 rounded-lg hover:bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-secondary))]"
+							class:bg-[rgb(var(--color-bg-tertiary))]={isActive(item.href)}
+							class:font-semibold={isActive(item.href)}
+							aria-current={isActive(item.href) ? 'page' : undefined}
+							onclick={() => (drawerOpen = false)}
+						>
+							<span aria-hidden="true">{item.icon}</span> {item.label}
+						</a>
+					{/if}
 				{/each}
 			</nav>
 			<div class="mt-8 pt-6 border-t border-[rgb(var(--color-border))]">
