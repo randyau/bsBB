@@ -6,6 +6,9 @@ import { eq, max } from 'drizzle-orm';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { isModerator } from '$lib/auth/roles.js';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:forum' });
 
 /**
  * PATCH /f/[forumSlug]/t/[threadId]/post/[postId]
@@ -113,7 +116,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request, getClient
 			}
 		});
 	} catch (err) {
-		console.error('[patch post error]', err);
+		log.error({ err }, '[patch post error]');
 		return json({ error: 'Failed to update post' }, { status: 500 });
 	}
 };

@@ -1,6 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { searchPosts, searchPostsCount } from '$lib/search';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:api:search' });
 
 /**
  * GET /api/search?q=keyword&page=1
@@ -43,7 +46,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			totalPages: Math.ceil(total / pageSize)
 		});
 	} catch (err) {
-		console.error('[search error]', err);
+		log.error({ err }, '[search error]');
 		return json(
 			{ error: 'Search failed' },
 			{ status: 500 }

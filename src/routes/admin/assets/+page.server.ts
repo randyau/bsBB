@@ -6,6 +6,9 @@ import { eq } from 'drizzle-orm';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import type { PageServerLoad, Actions } from './$types';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:assets' });
 
 const UPLOADS_DIR = join(process.cwd(), 'uploads/assets');
 
@@ -94,7 +97,7 @@ export const actions: Actions = {
 			} catch {
 				/* ignore */
 			}
-			console.error('Asset upload failed:', err);
+			log.error({ err }, 'Asset upload failed:');
 			return { error: 'Upload failed. Please try again.' };
 		}
 	},
@@ -128,7 +131,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Asset delete failed:', err);
+			log.error({ err }, 'Asset delete failed:');
 			return { error: 'Delete failed. Please try again.' };
 		}
 	},
@@ -170,7 +173,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Asset rename failed:', err);
+			log.error({ err }, 'Asset rename failed:');
 			return { error: 'Rename failed. Please try again.' };
 		}
 	},

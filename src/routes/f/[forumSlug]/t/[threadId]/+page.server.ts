@@ -10,6 +10,9 @@ import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { checkAbuse } from '$lib/abuse/index.js';
 import { enqueueProfileSync, enqueueDmNotification } from '$lib/notifications.js';
 import { getSetting } from '$lib/settings.js';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:forum' });
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Find forum by slug first
@@ -315,7 +318,7 @@ export const actions: Actions = {
 				}
 			});
 		} catch (err) {
-			console.error('[reply error]', err);
+			log.error({ err }, '[reply error]');
 			return fail(500, { error: 'Failed to post reply' });
 		}
 

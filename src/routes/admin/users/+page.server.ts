@@ -5,6 +5,9 @@ import { isAdmin, isModerator } from '$lib/auth/roles.js';
 import { eq, or, ilike, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:users' });
 
 export const load: PageServerLoad = async ({ url }) => {
 	const q = url.searchParams.get('q') ?? '';
@@ -93,7 +96,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'ban', targetDid };
 		} catch (err) {
-			console.error('ban action error:', err);
+			log.error({ err }, 'ban action error:');
 			return fail(500, { error: 'Failed to ban user' });
 		}
 	},
@@ -129,7 +132,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'unban', targetDid };
 		} catch (err) {
-			console.error('unban action error:', err);
+			log.error({ err }, 'unban action error:');
 			return fail(500, { error: 'Failed to unban user' });
 		}
 	},
@@ -167,7 +170,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'promote', targetDid };
 		} catch (err) {
-			console.error('promote action error:', err);
+			log.error({ err }, 'promote action error:');
 			return fail(500, { error: 'Failed to promote user' });
 		}
 	},
@@ -218,7 +221,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'demote', targetDid };
 		} catch (err) {
-			console.error('demote action error:', err);
+			log.error({ err }, 'demote action error:');
 			return fail(500, { error: 'Failed to demote user' });
 		}
 	},
@@ -251,7 +254,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'promoteModerator', targetDid };
 		} catch (err) {
-			console.error('promoteModerator action error:', err);
+			log.error({ err }, 'promoteModerator action error:');
 			return fail(500, { error: 'Failed to promote user to moderator' });
 		}
 	},
@@ -283,7 +286,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'demoteModerator', targetDid };
 		} catch (err) {
-			console.error('demoteModerator action error:', err);
+			log.error({ err }, 'demoteModerator action error:');
 			return fail(500, { error: 'Failed to remove moderator role' });
 		}
 	}

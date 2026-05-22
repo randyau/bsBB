@@ -16,6 +16,9 @@ import { eq, and, desc, count } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { enqueueModerationAlert } from '$lib/notifications';
 import { emojify } from 'node-emoji';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:user' });
 
 const POSTS_PAGE_SIZE = 25;
 
@@ -176,7 +179,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'ban', targetDid };
 		} catch (err) {
-			console.error('ban action error:', err);
+			log.error({ err }, 'ban action error:');
 			return fail(500, { error: 'Failed to ban user' });
 		}
 	},
@@ -215,7 +218,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'unban', targetDid };
 		} catch (err) {
-			console.error('unban action error:', err);
+			log.error({ err }, 'unban action error:');
 			return fail(500, { error: 'Failed to unban user' });
 		}
 	},
@@ -254,7 +257,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'promote', targetDid };
 		} catch (err) {
-			console.error('promote action error:', err);
+			log.error({ err }, 'promote action error:');
 			return fail(500, { error: 'Failed to promote user' });
 		}
 	},
@@ -306,7 +309,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'demote', targetDid };
 		} catch (err) {
-			console.error('demote action error:', err);
+			log.error({ err }, 'demote action error:');
 			return fail(500, { error: 'Failed to demote user' });
 		}
 	},
@@ -351,7 +354,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'assignForumMod', targetDid, forumId };
 		} catch (err) {
-			console.error('assignForumMod action error:', err);
+			log.error({ err }, 'assignForumMod action error:');
 			return fail(500, { error: 'Failed to assign forum moderator' });
 		}
 	},
@@ -388,7 +391,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'removeForumMod', targetDid, forumId };
 		} catch (err) {
-			console.error('removeForumMod action error:', err);
+			log.error({ err }, 'removeForumMod action error:');
 			return fail(500, { error: 'Failed to remove forum moderator' });
 		}
 	},
@@ -431,7 +434,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'assignCustomRole', targetDid, roleId };
 		} catch (err) {
-			console.error('assignCustomRole action error:', err);
+			log.error({ err }, 'assignCustomRole action error:');
 			return fail(500, { error: 'Failed to assign custom role' });
 		}
 	},
@@ -473,7 +476,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'removeCustomRole', targetDid, roleId };
 		} catch (err) {
-			console.error('removeCustomRole action error:', err);
+			log.error({ err }, 'removeCustomRole action error:');
 			return fail(500, { error: 'Failed to remove custom role' });
 		}
 	}

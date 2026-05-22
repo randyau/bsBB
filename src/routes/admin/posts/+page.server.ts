@@ -4,6 +4,9 @@ import { posts, threads, users, modLog, forums, postRevisions } from '$lib/db/sc
 import { isModerator } from '$lib/auth/roles.js';
 import { eq, desc, ilike, and, or, inArray, count } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:posts' });
 
 const PAGE_SIZE = 50;
 
@@ -243,7 +246,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'movePost', postId };
 		} catch (err) {
-			console.error('movePost error:', err);
+			log.error({ err }, 'movePost error:');
 			return fail(500, { error: 'Failed to move post' });
 		}
 	},
@@ -293,7 +296,7 @@ export const actions: Actions = {
 
 			return { success: true, action: `bulk_${action}`, count: validPosts.length };
 		} catch (err) {
-			console.error('bulkAction error:', err);
+			log.error({ err }, 'bulkAction error:');
 			return fail(500, { error: 'Failed to perform bulk action' });
 		}
 	}

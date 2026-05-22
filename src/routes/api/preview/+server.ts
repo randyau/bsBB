@@ -3,6 +3,9 @@ import { json } from '@sveltejs/kit';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { checkAbuse } from '$lib/abuse/index.js';
 import { db } from '$lib/db';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:api:preview' });
 
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
 	const contentType = request.headers.get('content-type') ?? '';
@@ -28,7 +31,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		const html = await renderMarkdown(body, db);
 		return json({ html });
 	} catch (err) {
-		console.error('[preview error]', err);
+		log.error({ err }, '[preview error]');
 		return json({ error: 'Failed to render preview' }, { status: 500 });
 	}
 };

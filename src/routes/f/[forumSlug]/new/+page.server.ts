@@ -9,6 +9,9 @@ import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
 import { generateSlug } from '$lib/markdown/slug.js';
 import { checkAbuse } from '$lib/abuse/index.js';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:forum' });
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const forum = await db.query.forums.findFirst({
@@ -132,7 +135,7 @@ export const actions: Actions = {
 					slug = `${generateSlug(title)}-${i}`;
 					continue;
 				}
-				console.error('[thread creation error]', err);
+				log.error({ err }, '[thread creation error]');
 				return fail(500, { error: 'Failed to create thread', title, body });
 			}
 		}

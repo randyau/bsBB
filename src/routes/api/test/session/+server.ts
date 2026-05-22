@@ -5,6 +5,9 @@ import { db } from '$lib/db';
 import { users, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:api:test' });
 
 export const GET: RequestHandler = async ({ url }) => {
 	// Only available in development mode
@@ -69,7 +72,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			curlExampleJson: `curl -H "Cookie: session=${token}" -H "Accept: application/json" http://localhost:5173/api/user`
 		});
 	} catch (err) {
-		console.error('Test session creation failed:', err);
+		log.error({ err }, 'Test session creation failed:');
 		return json({ error: 'Failed to create test session' }, { status: 500 });
 	}
 };
@@ -129,7 +132,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 		});
 	} catch (err) {
-		console.error('Test session creation failed:', err);
+		log.error({ err }, 'Test session creation failed:');
 		return json({ error: 'Failed to create test session' }, { status: 500 });
 	}
 };

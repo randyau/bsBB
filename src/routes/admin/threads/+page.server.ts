@@ -4,6 +4,9 @@ import { threads, forums, users, posts, modLog } from '$lib/db/schema';
 import { isModerator } from '$lib/auth/roles.js';
 import { eq, desc, sql, and, gte, count, ilike, or, inArray } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:threads' });
 
 const PAGE_SIZE = 25;
 
@@ -218,7 +221,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'moveThread', threadId };
 		} catch (err) {
-			console.error('moveThread error:', err);
+			log.error({ err }, 'moveThread error:');
 			return fail(500, { error: 'Failed to move thread' });
 		}
 	},
@@ -268,7 +271,7 @@ export const actions: Actions = {
 
 			return { success: true, action: `bulk_${action}`, count: validThreads.length };
 		} catch (err) {
-			console.error('bulkAction error:', err);
+			log.error({ err }, 'bulkAction error:');
 			return fail(500, { error: 'Failed to perform bulk action' });
 		}
 	}
