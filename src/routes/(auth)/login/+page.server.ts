@@ -2,6 +2,9 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
 import { env } from '$env/dynamic/private';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'auth:login' });
 
 export const load: PageServerLoad = () => ({
 	devAuthEnabled: env.NODE_ENV !== 'production' && env.DEV_AUTH_ENABLED === 'true',
@@ -32,7 +35,7 @@ export const actions: Actions = {
 				authUrl = (err as any).location;
 			} else {
 				const message = err instanceof Error ? err.message : JSON.stringify(err);
-				console.error('OAuth authorize error:', message);
+				log.error({ err }, 'OAuth authorize error');
 				return fail(400, { error: `Could not initiate login: ${message}` });
 			}
 		}

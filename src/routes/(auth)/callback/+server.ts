@@ -3,30 +3,31 @@ import type { RequestHandler } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
 import { createSession, setSessionCookie } from '$lib/auth/session.js';
 import { upsertUser, claimFirstAdmin } from '$lib/auth/user.js';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'auth:callback' });
 
 export const GET: RequestHandler = async (event) => {
 	const params = event.url.searchParams;
-	console.log('Callback received with params:', Array.from(params.keys()));
+	log.debug({ paramKeys: Array.from(params.keys()) }, 'callback received');
 
 	try {
 		const client = await getAtprotoClient();
-		console.log('Got OAuth client, calling callback...');
+		log.debug('got OAuth client, calling callback');
 		const { session } = await client.callback(params);
 		const did = session.did;
-		console.log('OAuth callback successful, DID:', did);
-		console.log('Session object keys:', Object.keys(session));
-		console.log('Session handle:', (session as any).handle);
-		console.log('Session displayName:', (session as any).displayName);
-		console.log('Session avatar:', (session as any).avatar);
+		log.debug({ did }, 'OAuth callback successful');
+		log.debug({ sessionKeys: Object.keys(session) }, 'session object');
+		log.debug({ handle: (session as any).handle, displayName: (session as any).displayName, avatar: (session as any).avatar }, 'session profile fields');
 
 		// Upsert user record (create on first login, update profile cache on subsequent)
 		await upsertUser(did, session);
-		console.log('User upserted');
+		log.debug('user upserted');
 
 		// Auto-sync profile on first login
 		const isFirstLogin = !(session as any).handle; // No handle in OAuth session = first login
 		if (isFirstLogin) {
-			console.log('First login detected, syncing profile...');
+			log.debug('first login detected, syncing profile');
 			try {
 				// Fetch handle from PLC Directory
 				const plcRes = await fetch(`https://plc.directory/${did}`, {
@@ -65,37 +66,37 @@ export const GET: RequestHandler = async (event) => {
 								})
 								.where(eq(users.did, did));
 
-							console.log('Profile synced on first login:', handle);
+							log.debug({ handle }, 'profile synced on first login');
 						}
 					}
 				}
 			} catch (err) {
-				console.error('Profile sync failed on first login:', err);
+				log.warn({ err }, 'profile sync failed on first login');
 				// Don't block login if sync fails
 			}
 		}
 
 		// First-admin gate: promote if instance has no admin yet
 		const flashAdmin = await claimFirstAdmin(did);
-		console.log('First admin claimed:', flashAdmin);
+		log.debug({ claimed: flashAdmin }, 'first admin check');
 
 		// Create our own session
 		const token = await createSession(did);
-		console.log('Session created, token:', token.substring(0, 20) + '...');
+		log.debug({ tokenPrefix: token.substring(0, 8) + '...' }, 'session created');
 
 		// Set session cookie (SvelteKit preserves this through redirect)
 		setSessionCookie(event, token);
-		console.log('Session cookie set');
+		log.debug('session cookie set');
 
 		// Redirect to home, with first-admin flag if applicable
 		const redirectUrl = flashAdmin ? '/?firstAdmin=1' : '/';
-		console.log('Redirecting to:', redirectUrl);
+		log.debug({ redirectUrl }, 'redirecting');
 		redirect(302, redirectUrl);
 	} catch (err) {
 		// Re-throw SvelteKit's redirect error (throws when redirect() is called)
 		if (isRedirect(err)) throw err;
 		const message = err instanceof Error ? err.message : 'Unknown error';
-		console.error('Callback error:', message);
+		log.error({ err }, 'OAuth callback error');
 		error(500, `Authentication failed: ${message}`);
 	}
 };

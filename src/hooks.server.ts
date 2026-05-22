@@ -1,12 +1,15 @@
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { validateSession, getSessionToken } from '$lib/auth/session.js';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'hooks' });
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// Host header validation — production only to avoid blocking dev port numbers
 	if (process.env.NODE_ENV === 'production') {
 		if (!process.env.ALLOWED_HOSTS) {
-			console.error('[startup] ALLOWED_HOSTS is not set. All requests will be rejected. Set ALLOWED_HOSTS to your domain (e.g. yourforum.com).');
+			log.error('ALLOWED_HOSTS is not set. All requests will be rejected. Set ALLOWED_HOSTS to your domain (e.g. yourforum.com).');
 		}
 		const hostHeader = event.request.headers.get('host') ?? '';
 		const hostname = hostHeader.split(':')[0];
@@ -19,24 +22,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Session hydration
 	const token = getSessionToken(event);
-	console.log('[hooks] session token present:', !!token, token?.substring(0, 20) + '...');
+	log.debug({ tokenPresent: !!token }, 'session token check');
 	if (token) {
 		const result = await validateSession(token);
-		console.log('[hooks] session validation result:', !!result);
+		log.debug({ valid: !!result }, 'session validation result');
 		if (result) {
 			event.locals.user = result.user;
 			event.locals.sessionId = result.sessionId;
-			console.log('[hooks] user set:', result.user.did);
+			log.debug({ did: result.user.did }, 'user set from session');
 		} else {
 			event.cookies.delete('session', { path: '/' });
 			event.locals.user = null;
 			event.locals.sessionId = null;
-			console.log('[hooks] invalid session, cookie deleted');
+			log.info('invalid session detected, cookie deleted');
 		}
 	} else {
 		event.locals.user = null;
 		event.locals.sessionId = null;
-		console.log('[hooks] no session token');
+		log.debug('no session token');
 	}
 
 	// Banned user block — except /banned and /logout
