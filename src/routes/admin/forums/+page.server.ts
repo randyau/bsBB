@@ -4,6 +4,9 @@ import { forums, userForumRoles, modLog, users, roles, forumPermissions } from '
 import { and, eq, sql } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:forums' });
 
 export const load: PageServerLoad = async () => {
 	const forumList = await db
@@ -136,7 +139,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'reorder' };
 		} catch (err) {
-			console.error('reorder action error:', err);
+			log.error({ err }, 'reorder action error:');
 			return fail(500, { error: 'Failed to reorder forum' });
 		}
 	},
@@ -175,7 +178,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'assignMod' };
 		} catch (err) {
-			console.error('assignMod action error:', err);
+			log.error({ err }, 'assignMod action error:');
 			return fail(500, { error: 'Failed to assign moderator' });
 		}
 	},
@@ -202,7 +205,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'removeMod' };
 		} catch (err) {
-			console.error('removeMod action error:', err);
+			log.error({ err }, 'removeMod action error:');
 			return fail(500, { error: 'Failed to remove moderator' });
 		}
 	},
@@ -227,7 +230,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'setApprovalDays' };
 		} catch (err) {
-			console.error('setApprovalDays action error:', err);
+			log.error({ err }, 'setApprovalDays action error:');
 			return fail(500, { error: 'Failed to update approval setting' });
 		}
 	},
@@ -294,7 +297,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'updatePermission' };
 		} catch (err) {
-			console.error('updatePermission action error:', err);
+			log.error({ err }, 'updatePermission action error:');
 			return fail(500, { error: 'Failed to update permission' });
 		}
 	},
@@ -350,7 +353,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'createForum', forumId: id };
 		} catch (err) {
-			console.error('createForum action error:', err);
+			log.error({ err }, 'createForum action error:');
 			return fail(500, { error: 'Failed to create forum' });
 		}
 	},
@@ -403,7 +406,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'editForum' };
 		} catch (err) {
-			console.error('editForum action error:', err);
+			log.error({ err }, 'editForum action error:');
 			return fail(500, { error: 'Failed to edit forum' });
 		}
 	}

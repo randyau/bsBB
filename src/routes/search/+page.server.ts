@@ -1,5 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { searchPosts, searchPostsCount, type SearchResult } from '$lib/search';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:search' });
 
 export const load: PageServerLoad = async ({ url }) => {
 	const rawQuery = url.searchParams.get('q')?.trim() || '';
@@ -27,7 +30,7 @@ export const load: PageServerLoad = async ({ url }) => {
 					searchPostsCount(contentQuery, authorFilter || undefined)
 				]);
 			} catch (err) {
-				console.error('[search error]', err);
+				log.error({ err }, '[search error]');
 				error = 'Search failed';
 			}
 		}

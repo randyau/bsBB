@@ -4,6 +4,9 @@ import { users, posts, threads, forums, modLog } from '$lib/db/schema';
 import { isModerator } from '$lib/auth/roles.js';
 import { eq, and, like, desc, or } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:user:manage-posts' });
 
 const POSTS_PER_PAGE = 25;
 
@@ -132,7 +135,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'hidePost' };
 		} catch (err) {
-			console.error('hidePost error:', err);
+			log.error({ err }, 'hidePost error:');
 			return fail(500, { error: 'Failed to hide post' });
 		}
 	},
@@ -180,7 +183,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'deletePost' };
 		} catch (err) {
-			console.error('deletePost error:', err);
+			log.error({ err }, 'deletePost error:');
 			return fail(500, { error: 'Failed to delete post' });
 		}
 	},
@@ -228,7 +231,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'restorePost' };
 		} catch (err) {
-			console.error('restorePost error:', err);
+			log.error({ err }, 'restorePost error:');
 			return fail(500, { error: 'Failed to restore post' });
 		}
 	}

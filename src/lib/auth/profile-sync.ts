@@ -1,6 +1,9 @@
 import { db } from '$lib/db/index.js';
 import { users } from '$lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'auth:profile-sync' });
 
 const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -12,9 +15,7 @@ export async function maybeSyncProfile(did: string, lastProfileSync: Date): Prom
 
 	// Non-blocking: errors are logged but never thrown to the caller
 	syncProfileBackground(did).catch((err) => {
-		if (process.env.NODE_ENV === 'development') {
-			console.error(`[profile-sync] Failed to sync ${did}:`, err);
-		}
+		log.warn({ err, did }, 'background profile sync failed');
 	});
 }
 

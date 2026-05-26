@@ -1,5 +1,8 @@
 import { db } from '$lib/db';
 import { sql } from 'drizzle-orm';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'abuse' });
 
 // All call sites must use this function; no inline rate-limit checks anywhere else.
 
@@ -59,6 +62,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 	try {
 		const primary = await checkBucket(primaryKey, config, now);
 		if (primary.count > config.limit) {
+			log.warn({ type: ctx.type, identifier: primaryIdentifier, count: primary.count, limit: config.limit }, 'rate limit exceeded');
 			return {
 				allowed: false,
 				reason: `Rate limit exceeded for ${ctx.type}`,
@@ -70,6 +74,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 			const ipKey = `${ctx.type}:ip:${(ctx as { ip: string }).ip}`;
 			const ipBucket = await checkBucket(ipKey, config, now);
 			if (ipBucket.count > config.limit) {
+				log.warn({ type: ctx.type, ip: (ctx as { ip: string }).ip, count: ipBucket.count, limit: config.limit }, 'rate limit exceeded (IP bucket)');
 				return {
 					allowed: false,
 					reason: `Rate limit exceeded for ${ctx.type}`,
@@ -80,7 +85,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 
 		return { allowed: true };
 	} catch (err) {
-		console.error('[abuse check error]', String(err));
+		log.error({ err, type: ctx.type }, 'abuse check DB error; failing closed in production');
 		// In production, fail closed (deny) to prevent abuse during DB issues.
 		// In development, fail open (allow) to avoid blocking during setup/testing.
 		if (process.env.NODE_ENV === 'production') {

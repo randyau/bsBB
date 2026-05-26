@@ -4,6 +4,9 @@ import { roles, userRoles, users, modLog } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { count } from 'drizzle-orm';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:roles' });
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || locals.user.globalRole !== 'admin') {
@@ -104,7 +107,7 @@ export const actions: Actions = {
 
 			return { success: true, role: newRole[0] };
 		} catch (err) {
-			console.error('createRole action error:', err);
+			log.error({ err }, 'createRole action error:');
 			if (err instanceof Error && err.message.includes('duplicate key')) {
 				return fail(422, { error: 'A role with this name already exists' });
 			}
@@ -159,7 +162,7 @@ export const actions: Actions = {
 
 			return { success: true, role: updated[0] };
 		} catch (err) {
-			console.error('editRole action error:', err);
+			log.error({ err }, 'editRole action error:');
 			if (err instanceof Error && err.message.includes('duplicate key')) {
 				return fail(422, { error: 'A role with this name already exists' });
 			}
@@ -195,7 +198,7 @@ export const actions: Actions = {
 
 			return { success: true, roleId: id };
 		} catch (err) {
-			console.error('deleteRole action error:', err);
+			log.error({ err }, 'deleteRole action error:');
 			return fail(500, { error: 'Failed to delete role' });
 		}
 	},
@@ -254,7 +257,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'addRoleMember', roleId, userDid };
 		} catch (err) {
-			console.error('addRoleMember action error:', err);
+			log.error({ err }, 'addRoleMember action error:');
 			return fail(500, { error: 'Failed to add user to role' });
 		}
 	},
@@ -294,7 +297,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'removeRoleMember', roleId, userDid };
 		} catch (err) {
-			console.error('removeRoleMember action error:', err);
+			log.error({ err }, 'removeRoleMember action error:');
 			return fail(500, { error: 'Failed to remove user from role' });
 		}
 	}

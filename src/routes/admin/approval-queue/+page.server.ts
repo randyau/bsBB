@@ -5,6 +5,9 @@ import { isModerator } from '$lib/auth/roles.js';
 import { eq, and } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { writeInboxNotification } from '$lib/notifications.js';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:approval-queue' });
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || !isModerator(locals.user)) {
@@ -66,7 +69,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'approve' };
 		} catch (err) {
-			console.error('approve action error:', err);
+			log.error({ err }, 'approve action error:');
 			return fail(500, { error: 'Failed to approve post' });
 		}
 	},
@@ -109,7 +112,7 @@ export const actions: Actions = {
 
 			return { success: true, action: 'reject' };
 		} catch (err) {
-			console.error('reject action error:', err);
+			log.error({ err }, 'reject action error:');
 			return fail(500, { error: 'Failed to reject post' });
 		}
 	},

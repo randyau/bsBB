@@ -47,6 +47,77 @@ const relative = formatTime(post.createdAt);  // "2h ago"
 
 ---
 
+## Logging
+
+**All server-side logging uses Pino via `$lib/logger`.** Never use `console.*` in server-side code (the one exception is `src/lib/markdown/client.ts` which runs in the browser).
+
+### Import and Usage
+
+```typescript
+import { logger } from '$lib/logger';
+
+// Create a module-scoped child logger once at the top of each file:
+const log = logger.child({ module: 'my-subsystem' });
+
+// Then use it throughout the file:
+log.info({ userId }, 'user action completed');
+log.error({ err }, 'database write failed');
+```
+
+### Log Level Mapping
+
+| Level | When to Use | Examples |
+|---|---|---|
+| `debug` | Per-request trace, dev-only noise | Per-request session checks in hooks, OAuth flow steps, dev email stub |
+| `info` | Audit-relevant events that always matter | Notification enqueued, first login, moderation action enqueued |
+| `warn` | Non-fatal unexpected conditions | Background profile sync failed, OAuth profile sync on login failed |
+| `error` | Caught errors in catch blocks, fail-closed paths | Any `catch(err)` block in routes or lib, abuse check DB failure |
+
+### Structured Data — the Golden Rule
+
+Put variable data in the **first argument object**, never interpolated into the message string:
+
+```typescript
+// Bad — message is not filterable
+log.error(`[ban error] user ${did}: ${err.message}`);
+
+// Good — fields are indexed and filterable
+log.error({ err, did, action: 'ban' }, 'user action failed');
+```
+
+Pino serializes `Error` instances automatically when the field is named `err` (the default `errSerializer` handles `.message` and `.stack`).
+
+### Child Logger Naming Convention
+
+Use colon-separated namespaces matching the file path:
+
+| File location | `module` value |
+|---|---|
+| `src/hooks.server.ts` | `hooks` |
+| `src/lib/notifications.ts` | `notifications` |
+| `src/lib/auth/session.ts` | `auth:session` |
+| `src/routes/(auth)/callback/+server.ts` | `auth:callback` |
+| `src/routes/admin/users/+page.server.ts` | `routes:admin:users` |
+| `src/routes/f/.../+page.server.ts` | `routes:forum` |
+
+### Filtering in Production
+
+```bash
+# All errors from the abuse module
+docker compose logs app | grep '"module":"abuse"'
+
+# All warn and above (jq numeric levels: debug=20, info=30, warn=40, error=50)
+docker compose logs app | jq 'select(.level >= 40)'
+```
+
+### Configuration
+
+Set `LOG_LEVEL` in your `.env`. Unset = `debug` in development, `info` in production.
+
+In development, pino-pretty colorizes and humanizes output in the TTY. In production, raw JSON goes to stdout and is captured by Docker's json-file log driver.
+
+---
+
 ## CSS and Theming
 
 ### CSS Variables and Semantic Classes

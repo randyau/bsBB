@@ -14,6 +14,9 @@
 
 import nodemailer from 'nodemailer';
 import { getSetting } from './settings';
+import { logger as rootLogger } from './logger.js';
+
+const log = rootLogger.child({ module: 'email' });
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -60,7 +63,7 @@ export async function sendEmail(
 ): Promise<string | null> {
 	// In development without email config, log instead
 	if (!process.env.SMTP_HOST && process.env.NODE_ENV !== 'production') {
-		console.log(`[email:dev] To: ${to}\nSubject: ${subject}\n\n${html}\n`);
+		log.debug({ to, subject }, 'email dev stub: would have sent');
 		return null;
 	}
 
@@ -92,7 +95,7 @@ export async function testEmail(to: string): Promise<boolean> {
 		);
 		return true;
 	} catch (err) {
-		console.error('[email] test failed:', err);
+		log.error({ err }, 'test email send failed');
 		return false;
 	}
 }

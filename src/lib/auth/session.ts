@@ -2,6 +2,9 @@ import { db } from '$lib/db/index.js';
 import { sessions, users } from '$lib/db/schema.js';
 import { eq, and, gt, lt } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
+import { logger as rootLogger } from '$lib/logger.js';
+
+const log = rootLogger.child({ module: 'auth:session' });
 
 export type SessionUser = {
 	did: string;
@@ -98,7 +101,7 @@ export async function validateSession(
 		// Fire-and-forget; don't await or block the user's request
 		db.delete(sessions)
 			.where(lt(sessions.expiresAt, now))
-			.catch((err) => console.error('[session cleanup error]', err));
+			.catch((err) => log.error({ err }, 'session cleanup failed'));
 	}
 
 	return {

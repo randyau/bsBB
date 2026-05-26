@@ -22,6 +22,7 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - SETUP_COMPLETE=${SETUP_COMPLETE:-true}
+      - ORIGIN=${PUBLIC_BASE_URL}
     volumes:
       - app_uploads:/app/uploads
     depends_on:

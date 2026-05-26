@@ -3,6 +3,9 @@ import { db } from '$lib/db';
 import { modLog } from '$lib/db/schema';
 import { fail } from '@sveltejs/kit';
 import { sql } from 'drizzle-orm';
+import { logger as rootLogger } from '$lib/logger';
+
+const log = rootLogger.child({ module: 'routes:admin:query' });
 
 const MAX_ROWS = 1000;
 const QUERY_TIMEOUT_MS = 5000;
@@ -60,7 +63,7 @@ export const actions: Actions = {
 					reason: query.substring(0, 200)
 				});
 			} catch (err) {
-				console.error('[mod_log error]', err);
+				log.error({ err }, '[mod_log error]');
 			}
 
 			return {
