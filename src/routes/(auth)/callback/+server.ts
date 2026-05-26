@@ -13,16 +13,12 @@ export const GET: RequestHandler = async (event) => {
 
 	try {
 		const client = await getAtprotoClient();
-		log.debug('got OAuth client, calling callback');
 		const { session } = await client.callback(params);
 		const did = session.did;
-		log.debug({ did }, 'OAuth callback successful');
-		log.debug({ sessionKeys: Object.keys(session) }, 'session object');
-		log.debug({ handle: (session as any).handle, displayName: (session as any).displayName, avatar: (session as any).avatar }, 'session profile fields');
+		log.debug({ did, handle: (session as any).handle, displayName: (session as any).displayName, avatar: (session as any).avatar }, 'OAuth session resolved');
 
 		// Upsert user record (create on first login, update profile cache on subsequent)
 		await upsertUser(did, session);
-		log.debug('user upserted');
 
 		// Auto-sync profile on first login
 		const isFirstLogin = !(session as any).handle; // No handle in OAuth session = first login
@@ -78,7 +74,6 @@ export const GET: RequestHandler = async (event) => {
 
 		// First-admin gate: promote if instance has no admin yet
 		const flashAdmin = await claimFirstAdmin(did);
-		log.debug({ claimed: flashAdmin }, 'first admin check');
 
 		// Create our own session
 		const token = await createSession(did);
@@ -86,11 +81,12 @@ export const GET: RequestHandler = async (event) => {
 
 		// Set session cookie (SvelteKit preserves this through redirect)
 		setSessionCookie(event, token);
-		log.debug('session cookie set');
+
+		// Log the successful authentication
+		log.info({ did, firstAdmin: flashAdmin }, 'user authenticated');
 
 		// Redirect to home, with first-admin flag if applicable
 		const redirectUrl = flashAdmin ? '/?firstAdmin=1' : '/';
-		log.debug({ redirectUrl }, 'redirecting');
 		redirect(302, redirectUrl);
 	} catch (err) {
 		// Re-throw SvelteKit's redirect error (throws when redirect() is called)

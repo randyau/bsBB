@@ -62,6 +62,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 	try {
 		const primary = await checkBucket(primaryKey, config, now);
 		if (primary.count > config.limit) {
+			log.warn({ type: ctx.type, identifier: primaryIdentifier, count: primary.count, limit: config.limit }, 'rate limit exceeded');
 			return {
 				allowed: false,
 				reason: `Rate limit exceeded for ${ctx.type}`,
@@ -73,6 +74,7 @@ export async function checkAbuse(ctx: AbuseContext): Promise<AbuseVerdict> {
 			const ipKey = `${ctx.type}:ip:${(ctx as { ip: string }).ip}`;
 			const ipBucket = await checkBucket(ipKey, config, now);
 			if (ipBucket.count > config.limit) {
+				log.warn({ type: ctx.type, ip: (ctx as { ip: string }).ip, count: ipBucket.count, limit: config.limit }, 'rate limit exceeded (IP bucket)');
 				return {
 					allowed: false,
 					reason: `Rate limit exceeded for ${ctx.type}`,
