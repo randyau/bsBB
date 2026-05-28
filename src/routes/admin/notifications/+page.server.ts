@@ -125,20 +125,34 @@ export const actions: Actions = {
 
 		try {
 			const serviceAgent = new AtpAgent({ service: 'https://bsky.social' });
-			await serviceAgent.login({ identifier: serviceHandle, password: serviceAppPassword });
+			const loginRes = await serviceAgent.login({ identifier: serviceHandle, password: serviceAppPassword });
 			const serviceDid = serviceAgent.session?.did;
 			if (!serviceDid) throw new Error('Service account session has no DID after login');
 
-			// Chat methods are served by api.bsky.chat, not bsky.social — proxy header required
+			// Resolve the account's actual PDS shard from the didDoc — the atproto-proxy
+			// header for chat is only honoured by the account's own PDS, not bsky.social.
+			let pdsUrl = 'https://bsky.social';
+			const didDoc = (loginRes.data as any)?.didDoc;
+			if (didDoc?.service) {
+				for (const svc of didDoc.service) {
+					if (svc.id === '#atproto_pds' || svc.id === 'atproto_pds') {
+						pdsUrl = svc.serviceEndpoint.replace(/\/$/, '');
+						break;
+					}
+				}
+			}
+			const pdsAgent = new AtpAgent({ service: pdsUrl });
+			pdsAgent.session = serviceAgent.session;
+
 			const chatHeaders = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' };
 
-			const convoRes = await serviceAgent.api.chat.bsky.convo.getConvoForMembers(
+			const convoRes = await pdsAgent.api.chat.bsky.convo.getConvoForMembers(
 				{ members: [recipientDid, serviceDid] },
 				{ headers: chatHeaders }
 			);
 			const convoId = convoRes.data.convo.id;
 
-			await serviceAgent.api.chat.bsky.convo.sendMessage(
+			await pdsAgent.api.chat.bsky.convo.sendMessage(
 				{ convoId, message: { text: messageText } },
 				{ headers: chatHeaders }
 			);
