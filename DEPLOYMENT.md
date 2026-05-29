@@ -20,6 +20,10 @@ This guide walks you through deploying bsBB to a fresh Linux server.
 
 > **Running setup from Windows?** Use a WSL2 terminal to run the bash scripts, or SSH directly into your Linux server and run them there. The scripts target Linux and are not designed for PowerShell or Command Prompt.
 
+> **Running as root?** Many VPS providers (Hetzner, DigitalOcean) log you in as root by default. That's fine — the setup and Docker commands all work as root. The `scripts/start-prod.sh` helper rejects root as a safety precaution; if you're root, run `docker compose -f docker-compose.prod.yml up -d` directly instead.
+
+> **Firewall:** Make sure ports 22 (SSH), 80 (HTTP), and 443 (HTTPS) are open. On Hetzner, the default firewall allows all traffic — no changes needed. On DigitalOcean or if you've enabled `ufw`: `sudo ufw allow 22 && sudo ufw allow 80 && sudo ufw allow 443 && sudo ufw enable`
+
 ---
 
 ## Step 1 — Provision a Server
@@ -77,7 +81,7 @@ npm --version   # Should be 10.x or higher
 
 ```bash
 # Install nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
 
 # Reload shell
 source ~/.bashrc
@@ -96,10 +100,11 @@ npm --version
 ## Step 2 — Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/bsBB.git
+git clone https://github.com/randyau/bsBB.git
 cd bsBB
-npm install
 ```
+
+> **Note:** Do not run `npm install` on the server — the app runs entirely inside Docker. Node.js on the server is only needed for `scripts/setup.sh`.
 
 ---
 
@@ -215,17 +220,11 @@ If you do get an issue with the moderator team, sending an email explaining the 
 
 ## Step 5 — Start Production Services
 
-**Quick start (manual):**
-
-```bash
-bash scripts/start-prod.sh
-```
-
-Or manually:
-
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+There is also a helper script (`bash scripts/start-prod.sh`) that does the same thing with extra health-check output, but it refuses to run as root. If you're logged in as root, use the `docker compose` command directly.
 
 This starts four services:
 - `db` — PostgreSQL 17 (internal network only)
@@ -443,6 +442,6 @@ If DMs are failing, check:
 
 ## Support
 
-- **Issues:** GitHub Issues
-- **Questions:** GitHub Discussions
+- **Issues:** [github.com/randyau/bsBB/issues](https://github.com/randyau/bsBB/issues)
+- **Questions:** [github.com/randyau/bsBB/discussions](https://github.com/randyau/bsBB/discussions)
 - **Architecture rationale:** [CLAUDE.md](CLAUDE.md)

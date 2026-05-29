@@ -170,9 +170,8 @@ Use this when recovering to a completely fresh server.
 
 3. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/bsBB.git
+   git clone https://github.com/randyau/bsBB.git
    cd bsBB
-   npm install
    ```
 
 4. **Restore your `.env` file:**

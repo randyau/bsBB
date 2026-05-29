@@ -32,7 +32,7 @@ sudo usermod -aG docker $USER
 
 **1. Clone and install:**
 ```bash
-git clone https://github.com/yourusername/bsBB.git
+git clone https://github.com/randyau/bsBB.git
 cd bsBB
 npm install
 ```
@@ -77,7 +77,7 @@ The dev scripts are bash scripts. WSL2 gives you a real Linux environment on Win
 - **Docker Desktop for Windows** with WSL2 integration enabled (Settings → Resources → WSL Integration → enable for your Ubuntu distro)
 - **Node.js inside WSL2** — install via `nvm` inside your WSL2 terminal, not the Windows version:
   ```bash
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
   # Restart terminal, then:
   nvm install 20
   nvm use 20
@@ -92,7 +92,7 @@ The dev scripts are bash scripts. WSL2 gives you a real Linux environment on Win
 ```bash
 # Inside WSL2 terminal
 cd ~
-git clone https://github.com/yourusername/bsBB.git
+git clone https://github.com/randyau/bsBB.git
 cd bsBB
 npm install
 ```

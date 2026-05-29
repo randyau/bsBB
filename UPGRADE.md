@@ -87,16 +87,23 @@ Drizzle migrations are not automatically reversible. If a migration ran and you 
 # Stop the running services
 docker compose -f docker-compose.prod.yml down
 
-# Restore the database from backup
-# (see BACKUP.md for full restore instructions)
-gunzip -c /root/backups/forum-YYYY-MM-DD.sql.gz | \
-  docker compose -f docker-compose.prod.yml run --rm -i db \
-  psql -U forum forum
-
 # Check out the old code
 git checkout <previous-version-tag-or-commit>
 
-# Rebuild and restart
+# Start only the database so we can restore into it
+docker compose -f docker-compose.prod.yml up -d db
+
+# Wait for it to be ready
+docker compose -f docker-compose.prod.yml exec db pg_isready -U forum
+
+# Drop and restore the database from backup
+docker compose -f docker-compose.prod.yml exec db \
+  psql -U forum -c "DROP DATABASE forum; CREATE DATABASE forum;"
+
+gunzip -c /root/backups/forum-YYYY-MM-DD.sql.gz | \
+  docker compose -f docker-compose.prod.yml exec -T db psql -U forum forum
+
+# Rebuild and start everything
 docker compose -f docker-compose.prod.yml build app worker
 docker compose -f docker-compose.prod.yml up -d
 ```

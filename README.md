@@ -31,10 +31,11 @@ A modern, self-hosted threaded discussion forum built on ATproto and Bluesky ide
 - **Node.js 20+** — For running the app locally
 - **Git** — To clone the repo
 
+
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/yourusername/bsBB.git
+git clone https://github.com/randyau/bsBB.git
 cd bsBB
 npm install
 ```
@@ -74,12 +75,12 @@ Visit the dev login page:
 http://localhost:5173/dev/login
 ```
 
-| Handle | Role |
-|---|---|
-| `dev-admin.test` | admin |
-| `dev-moderator.test` | member |
-| `dev-member.test` | member |
-| `dev-banned.test` | banned |
+| Handle | Global role | Notes |
+|---|---|---|
+| `dev-admin.test` | admin | Full admin access |
+| `dev-moderator.test` | member | Global role is member; assign as forum moderator in Admin → Forums to test mod tools |
+| `dev-member.test` | member | Regular member |
+| `dev-banned.test` | banned | Redirected to /banned on login |
 
 **Log in as `dev-admin.test` first** — the very first login on a fresh database auto-promotes that user to admin.
 
@@ -214,9 +215,8 @@ npm run preview   # Test the production build locally
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete guide. Quick version:
 
 ```bash
-git clone https://github.com/yourusername/bsBB.git
+git clone https://github.com/randyau/bsBB.git
 cd bsBB
-npm install
 bash scripts/setup.sh
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml exec app npm run db:migrate
