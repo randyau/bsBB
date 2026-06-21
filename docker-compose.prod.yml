@@ -30,9 +30,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      test: ["CMD-SHELL", "node -e \"var h=new URL(process.env.PUBLIC_BASE_URL).hostname;require('http').get({host:'localhost',port:3000,headers:{host:h}},(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
       start_period: 10s
     networks:
