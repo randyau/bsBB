@@ -24,6 +24,8 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - SETUP_COMPLETE=${SETUP_COMPLETE:-true}
       - ORIGIN=${PUBLIC_BASE_URL}
+      - ADDRESS_HEADER=X-Forwarded-For
+      - XFF_DEPTH=1
     volumes:
       - app_uploads:/app/uploads
     depends_on:

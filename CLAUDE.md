@@ -270,8 +270,7 @@ See ARCHITECTURE.md for full schema with column types and indexes.
 - Thread you started has new replies
 - Moderator action taken on your content
 
-**Rate limiting:** No more than 1 DM per recipient per hour
-**Frequency preferences:** User can choose immediate, hourly, or daily batching
+**Rate limiting / frequency preferences:** Per-recipient throttle floor based on their chosen frequency — `immediate` (max once per 10 min), `hourly` (max once per hour), or `daily` (max once per 24h). Enforced in `worker/worker.py` (`FREQUENCY_WINDOWS`) by checking the recipient's last sent DM before sending the next.
 **Thread overrides:** Follow (always notify) or Mute (never notify) per thread
 
 ### Notification Worker

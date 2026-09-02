@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // We test the logic of claimFirstAdmin by observing what DB calls it makes.
-// The implementation does: select → (insert or update) → update users → insert mod_log
+// The implementation does one atomic insert-on-conflict (conditional on value='false')
+// to decide the claim, then update users + insert mod_log only if the claim succeeded.
 
-const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
 const mockInsert = vi.fn();
 
 vi.mock('$lib/db/index.js', () => ({
 	db: {
-		select: mockSelect,
 		insert: mockInsert,
 		update: mockUpdate,
 	},
@@ -26,11 +25,11 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-function mockSelectReturning(rows: object[]) {
-	mockSelect.mockReturnValue({
-		from: vi.fn().mockReturnValue({
-			where: vi.fn().mockReturnValue({
-				limit: vi.fn().mockResolvedValue(rows),
+function mockClaimInsert(returningRows: object[]) {
+	mockInsert.mockReturnValueOnce({
+		values: vi.fn().mockReturnValue({
+			onConflictDoUpdate: vi.fn().mockReturnValue({
+				returning: vi.fn().mockResolvedValue(returningRows),
 			}),
 		}),
 	});
@@ -45,37 +44,22 @@ function mockUpdateChain() {
 }
 
 describe('claimFirstAdmin', () => {
-	it('returns true and promotes when setting does not exist yet', async () => {
-		// Setting absent — will insert it, then update users + insert mod_log
-		mockSelectReturning([]);
-		mockInsert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
+	it('returns true and promotes when the atomic claim succeeds', async () => {
+		mockClaimInsert([{ key: 'first_admin_claimed' }]);
 		mockUpdate.mockReturnValue(mockUpdateChain());
+		mockInsert.mockReturnValueOnce({ values: vi.fn().mockResolvedValue(undefined) }); // mod_log
 
 		const result = await claimFirstAdmin('did:plc:abc');
 		expect(result).toBe(true);
-		expect(mockInsert).toHaveBeenCalledTimes(2); // instanceSettings + mod_log
-		expect(mockUpdate).toHaveBeenCalledTimes(1);  // users
+		expect(mockInsert).toHaveBeenCalledTimes(2); // instanceSettings claim + mod_log
+		expect(mockUpdate).toHaveBeenCalledTimes(1); // users
 	});
 
-	it('returns true and promotes when setting exists but is false', async () => {
-		// Setting present as 'false' — will update it, then update users + insert mod_log
-		mockSelectReturning([{ value: 'false' }]);
-		mockUpdate.mockReturnValue(mockUpdateChain());
-		mockInsert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
-
-		const result = await claimFirstAdmin('did:plc:abc');
-		expect(result).toBe(true);
-		expect(mockUpdate).toHaveBeenCalledTimes(2); // instanceSettings + users
-		expect(mockInsert).toHaveBeenCalledTimes(1); // mod_log
-	});
-
-	it('returns false when first_admin_claimed is already true', async () => {
-		// Setting present as 'true' — bail out immediately
-		mockSelectReturning([{ value: 'true' }]);
+	it('returns false when the claim was already taken (no row returned)', async () => {
+		mockClaimInsert([]);
 
 		const result = await claimFirstAdmin('did:plc:abc');
 		expect(result).toBe(false);
-		expect(mockInsert).not.toHaveBeenCalled();
 		expect(mockUpdate).not.toHaveBeenCalled();
 	});
 });

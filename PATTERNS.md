@@ -231,10 +231,10 @@ Always sanitize markdown **before storage** using `renderMarkdown()`:
 ```typescript
 import { renderMarkdown } from '$lib/markdown';
 
-const sanitizedHtml = renderMarkdown(userProvidedMarkdown);
+const sanitizedHtml = await renderMarkdown(userProvidedMarkdown, db);
 await db.insert(posts).values({
-  content_markdown: userProvidedMarkdown,
-  content_html: sanitizedHtml,
+  bodyMarkdown: userProvidedMarkdown,
+  bodyHtml: sanitizedHtml,
 });
 ```
 

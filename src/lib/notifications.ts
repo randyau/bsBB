@@ -116,6 +116,14 @@ export async function enqueueDmNotification(
 	// Always write to in-app inbox
 	await writeInboxNotification(recipientDid, notificationType, payload, actorDid);
 
+	// Global DM opt-in gates all Bluesky DM delivery, including followed threads
+	const user = await db.query.users.findFirst({
+		where: eq(users.did, recipientDid),
+		columns: { notifyViaBluesky: true }
+	});
+
+	if (!user?.notifyViaBluesky) return;
+
 	// Check thread-level subscription for DM delivery
 	const threadId = payload.threadId;
 	if (threadId) {
@@ -144,14 +152,6 @@ export async function enqueueDmNotification(
 			return;
 		}
 	}
-
-	// Fall through to global DM preference
-	const user = await db.query.users.findFirst({
-		where: eq(users.did, recipientDid),
-		columns: { notifyViaBluesky: true }
-	});
-
-	if (!user?.notifyViaBluesky) return;
 
 	await db.insert(notificationQueue).values({
 		recipientDid,

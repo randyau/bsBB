@@ -1,9 +1,9 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
-import { forums, threads, posts, users, userForumRoles, modLog, threadViews, notificationSubscriptions, piiRemovalRequests } from '$lib/db/schema';
+import { forums, threads, posts, users, modLog, threadViews, notificationSubscriptions, piiRemovalRequests } from '$lib/db/schema';
 import { eq, and, sql, ne, inArray, count } from 'drizzle-orm';
 import { error, redirect, fail } from '@sveltejs/kit';
-import { canRead, canPost } from '$lib/permissions/index.js';
+import { canRead, canPost, isForumModerator } from '$lib/permissions/index.js';
 import { isModerator } from '$lib/auth/roles.js';
 import { renderMarkdown } from '$lib/markdown/index.js';
 import { fetchLinkMetadata } from '$lib/markdown/og.js';
@@ -82,12 +82,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		if (isModerator(locals.user)) {
 			canModerate = true;
 		} else {
-			const [forumRole] = await db
-				.select()
-				.from(userForumRoles)
-				.where(and(eq(userForumRoles.userDid, locals.user.did), eq(userForumRoles.forumId, forum.id)))
-				.limit(1);
-			canModerate = forumRole?.role === 'moderator';
+			canModerate = await isForumModerator(db, locals.user.did, forum.id);
 		}
 	}
 
@@ -203,12 +198,8 @@ async function loadForMod(locals: App.Locals, params: { forumSlug: string; threa
 	if (!thread) throw error(404, 'Thread not found');
 
 	if (!isModerator(locals.user)) {
-		const [forumRole] = await db
-			.select()
-			.from(userForumRoles)
-			.where(and(eq(userForumRoles.userDid, locals.user.did), eq(userForumRoles.forumId, forum.id)))
-			.limit(1);
-		if (forumRole?.role !== 'moderator') throw error(403, 'Moderator access required');
+		const isForumMod = await isForumModerator(db, locals.user.did, forum.id);
+		if (!isForumMod) throw error(403, 'Moderator access required');
 	}
 
 	return { user: locals.user, forum, thread };
@@ -409,6 +400,9 @@ export const actions: Actions = {
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
 		if (!postId) return fail(422, { error: 'Post ID required' });
+		const [post] = await db.select({ id: posts.id }).from(posts)
+			.where(and(eq(posts.id, postId), eq(posts.threadId, t.id))).limit(1);
+		if (!post) return fail(404, { error: 'Post not found in this thread' });
 		await db.update(posts).set({ status: 'hidden' }).where(eq(posts.id, postId));
 		await db.insert(modLog).values({ moderatorDid: user.did, action: 'hide_post', targetPostId: postId, reason: reason || undefined });
 		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
@@ -420,6 +414,9 @@ export const actions: Actions = {
 		const postId = String(form.get('postId') ?? '').trim();
 		const reason = String(form.get('reason') ?? '').trim();
 		if (!postId) return fail(422, { error: 'Post ID required' });
+		const [post] = await db.select({ id: posts.id }).from(posts)
+			.where(and(eq(posts.id, postId), eq(posts.threadId, t.id))).limit(1);
+		if (!post) return fail(404, { error: 'Post not found in this thread' });
 		await db.update(posts).set({ status: 'active' }).where(eq(posts.id, postId));
 		await db.insert(modLog).values({ moderatorDid: user.did, action: 'restore_post', targetPostId: postId, reason: reason || undefined });
 		throw redirect(303, `/f/${f.slug}/t/${t.slug}`);
@@ -579,12 +576,7 @@ export const actions: Actions = {
 			.limit(1);
 		if (!post) return fail(404, { error: 'Post not found' });
 
-		const actorIsMod = isModerator(locals.user) || await (async () => {
-			const [forumRole] = await db.select().from(userForumRoles)
-				.where(and(eq(userForumRoles.userDid, locals.user!.did), eq(userForumRoles.forumId, forum.id)))
-				.limit(1);
-			return forumRole?.role === 'moderator';
-		})();
+		const actorIsMod = isModerator(locals.user) || await isForumModerator(db, locals.user.did, forum.id);
 
 		if (post.authorDid !== locals.user.did && !actorIsMod) {
 			return fail(403, { error: 'Not allowed' });

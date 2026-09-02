@@ -1,10 +1,11 @@
 import type { PageServerLoad } from './$types';
 import { searchPosts, searchPostsCount, type SearchResult } from '$lib/search';
+import { checkAbuse } from '$lib/abuse/index.js';
 import { logger as rootLogger } from '$lib/logger';
 
 const log = rootLogger.child({ module: 'routes:search' });
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, getClientAddress }) => {
 	const rawQuery = url.searchParams.get('q')?.trim() || '';
 	const pageStr = url.searchParams.get('page') || '1';
 	const page = Math.max(1, parseInt(pageStr));
@@ -23,6 +24,8 @@ export const load: PageServerLoad = async ({ url }) => {
 	if (hasSearchTerm) {
 		if (contentQuery && contentQuery.length < 2) {
 			error = 'Query must be at least 2 characters';
+		} else if (!(await checkAbuse({ type: 'search', ip: getClientAddress() })).allowed) {
+			error = 'Too many requests. Please try again later.';
 		} else {
 			try {
 				[results, total] = await Promise.all([

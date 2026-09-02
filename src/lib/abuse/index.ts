@@ -12,7 +12,8 @@ export type AbuseContext =
 	| { type: 'login_attempt'; ip: string }
 	| { type: 'preview_request'; did: string | null; ip: string }
 	| { type: 'flag_submit'; did: string; ip: string }
-	| { type: 'og_fetch'; ip: string };
+	| { type: 'og_fetch'; ip: string }
+	| { type: 'search'; ip: string };
 
 export type AbuseVerdict =
 	| { allowed: true }
@@ -24,7 +25,8 @@ const LIMITS: Record<string, { window: number; limit: number }> = {
 	preview_request: { window: 3600 * 1000, limit: 60 },
 	login_attempt: { window: 15 * 60 * 1000, limit: 10 },
 	flag_submit: { window: 3600 * 1000, limit: 20 },
-	og_fetch: { window: 3600 * 1000, limit: 20 }
+	og_fetch: { window: 3600 * 1000, limit: 20 },
+	search: { window: 60 * 1000, limit: 20 }
 };
 
 async function checkBucket(key: string, config: { window: number; limit: number }, now: number): Promise<{ count: number; windowStart: Date }> {

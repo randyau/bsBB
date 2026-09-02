@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types.js';
 import { getAtprotoClient } from '$lib/auth/atproto.js';
 import { env } from '$env/dynamic/private';
 import { logger as rootLogger } from '$lib/logger.js';
+import { checkAbuse } from '$lib/abuse/index.js';
 
 const log = rootLogger.child({ module: 'auth:login' });
 
@@ -11,7 +12,13 @@ export const load: PageServerLoad = () => ({
 });
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, getClientAddress }) => {
+		const ip = getClientAddress();
+		const verdict = await checkAbuse({ type: 'login_attempt', ip });
+		if (!verdict.allowed) {
+			return fail(429, { error: 'Too many login attempts. Please try again later.' });
+		}
+
 		const data = await request.formData();
 		const handle = (data.get('handle') as string | null)?.trim();
 

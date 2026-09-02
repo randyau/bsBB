@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { searchPosts, searchPostsCount } from '$lib/search';
+import { checkAbuse } from '$lib/abuse/index.js';
 import { logger as rootLogger } from '$lib/logger';
 
 const log = rootLogger.child({ module: 'routes:api:search' });
@@ -11,7 +12,12 @@ const log = rootLogger.child({ module: 'routes:api:search' });
  * Full-text search across all posts.
  * Returns paginated results with relevance scoring.
  */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, getClientAddress }) => {
+	const verdict = await checkAbuse({ type: 'search', ip: getClientAddress() });
+	if (!verdict.allowed) {
+		return json({ error: 'Too many requests. Please try again later.', results: [], total: 0, page: 1, pageSize: 20 }, { status: 429 });
+	}
+
 	const query = url.searchParams.get('q')?.trim() || '';
 	const pageStr = url.searchParams.get('page') || '1';
 	const page = Math.max(1, parseInt(pageStr));

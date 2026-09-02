@@ -36,31 +36,22 @@ export async function upsertUser(
 // Returns true if this user was promoted (for flash banner)
 // ---------------------------------------------------------------------------
 export async function claimFirstAdmin(did: string): Promise<boolean> {
-	// Check if already claimed
-	const existing = await db
-		.select({ value: instanceSettings.value })
-		.from(instanceSettings)
-		.where(eq(instanceSettings.key, 'first_admin_claimed'))
-		.limit(1);
+	// Atomic claim: insert-or-update in one statement so two concurrent first
+	// logins can't both read value='false' and both promote themselves.
+	// The DO UPDATE only fires (and only returns a row) when the row is still 'false'.
+	const claimed = await db
+		.insert(instanceSettings)
+		.values({ key: 'first_admin_claimed', value: 'true' })
+		.onConflictDoUpdate({
+			target: instanceSettings.key,
+			set: { value: 'true' },
+			setWhere: eq(instanceSettings.value, 'false'),
+		})
+		.returning({ key: instanceSettings.key });
 
-	// If the setting exists and is 'true', already claimed
-	if (existing.length > 0 && existing[0].value === 'true') {
+	if (claimed.length === 0) {
+		// Row already existed with value='true' — already claimed by someone else
 		return false;
-	}
-
-	// Either doesn't exist or is 'false' — claim it for this user
-	if (existing.length === 0) {
-		// Insert if it doesn't exist
-		await db.insert(instanceSettings).values({
-			key: 'first_admin_claimed',
-			value: 'true',
-		});
-	} else {
-		// Update if it exists and is 'false'
-		await db
-			.update(instanceSettings)
-			.set({ value: 'true' })
-			.where(eq(instanceSettings.key, 'first_admin_claimed'));
 	}
 
 	// Promote this user to admin

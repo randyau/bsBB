@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
  * Returns the ordered chain of forum IDs from forumId up to the root in a single query.
  * Replaces the old loop-per-level approach (N+1) with a single recursive CTE.
  */
-async function getParentChain(db: typeof dbType, forumId: string): Promise<string[]> {
+export async function getParentChain(db: typeof dbType, forumId: string): Promise<string[]> {
 	const rows = await db.execute(sql`
 		WITH RECURSIVE chain AS (
 			SELECT id, parent_id FROM forums WHERE id = ${forumId}
@@ -107,6 +107,35 @@ export async function canPost(
 	if (hasCustom) return true;
 
 	return true; // members can post by default
+}
+
+/**
+ * Check if a user holds an explicit per-forum "moderator" assignment for this forum,
+ * honoring hierarchical inheritance: a moderator assigned at a parent forum has mod
+ * rights in child forums unless a closer row in the chain assigns a different role.
+ * Does not consider global admin/moderator role — callers should check isModerator() first.
+ */
+export async function isForumModerator(
+	db: typeof dbType,
+	userDid: string,
+	forumId: string
+): Promise<boolean> {
+	const chain = await getParentChain(db, forumId);
+	if (chain.length === 0) return false;
+
+	const rows = await db
+		.select()
+		.from(userForumRoles)
+		.where(and(eq(userForumRoles.userDid, userDid), inArray(userForumRoles.forumId, chain)));
+
+	const roleMap = new Map(rows.map(r => [r.forumId, r.role]));
+
+	for (const chainForumId of chain) {
+		const role = roleMap.get(chainForumId);
+		if (role) return role === 'moderator';
+	}
+
+	return false;
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json, error } from '@sveltejs/kit';
+import { getSetting } from '$lib/settings';
 
 export const GET: RequestHandler = async ({ request }) => {
 	const clientId = process.env.ATPROTO_CLIENT_ID;
@@ -18,11 +19,15 @@ export const GET: RequestHandler = async ({ request }) => {
 		return error(500, 'Invalid ATPROTO_PUBLIC_KEY JSON');
 	}
 
+	// Must match the client_name used to build the actual OAuth client (src/lib/auth/atproto.ts)
+	// so the name shown to users during the PDS consent screen matches the app's configured name.
+	const siteName = await getSetting('site_name', 'bsBB');
+
 	// Construct client metadata dynamically from environment configuration
 	// This eliminates a static file dependency, making the app stateless across instances
 	const clientMetadata = {
 		client_id: clientId,
-		client_name: 'bsBB Forum',
+		client_name: `${siteName} Forum`,
 		client_uri: baseUrl,
 		redirect_uris: [`${baseUrl}/callback`],
 		scope: 'atproto',

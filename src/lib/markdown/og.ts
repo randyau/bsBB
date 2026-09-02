@@ -11,7 +11,7 @@ export interface LinkMetadata {
 function isPrivateAddress(urlStr: string): boolean {
 	try {
 		const { hostname } = new URL(urlStr);
-		return /^(localhost|127\.|0\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(
+		return /^(localhost|127\.|0\.|10\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(
 			hostname
 		);
 	} catch {
@@ -28,11 +28,8 @@ export async function fetchLinkMetadata(
 
 	if (isPrivateAddress(url)) return null;
 
-	try {
-		await checkAbuse({ type: 'og_fetch', ip: ip ?? '' });
-	} catch {
-		return null;
-	}
+	const verdict = await checkAbuse({ type: 'og_fetch', ip: ip ?? '' });
+	if (!verdict.allowed) return null;
 
 	try {
 		const ogs = await import('open-graph-scraper');

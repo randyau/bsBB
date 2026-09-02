@@ -77,7 +77,10 @@ BATCH_SIZE = 10
 ATPROTO_BSKY_SOCIAL = "https://bsky.social"
 ATPROTO_CHAT_PROXY = "did:web:api.bsky.chat#bsky_chat"
 
-# Frequency throttle windows in seconds
+# Frequency throttle windows in seconds, per user-selected notificationFrequency
+# (src/routes/settings). "immediate" is still floored to prevent spam, matching
+# the settings UI's own label ("Max once every 10 minutes") — it is not a true
+# batching window like "hourly"/"daily", just the minimum spam-prevention gap.
 FREQUENCY_WINDOWS = {
     "immediate": 10 * 60,
     "hourly": 60 * 60,
@@ -329,11 +332,13 @@ def handle_moderator_alert(conn: psycopg.Connection, recipient_did: str, payload
     if not ADMIN_EMAIL:
         raise RuntimeError("ADMIN_EMAIL or SMTP_FROM must be set to receive moderator alerts")
 
-    action = payload.get("action", "")
-    target_type = payload.get("targetType", "")
-    target_label = payload.get("targetLabel", "")
-    moderator_handle = payload.get("moderatorHandle", "")
-    reason = payload.get("reason", "")
+    import html as _html
+
+    action = _html.escape(payload.get("action", ""))
+    target_type = _html.escape(payload.get("targetType", ""))
+    target_label = _html.escape(payload.get("targetLabel", ""))
+    moderator_handle = _html.escape(payload.get("moderatorHandle", ""))
+    reason = _html.escape(payload.get("reason", "") or "")
 
     subject = f"[Forum Alert] {action} - {target_label}"
     reason_html = f"<p><strong>Reason:</strong> {reason}</p>" if reason else ""
@@ -371,8 +376,11 @@ def handle_profile_sync(conn: psycopg.Connection, recipient_did: str, _payload: 
     profile = resp.json()
 
     with conn.cursor() as cur:
+        # Preserve a user-set display_name, matching /api/user/sync-profile — only
+        # fall back to the ATproto profile's displayName when none is set locally.
         cur.execute(
-            "UPDATE users SET handle = %s, display_name = %s, avatar_url = %s, "
+            "UPDATE users SET handle = %s, "
+            "display_name = COALESCE(display_name, %s), avatar_url = %s, "
             "last_profile_sync = now() WHERE did = %s",
             (profile["handle"], profile.get("displayName"), profile.get("avatar"), recipient_did),
         )
@@ -425,6 +433,7 @@ def process_notifications(conn: psycopg.Connection) -> None:
             rows = cur.fetchall()
 
             if not rows:
+                conn.commit()
                 return
 
             ids = [r["id"] for r in rows]
@@ -452,9 +461,15 @@ def process_notifications(conn: psycopg.Connection) -> None:
                         user = cur.fetchone()
                     if user and _is_throttled(conn, recipient_did, user["notification_frequency"]):
                         log.info("deferred (frequency throttled): %s", recipient_did)
+                        # Bump created_at so this row moves to the back of the
+                        # FIFO queue instead of permanently blocking newer,
+                        # non-throttled notifications at the head (ORDER BY
+                        # created_at ASC would otherwise re-select it every
+                        # poll until its throttle window expires).
                         with conn.cursor() as cur:
                             cur.execute(
-                                "UPDATE notification_queue SET status = 'pending' WHERE id = %s",
+                                "UPDATE notification_queue SET status = 'pending', created_at = now() "
+                                "WHERE id = %s",
                                 (notif_id,),
                             )
                         conn.commit()
