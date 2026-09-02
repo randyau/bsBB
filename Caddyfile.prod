@@ -1,9 +1,4 @@
 {$DOMAIN} {
-	handle /client-metadata.json {
-		root * /srv/static
-		file_server
-	}
-
 	handle /assets/* {
 		root * /app/uploads
 		file_server

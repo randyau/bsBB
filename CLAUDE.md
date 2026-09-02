@@ -168,7 +168,7 @@ The forum is intended to be open sourced so that others can self-host it. All se
 | Prod services | app + worker + db + caddy (4 services) |
 | Dev services | db only — app runs via `npm run dev` |
 | HTTPS | Caddy automatic Let's Encrypt |
-| Reverse proxy | Caddy (serves `client-metadata.json` as static file; proxies everything else to app) |
+| Reverse proxy | Caddy (proxies everything, including `client-metadata.json`, to app) |
 | Backups | Daily `pg_dump` → Cloudflare R2 or Backblaze B2 via cron, 7-day rolling |
 
 ### Docker Compose Services

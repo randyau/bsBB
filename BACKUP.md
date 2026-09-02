@@ -10,8 +10,9 @@ Everything important in bsBB is in the PostgreSQL database. Back that up and you
 |---|---|---|
 | Database | Docker volume `db_data` | `pg_dump` (see below) |
 | `.env` file | Project root | Copy to secure location |
-| `docker/caddy-static/client-metadata.json` | Project root | Copy alongside `.env` |
 | SSL certificates | Caddy manages these | Automatically renewed; no manual backup needed |
+
+`client-metadata.json` is rendered dynamically by the app from `.env` values (`ATPROTO_CLIENT_ID`, `ATPROTO_PUBLIC_KEY`, `PUBLIC_BASE_URL`) — there's no separate file to back up.
 
 The code itself lives in git — just re-clone. The only irreplaceable data is the database and your `.env`.
 
@@ -175,7 +176,7 @@ Use this when recovering to a completely fresh server.
    ```
 
 4. **Restore your `.env` file:**
-   Copy your backed-up `.env` to the project root. Also restore `docker/caddy-static/client-metadata.json`.
+   Copy your backed-up `.env` to the project root. `client-metadata.json` is rendered dynamically from it — nothing else to restore.
    
    If you don't have your `.env`, you can re-run `bash scripts/setup.sh` — but you'll need to generate new secrets, and existing user sessions will be invalidated.
 

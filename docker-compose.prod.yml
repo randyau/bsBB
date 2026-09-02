@@ -13,6 +13,7 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - ATPROTO_CLIENT_ID=${ATPROTO_CLIENT_ID}
       - ATPROTO_PRIVATE_KEY=${ATPROTO_PRIVATE_KEY}
+      - ATPROTO_PUBLIC_KEY=${ATPROTO_PUBLIC_KEY}
       - ATPROTO_SERVICE_HANDLE=${ATPROTO_SERVICE_HANDLE}
       - ATPROTO_SERVICE_APP_PASSWORD=${ATPROTO_SERVICE_APP_PASSWORD}
       - SMTP_HOST=${SMTP_HOST}
@@ -84,7 +85,6 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
-      - ./docker/caddy-static:/srv/static:ro
       - app_uploads:/app/uploads:ro
       - caddy_data:/data
       - caddy_config:/config

@@ -47,7 +47,7 @@ This document translates the project specification (CLAUDE.md) and all collected
 | Client-side markdown | `markdown-it` | Renders preview in real-time; `/api/preview` endpoint available but not used by UI |
 | OG/link metadata | `open-graph-scraper` | Server-side at post submit; triggered only for bare URLs on their own line |
 | Email | Nodemailer over SMTP | Provider-agnostic via env vars |
-| Reverse proxy | Caddy | Automatic TLS; serves `client-metadata.json` as static file |
+| Reverse proxy | Caddy | Automatic TLS; proxies `client-metadata.json` (and everything else) through to the app |
 | Containerization | Docker Compose | Production: `app` + `worker` + `db` + `caddy`; Dev: `db` only |
 
 ---
@@ -136,7 +136,7 @@ bsBB/
 │       │   └── settings/                 # Instance-level settings
 │       │
 │       ├── banned/                       # Ban page shown to banned users
-│       ├── client-metadata.json/         # Dynamic ATproto client metadata (dev only; prod uses Caddy static file)
+│       ├── client-metadata.json/         # Dynamic ATproto client metadata (dev and prod)
 │       └── api/preview/                  # POST: render markdown server-side for editor
 │
 ├── scripts/
@@ -494,7 +494,7 @@ window_start TIMESTAMPTZ NOT NULL DEFAULT now()
 /dev/login/                            Dev-only login (requires DEV_AUTH_ENABLED=true)
 
 /api/preview/                          POST: server-side markdown render for editor
-/client-metadata.json                  Static file served by Caddy (prod); SvelteKit dynamic route (dev)
+/client-metadata.json                  SvelteKit dynamic route (dev and prod); Caddy proxies through to the app
 ```
 
 **Thread URL rules:**
@@ -804,7 +804,7 @@ Bash for the critical early steps (no Node runtime needed yet):
    ```
    (`gen-keypair.js` is a small Node script called by the shell script — clean separation)
 3. Prompt for `PUBLIC_BASE_URL` (e.g. `https://yourforum.com`)
-4. Generate `client-metadata.json` with public key + redirect URIs + scopes
+4. Write `ATPROTO_CLIENT_ID` / `ATPROTO_PUBLIC_KEY` to `.env` — `client-metadata.json` (public key + redirect URIs + scopes) is rendered dynamically from these at request time, not generated as a file
 5. Prompt for `ATPROTO_SERVICE_HANDLE` + `ATPROTO_SERVICE_APP_PASSWORD`; validate via test API call
 6. Prompt for SMTP credentials; send test email
 7. Prompt: default forum visibility — `public` or `members-only`
@@ -847,7 +847,7 @@ worker — Python 3.12 process; internal network only; runs worker/worker.py
 db     — postgres:17; named volume forum_data; internal network only
          Central state store; notification_queue uses row locking for safe concurrent access
          
-caddy  — ports 80/443; serves /client-metadata.json as static file from docker/caddy-static/; reverse proxies everything else to app:3000
+caddy  — ports 80/443; reverse proxies everything, including /client-metadata.json, to app:3000
 ```
 
 ### Caddy Config (key excerpts)

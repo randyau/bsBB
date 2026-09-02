@@ -99,31 +99,11 @@ SESSION_SECRET=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -hex 24)
 
 # ---------------------------------------------------------------------------
-# Generate client-metadata.json (served as static file by Caddy)
+# client-metadata.json is served dynamically by src/routes/client-metadata.json/+server.ts
+# (via ATPROTO_CLIENT_ID, ATPROTO_PUBLIC_KEY, PUBLIC_BASE_URL written to .env below) —
+# nothing to generate here.
 # ---------------------------------------------------------------------------
-CLIENT_METADATA_DIR="$PROJECT_ROOT/docker/caddy-static"
-mkdir -p "$CLIENT_METADATA_DIR"
 CLIENT_ID="${PUBLIC_BASE_URL}/client-metadata.json"
-
-node -e "
-const pub = $PUBLIC_JWK;
-const meta = {
-  client_id: '$CLIENT_ID',
-  client_name: 'bsBB Forum',
-  client_uri: '$PUBLIC_BASE_URL',
-  redirect_uris: ['${PUBLIC_BASE_URL}/callback'],
-  scope: 'atproto',
-  grant_types: ['authorization_code', 'refresh_token'],
-  response_types: ['code'],
-  token_endpoint_auth_method: 'private_key_jwt',
-  token_endpoint_auth_signing_alg: 'ES256',
-  jwks: { keys: [{ ...pub, use: 'sig', alg: 'ES256' }] },
-  dpop_bound_access_tokens: true,
-  application_type: 'web',
-};
-require('fs').writeFileSync('$CLIENT_METADATA_DIR/client-metadata.json', JSON.stringify(meta, null, 2));
-console.log('  client-metadata.json written to docker/caddy-static/');
-"
 
 # ---------------------------------------------------------------------------
 # Write .env

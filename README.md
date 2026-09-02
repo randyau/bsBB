@@ -127,8 +127,7 @@ bsBB/
 │   ├── hooks.server.ts         # Session hydration, banned user redirect
 │   └── +layout.svelte          # Root layout with nav and theme toggle
 ├── docker/
-│   ├── docker-compose.dev.yml  # Dev: PostgreSQL only
-│   └── caddy-static/           # Static files served by Caddy (client-metadata.json)
+│   └── docker-compose.dev.yml  # Dev: PostgreSQL only
 ├── docker-compose.prod.yml     # Production: app + worker + db + caddy
 ├── Dockerfile.prod             # Production image
 ├── Caddyfile.prod              # Caddy reverse proxy config

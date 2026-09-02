@@ -119,8 +119,7 @@ This interactive script:
 1. Generates a P-256 keypair for ATproto OAuth
 2. Generates a random `SESSION_SECRET`
 3. Prompts you for your configuration
-4. Writes a complete `.env` file
-5. Writes `docker/caddy-static/client-metadata.json`
+4. Writes a complete `.env` file (`client-metadata.json` is served dynamically by the app from these values — nothing else to generate)
 
 **You'll be asked for:**
 
@@ -401,14 +400,14 @@ Common causes:
 
 ### ATproto OAuth not working
 
-The `ATPROTO_CLIENT_ID` must exactly match the URL where `client-metadata.json` is publicly accessible. Caddy serves it from `docker/caddy-static/client-metadata.json`.
+The `ATPROTO_CLIENT_ID` must exactly match the URL where `client-metadata.json` is publicly accessible. It's served dynamically by the SvelteKit app (`src/routes/client-metadata.json/+server.ts`) from `ATPROTO_CLIENT_ID`, `ATPROTO_PUBLIC_KEY`, and `PUBLIC_BASE_URL`; Caddy proxies the request through to the app.
 
 Verify it's accessible:
 ```bash
 curl https://yourforum.com/client-metadata.json
 ```
 
-If it returns an error, check the Caddy config and that `docker/caddy-static/client-metadata.json` exists.
+If it returns a 500, check that `ATPROTO_PUBLIC_KEY` is set in the app service's environment (`docker compose -f docker-compose.prod.yml config` will show it). If it returns a 404, check the Caddy config isn't still routing `/client-metadata.json` to a static file.
 
 ### Worker not sending notifications
 

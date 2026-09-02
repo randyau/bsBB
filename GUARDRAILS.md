@@ -144,11 +144,11 @@ author_handle: text('author_handle').references(() => users.handle)
 
 ## Rule 6: Config Files Are Definitions, Not State
 
-`client-metadata.json` and `.env` define inputs. They are not application state.
+`.env` defines inputs. It is not application state.
 
-- The app reads these files at startup — it never writes to them at runtime.
-- `client-metadata.json` is a generated artifact (produced by `setup.js`) — never hand-edit it, never regenerate it during a request.
-- **Idempotency:** Running `setup.js` twice with the same inputs must produce identical `client-metadata.json` output.
+- The app reads `.env` (via `process.env`) at startup and per-request — it never writes to it at runtime.
+- `client-metadata.json` is rendered dynamically on every request by `src/routes/client-metadata.json/+server.ts` from `ATPROTO_CLIENT_ID`, `ATPROTO_PUBLIC_KEY`, and `PUBLIC_BASE_URL` — it is not a file on disk and nothing generates it ahead of time.
+- **Idempotency:** Two requests to `/client-metadata.json` with the same env config must return identical output.
 - All paths in config must be environment-relative. No hardcoded absolute paths.
 
 ---
@@ -216,7 +216,7 @@ High-risk areas to flag in this project:
 ## Rule 10: Idempotency Is a Tested Invariant
 
 - Submitting the same post twice (duplicate request) must not create two rows — implement idempotency keys or check-before-insert at the server action level.
-- Running `setup.js` twice must produce identical `client-metadata.json`.
+- Repeated requests to `/client-metadata.json` must produce identical output for the same env config (it is rendered dynamically, not cached to disk).
 - Profile sync triggered twice within 24h must be a no-op (check `last_profile_sync` before enqueuing).
 
 `posts.test.ts` enforces the duplicate-submission invariant. Do not break it.
@@ -379,7 +379,7 @@ Never write `.bat` or `.ps1` scripts for project tooling. All scripts are `.sh` 
 
 ### Filesystem Location
 
-Keep the project and all runtime-generated files (`.env`, `client-metadata.json`, logs, Postgres data) **inside the WSL filesystem** (e.g. `~/projects/bsBB`), not on the mounted Windows drive (`/mnt/e/...`).
+Keep the project and all runtime-generated files (`.env`, logs, Postgres data) **inside the WSL filesystem** (e.g. `~/projects/bsBB`), not on the mounted Windows drive (`/mnt/e/...`).
 
 Reasons:
 - File watchers (Vite HMR, `nodemon`) are unreliable on `/mnt/` paths.
@@ -464,8 +464,8 @@ curl -H "Cookie: session=<token>" http://localhost:5173/admin
 
 - `ATPROTO_PRIVATE_KEY`, `ATPROTO_SERVICE_APP_PASSWORD`, `SMTP_PASS`, `SESSION_SECRET`, and `DATABASE_URL` are never committed to the repository.
 - These live in `.env` (gitignored). `.env.example` lists all keys with placeholder values.
-- `client-metadata.json` is gitignored — it is a generated artifact containing the public JWK.
-- The setup script (`setup.js`) is the only place that writes `.env` and `client-metadata.json`.
+- `client-metadata.json` is not a file — it's rendered dynamically at request time from `ATPROTO_CLIENT_ID`, `ATPROTO_PUBLIC_KEY`, and `PUBLIC_BASE_URL`; the public JWK never touches disk outside `.env`.
+- The setup script (`setup.sh`) is the only place that writes `.env`.
 - Docker Compose secrets are passed via environment variables only — never baked into the image.
 
 ---
@@ -508,6 +508,6 @@ A pre-commit hook at `.git/hooks/pre-commit` enforces this: it rejects any commi
 5. **Notifications are async.** Server actions enqueue to `notification_queue`. Worker sends. Never synchronous inline send.
 6. **Mod log is append-only.** No update or delete routes exist. Ever.
 7. **Persistence before state.** DB commit before session/memory update.
-8. **Config is read-only at runtime.** `client-metadata.json` and `.env` are never written during request handling.
+8. **Config is read-only at runtime.** `.env` is never written during request handling; `client-metadata.json` is rendered (not written to disk) from it on each request.
 9. **No user OAuth tokens stored.** DMs sent by forum service account only; no per-user chat tokens in DB.
 10. **Tests before implementation** for all auth, permission, and schema changes.

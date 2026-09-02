@@ -1,9 +1,4 @@
 {$PUBLIC_DOMAIN} {
-	handle /client-metadata.json {
-		root * /srv/static
-		file_server
-	}
-
 	reverse_proxy app:3000
 
 	header {
