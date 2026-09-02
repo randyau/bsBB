@@ -1,25 +1,33 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db';
 import { posts, threads, forums, users, modLog, piiRemovalRequests, postRevisions, userForumRoles } from '$lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import { isModerator } from '$lib/auth/roles.js';
+import { isForumModerator } from '$lib/permissions/index.js';
 
-async function isModOrAdmin(user: Parameters<typeof isModerator>[0], userDid: string): Promise<boolean> {
+// A moderator may act on a PII request only if they're a global mod/admin, or a
+// forum moderator (including via parent-forum inheritance) of the post's own forum.
+async function canActOnForum(
+	user: Parameters<typeof isModerator>[0],
+	userDid: string,
+	forumId: string
+): Promise<boolean> {
 	if (isModerator(user)) return true;
-	// Forum-specific moderators also get access
-	const rows = await db
-		.select({ id: userForumRoles.userDid })
-		.from(userForumRoles)
-		.where(and(eq(userForumRoles.userDid, userDid), eq(userForumRoles.role, 'moderator')))
-		.limit(1);
-	return rows.length > 0;
+	return isForumModerator(db, userDid, forumId);
 }
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw error(401, 'Not authenticated');
-	const allowed = await isModOrAdmin(locals.user, locals.user.did);
-	if (!allowed) throw error(403, 'Moderator access required');
+
+	if (!isModerator(locals.user)) {
+		const [anyForumRole] = await db
+			.select({ id: userForumRoles.userDid })
+			.from(userForumRoles)
+			.where(eq(userForumRoles.userDid, locals.user.did))
+			.limit(1);
+		if (!anyForumRole) throw error(403, 'Moderator access required');
+	}
 
 	const pending = await db
 		.select({
@@ -35,6 +43,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			threadId: threads.id,
 			threadTitle: threads.title,
 			threadSlug: threads.slug,
+			forumId: forums.id,
 			forumSlug: forums.slug,
 			forumName: forums.name,
 			authorHandle: users.handle,
@@ -48,9 +57,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.where(eq(piiRemovalRequests.status, 'pending'))
 		.orderBy(desc(piiRemovalRequests.createdAt));
 
+	// Scope to forums this moderator actually has rights in (global mods see all).
+	const scoped = isModerator(locals.user)
+		? pending
+		: (
+			await Promise.all(
+				pending.map(async (row) =>
+					(await isForumModerator(db, locals.user!.did, row.forumId)) ? row : null
+				)
+			)
+		).filter((row): row is (typeof pending)[number] => row !== null);
+
 	// Fetch requester handles separately (they may differ from post author)
 	const withRequesters = await Promise.all(
-		pending.map(async (row) => {
+		scoped.map(async (row) => {
 			const [requester] = await db
 				.select({ handle: users.handle })
 				.from(users)
@@ -66,21 +86,30 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	piiWipe: async ({ locals, request }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
-		const allowed = await isModOrAdmin(locals.user, locals.user.did);
-		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		const form = await request.formData();
 		const requestId = String(form.get('requestId') ?? '').trim();
 		if (!requestId) return fail(422, { error: 'Request ID required' });
 
 		const [req] = await db
-			.select({ id: piiRemovalRequests.id, postId: piiRemovalRequests.postId, status: piiRemovalRequests.status })
+			.select({
+				id: piiRemovalRequests.id,
+				postId: piiRemovalRequests.postId,
+				status: piiRemovalRequests.status,
+				forumId: forums.id,
+			})
 			.from(piiRemovalRequests)
+			.innerJoin(posts, eq(piiRemovalRequests.postId, posts.id))
+			.innerJoin(threads, eq(posts.threadId, threads.id))
+			.innerJoin(forums, eq(threads.forumId, forums.id))
 			.where(eq(piiRemovalRequests.id, requestId))
 			.limit(1);
 
 		if (!req) return fail(404, { error: 'Request not found' });
 		if (req.status !== 'pending') return fail(422, { error: 'Request is already resolved' });
+
+		const allowed = await canActOnForum(locals.user, locals.user.did, req.forumId);
+		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		await db.transaction(async (tx) => {
 			// Purge revision history
@@ -115,8 +144,6 @@ export const actions: Actions = {
 
 	dismiss: async ({ locals, request }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
-		const allowed = await isModOrAdmin(locals.user, locals.user.did);
-		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		const form = await request.formData();
 		const requestId = String(form.get('requestId') ?? '').trim();
@@ -125,13 +152,24 @@ export const actions: Actions = {
 		if (!dismissReason) return fail(422, { error: 'Dismiss reason required' });
 
 		const [req] = await db
-			.select({ id: piiRemovalRequests.id, postId: piiRemovalRequests.postId, status: piiRemovalRequests.status })
+			.select({
+				id: piiRemovalRequests.id,
+				postId: piiRemovalRequests.postId,
+				status: piiRemovalRequests.status,
+				forumId: forums.id,
+			})
 			.from(piiRemovalRequests)
+			.innerJoin(posts, eq(piiRemovalRequests.postId, posts.id))
+			.innerJoin(threads, eq(posts.threadId, threads.id))
+			.innerJoin(forums, eq(threads.forumId, forums.id))
 			.where(eq(piiRemovalRequests.id, requestId))
 			.limit(1);
 
 		if (!req) return fail(404, { error: 'Request not found' });
 		if (req.status !== 'pending') return fail(422, { error: 'Request is already resolved' });
+
+		const allowed = await canActOnForum(locals.user, locals.user.did, req.forumId);
+		if (!allowed) return fail(403, { error: 'Moderator access required' });
 
 		await db.update(piiRemovalRequests).set({
 			status: 'dismissed',
